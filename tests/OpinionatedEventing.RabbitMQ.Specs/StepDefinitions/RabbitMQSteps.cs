@@ -1,3 +1,5 @@
+using Reqnroll;
+
 namespace OpinionatedEventing.RabbitMQ.Specs.StepDefinitions;
 
 [Binding]

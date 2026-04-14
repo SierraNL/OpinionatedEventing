@@ -1,3 +1,5 @@
+using Reqnroll;
+
 namespace OpinionatedEventing.Core.Specs.StepDefinitions;
 
 [Binding]

@@ -1,3 +1,5 @@
+using Reqnroll;
+
 namespace OpinionatedEventing.Outbox.Specs.StepDefinitions;
 
 [Binding]

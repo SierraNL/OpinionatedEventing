@@ -10,6 +10,12 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
+  <!-- Weird xunit issue -->
+  <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
+    <OutputType>Exe</OutputType>
+    <UseAppHost>true</UseAppHost>
+  </PropertyGroup>
+
   <!-- NuGet package metadata (applies to src/ only) -->
   <PropertyGroup Condition="'$(IsTestProject)' != 'true' and '$(IsSampleProject)' != 'true'">
     <Authors>Leon Grave</Authors>

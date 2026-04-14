@@ -1,3 +1,5 @@
+using Reqnroll;
+
 namespace OpinionatedEventing.AzureServiceBus.Specs.StepDefinitions;
 
 [Binding]
