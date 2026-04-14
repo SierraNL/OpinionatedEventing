@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>EF Core integration for OpinionatedEventing — IOutboxStore implementation, domain event interceptor, and saga state persistence.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpinionatedEventing.Core\OpinionatedEventing.Core.csproj" />
+    <ProjectReference Include="..\OpinionatedEventing.Outbox\OpinionatedEventing.Outbox.csproj" />
+    <ProjectReference Include="..\OpinionatedEventing.Sagas\OpinionatedEventing.Sagas.csproj" />
+  </ItemGroup>
+
+</Project>

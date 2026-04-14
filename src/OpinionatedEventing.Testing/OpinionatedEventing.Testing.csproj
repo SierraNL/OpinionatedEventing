@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Test helpers for OpinionatedEventing — InMemoryOutboxStore, FakePublisher, FakeMessagingContext, and TestMessagingBuilder for unit testing without infrastructure.</Description>
+    <DevelopmentDependency>true</DevelopmentDependency>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpinionatedEventing.Core\OpinionatedEventing.Core.csproj" />
+    <ProjectReference Include="..\OpinionatedEventing.Outbox\OpinionatedEventing.Outbox.csproj" />
+  </ItemGroup>
+
+</Project>

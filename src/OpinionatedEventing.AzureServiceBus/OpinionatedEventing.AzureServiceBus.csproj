@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Azure Service Bus transport for OpinionatedEventing. Events map to topics, commands map to queues. Supports DefaultAzureCredential and auto-resource creation.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Messaging.ServiceBus" />
+    <PackageReference Include="Azure.Identity" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpinionatedEventing.Core\OpinionatedEventing.Core.csproj" />
+    <ProjectReference Include="..\OpinionatedEventing.Outbox\OpinionatedEventing.Outbox.csproj" />
+  </ItemGroup>
+
+</Project>

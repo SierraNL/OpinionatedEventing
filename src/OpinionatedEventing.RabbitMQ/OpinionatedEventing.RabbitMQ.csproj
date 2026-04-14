@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>RabbitMQ transport for OpinionatedEventing. Events map to topic exchanges, commands map to direct queues. Supports Aspire service discovery and auto-declare topology.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="RabbitMQ.Client" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpinionatedEventing.Core\OpinionatedEventing.Core.csproj" />
+    <ProjectReference Include="..\OpinionatedEventing.Outbox\OpinionatedEventing.Outbox.csproj" />
+  </ItemGroup>
+
+</Project>
