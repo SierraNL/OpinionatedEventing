@@ -32,17 +32,15 @@ jobs:
 
       - name: Unit & BDD tests (no containers)
         run: >
-          dotnet test --no-build --configuration Release
-          --filter "Category!=Integration"
-          --logger "trx;LogFileName=test-results.trx"
-          --collect "XPlat Code Coverage"
+          dotnet test -- --filter-trait "Category!=Integration"
+          --report-trx
+          --coverage --coverage-output-format cobertura
 
       - name: Integration tests (Testcontainers — Docker required)
         if: github.event_name == 'push'
         run: >
-          dotnet test --no-build --configuration Release
-          --filter "Category=Integration"
-          --logger "trx;LogFileName=integration-results.trx"
+          dotnet test -- --filter-trait "Category=Integration"
+          --report-trx
 
       - name: Upload test results
         if: always()
