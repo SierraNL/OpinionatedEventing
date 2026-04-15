@@ -17,6 +17,12 @@ public interface IOutboxStore
     /// </summary>
     /// <param name="batchSize">Maximum number of messages to return.</param>
     /// <param name="cancellationToken">Propagates notification that the operation should be cancelled.</param>
+    /// <remarks>
+    /// Implementations must ensure that concurrent calls do not return overlapping sets of messages.
+    /// Use pessimistic row-level locking (e.g. <c>SELECT … FOR UPDATE SKIP LOCKED</c>) when the
+    /// store is backed by a relational database and
+    /// <see cref="OpinionatedEventing.Options.OutboxOptions.ConcurrentWorkers"/> is greater than <c>1</c>.
+    /// </remarks>
     Task<IReadOnlyList<OutboxMessage>> GetPendingAsync(
         int batchSize,
         CancellationToken cancellationToken = default);
@@ -37,4 +43,14 @@ public interface IOutboxStore
     /// <param name="error">A description of the error that caused the failure.</param>
     /// <param name="cancellationToken">Propagates notification that the operation should be cancelled.</param>
     Task MarkFailedAsync(Guid id, string error, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Records a transient dispatch failure without dead-lettering the message.
+    /// Increments <see cref="OutboxMessage.AttemptCount"/> by one and stores the last error description.
+    /// The message remains eligible for future dispatch attempts.
+    /// </summary>
+    /// <param name="id">The identifier of the outbox message.</param>
+    /// <param name="error">A description of the error from the failed attempt.</param>
+    /// <param name="cancellationToken">Propagates notification that the operation should be cancelled.</param>
+    Task IncrementAttemptAsync(Guid id, string error, CancellationToken cancellationToken = default);
 }

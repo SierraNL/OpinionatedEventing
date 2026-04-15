@@ -11,6 +11,9 @@ public sealed class OpinionatedEventingBuilder
 {
     private readonly IServiceCollection _services;
 
+    /// <summary>Gets the underlying <see cref="IServiceCollection"/>.</summary>
+    public IServiceCollection Services => _services;
+
     internal OpinionatedEventingBuilder(IServiceCollection services)
     {
         _services = services;
