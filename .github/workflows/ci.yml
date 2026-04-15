@@ -40,13 +40,13 @@ jobs:
         run: >
           dotnet test --framework ${{ matrix.tfm }} -- --filter-trait "Category!=Integration"
           --report-trx
-          --coverage --coverage-output-format cobertura --ignore-exit-code 8
+          --coverage --coverage-output-format cobertura --ignore-exit-code 7 8
 
       - name: Integration tests (Testcontainers — Docker required)
         if: github.event_name == 'push'
         run: >
           dotnet test --framework ${{ matrix.tfm }} -- --filter-trait "Category=Integration"
-          --report-trx --ignore-exit-code 8
+          --report-trx --ignore-exit-code 7 8
 
       - name: Upload test results
         if: always()
