@@ -48,6 +48,10 @@ tests/
 - No mocking frameworks in tests — use hand-written fakes or helpers from `OpinionatedEventing.Testing`
 - Integration tests must be tagged `[Trait("Category", "Integration")]` so they are skipped in the non-container CI step
 
+## Shell scripting
+
+On Windows, use `pwsh` (PowerShell) for scripting tasks — never Python. Example: `pwsh -Command "..."`.
+
 ## Running locally
 
 ```bash
@@ -56,6 +60,10 @@ dotnet build
 dotnet test --filter "Category!=Integration"   # fast, no Docker needed
 dotnet test --filter "Category=Integration"    # requires Docker (Testcontainers)
 ```
+
+## Before committing
+
+Always run `/review` on the staged changes before committing, and address any findings.
 
 ## Issue tracking
 
