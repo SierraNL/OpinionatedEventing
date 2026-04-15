@@ -1,17 +1,20 @@
 namespace OpinionatedEventing;
 
 /// <summary>
-/// Base class for DDD aggregate roots.
-/// Aggregates collect domain events via <see cref="RaiseDomainEvent"/> during business operations.
-/// The EF Core interceptor (<c>DomainEventInterceptor</c>) harvests these events and writes them
-/// to the outbox atomically within the same <c>SaveChanges</c> call.
-/// Aggregates must never depend on <see cref="IPublisher"/> directly.
+/// Convenience base class for DDD aggregate roots.
+/// Provides the standard <see cref="IAggregateRoot"/> implementation so aggregates
+/// do not need boilerplate event-collection code.
 /// </summary>
-public abstract class AggregateRoot
+/// <remarks>
+/// Inherit from this class when your aggregate has no other base class requirement.
+/// If you already inherit from another type, implement <see cref="IAggregateRoot"/> directly instead.
+/// Aggregates must never depend on <see cref="IPublisher"/> directly.
+/// </remarks>
+public abstract class AggregateRoot : IAggregateRoot
 {
     private readonly List<IEvent> _domainEvents = [];
 
-    /// <summary>Gets the domain events raised during this aggregate's current unit of work.</summary>
+    /// <inheritdoc/>
     public IReadOnlyList<IEvent> DomainEvents => _domainEvents.AsReadOnly();
 
     /// <summary>
@@ -22,10 +25,8 @@ public abstract class AggregateRoot
     protected void RaiseDomainEvent(IEvent domainEvent)
         => _domainEvents.Add(domainEvent);
 
-    /// <summary>
-    /// Clears all collected domain events. Called by <c>DomainEventInterceptor</c>
-    /// after the events have been written to the outbox.
-    /// </summary>
-    internal void ClearDomainEvents()
+    /// <inheritdoc/>
+    /// <remarks>Explicit implementation prevents accidental calls from application code.</remarks>
+    void IAggregateRoot.ClearDomainEvents()
         => _domainEvents.Clear();
 }

@@ -41,7 +41,7 @@ public sealed class AggregateRootTests
         aggregate.Place(Guid.NewGuid());
         aggregate.Place(Guid.NewGuid());
 
-        aggregate.ClearDomainEvents();
+        ((IAggregateRoot)aggregate).ClearDomainEvents();
 
         Assert.Empty(aggregate.DomainEvents);
     }
@@ -53,5 +53,35 @@ public sealed class AggregateRootTests
         aggregate.Place(Guid.NewGuid());
 
         Assert.IsAssignableFrom<IReadOnlyList<IEvent>>(aggregate.DomainEvents);
+    }
+
+    [Fact]
+    public void AggregateRoot_ImplementsIAggregateRoot()
+    {
+        var aggregate = new TestAggregate();
+        Assert.IsAssignableFrom<IAggregateRoot>(aggregate);
+    }
+
+    [Fact]
+    public void ManualIAggregateRootImplementation_WorksWithoutBaseClass()
+    {
+        // Verify a hand-written IAggregateRoot (no base class) behaves the same way.
+        var aggregate = new ManualAggregate();
+        var id = Guid.NewGuid();
+
+        aggregate.Place(id);
+        Assert.Single(aggregate.DomainEvents);
+
+        ((IAggregateRoot)aggregate).ClearDomainEvents();
+        Assert.Empty(aggregate.DomainEvents);
+    }
+
+    // A hand-rolled aggregate that does NOT inherit AggregateRoot.
+    private sealed class ManualAggregate : IAggregateRoot
+    {
+        private readonly List<IEvent> _events = [];
+        public IReadOnlyList<IEvent> DomainEvents => _events.AsReadOnly();
+        public void Place(Guid id) => _events.Add(new OrderPlaced(id));
+        void IAggregateRoot.ClearDomainEvents() => _events.Clear();
     }
 }
