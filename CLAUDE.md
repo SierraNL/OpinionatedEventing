@@ -61,6 +61,13 @@ dotnet test --filter "Category!=Integration"   # fast, no Docker needed
 dotnet test --filter "Category=Integration"    # requires Docker (Testcontainers)
 ```
 
+### dotnet CLI gotchas
+
+- **`dotnet test` requires `--project`**, not a bare path: `dotnet test --project tests/Foo/Foo.csproj`
+- **`dotnet build`/`test` with a path** does not need `--project`: `dotnet build tests/Foo/Foo.csproj`
+- **`MSB3030 apphost.exe` on net9.0 in Specs projects** is a pre-existing environment issue — not caused by code changes, safe to ignore
+- **`cref` attributes in XML docs** must use the fully qualified type name if the type lives in a different namespace within the same project (e.g. `<see cref="OpinionatedEventing.Outbox.IOutboxStore"/>` from within `OpinionatedEventing.Options`)
+
 ## Before committing
 
 Always run `/review` on the staged changes before committing, and address any findings.
