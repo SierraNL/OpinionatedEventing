@@ -1,0 +1,38 @@
+<Project>
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <LangVersion>latest</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <!-- MTP / xunit.v3: test projects run as self-executing assemblies.
+       TestingPlatformDotnetTestSupport enables the VSTest bridge so that
+       "dotnet test" can drive MTP runners on .NET 8/9 SDKs. The .NET 10 SDK
+       dropped bridge mode; it uses native MTP via global.json instead, so
+       the property must not be set when building with SDK 10+. -->
+  <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
+    <OutputType>Exe</OutputType>
+    <TestingPlatformDotnetTestSupport Condition="$([MSBuild]::VersionLessThan('$(NETCoreSdkVersion)', '10.0.0'))">true</TestingPlatformDotnetTestSupport>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+  </PropertyGroup>
+
+  <!-- NuGet package metadata (applies to src/ only) -->
+  <PropertyGroup Condition="'$(IsTestProject)' != 'true' and '$(IsSampleProject)' != 'true'">
+    <Authors>Leon Grave</Authors>
+    <Company>SierraNL</Company>
+    <Product>OpinionatedEventing</Product>
+    <RepositoryUrl>https://github.com/SierraNL/OpinionatedEventing</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+</Project>

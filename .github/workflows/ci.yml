@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    name: Build & Test (.NET ${{ matrix.dotnet }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - dotnet: "8.0.x"
+            tfm: "net8.0"
+            # Bridge mode (TestingPlatformDotnetTestSupport): MTP args go after --
+            mtp_sep: "--"
+          - dotnet: "9.0.x"
+            tfm: "net9.0"
+            mtp_sep: "--"
+          - dotnet: "10.0.x"
+            tfm: "net10.0"
+            # Native mode (global.json test.runner): MTP args go directly after build args
+            mtp_sep: ""
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET ${{ matrix.dotnet }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release --framework ${{ matrix.tfm }}
+
+      - name: Unit & BDD tests (no containers)
+        run: >
+          dotnet test --framework ${{ matrix.tfm }} ${{ matrix.mtp_sep }}
+          --filter-trait "Category!=Integration"
+          --report-trx
+          --coverage --coverage-output-format cobertura --ignore-exit-code "7;8"
+
+      - name: Integration tests (Testcontainers — Docker required)
+        if: github.event_name == 'push'
+        run: >
+          dotnet test --framework ${{ matrix.tfm }} ${{ matrix.mtp_sep }}
+          --filter-trait "Category=Integration"
+          --report-trx --ignore-exit-code "7;8"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-dotnet-${{ matrix.dotnet }}
+          path: "**/*.trx"

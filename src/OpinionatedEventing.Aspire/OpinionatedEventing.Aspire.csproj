@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Aspire AppHost extensions for OpinionatedEventing local development — RabbitMQ container and Azure Service Bus emulator resources.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting" />
+    <PackageReference Include="Aspire.Hosting.RabbitMQ" />
+    <PackageReference Include="Aspire.Hosting.Azure.ServiceBus" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpinionatedEventing.Core\OpinionatedEventing.Core.csproj" />
+    <ProjectReference Include="..\OpinionatedEventing.Outbox\OpinionatedEventing.Outbox.csproj" />
+    <ProjectReference Include="..\OpinionatedEventing.AzureServiceBus\OpinionatedEventing.AzureServiceBus.csproj" />
+    <ProjectReference Include="..\OpinionatedEventing.RabbitMQ\OpinionatedEventing.RabbitMQ.csproj" />
+  </ItemGroup>
+
+</Project>
