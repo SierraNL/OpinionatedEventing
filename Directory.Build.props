@@ -10,10 +10,14 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
-  <!-- MTP / xunit.v3: test projects run as self-executing assemblies -->
+  <!-- MTP / xunit.v3: test projects run as self-executing assemblies.
+       TestingPlatformDotnetTestSupport enables the VSTest bridge so that
+       "dotnet test" can drive MTP runners on .NET 8/9 SDKs. The .NET 10 SDK
+       dropped bridge mode; it uses native MTP via global.json instead, so
+       the property must not be set when building with SDK 10+. -->
   <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
     <OutputType>Exe</OutputType>
-    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <TestingPlatformDotnetTestSupport Condition="$([MSBuild]::VersionLessThan('$(NETCoreSdkVersion)', '10.0.0'))">true</TestingPlatformDotnetTestSupport>
     <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
   </PropertyGroup>
 

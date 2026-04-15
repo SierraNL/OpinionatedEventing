@@ -16,10 +16,15 @@ jobs:
         include:
           - dotnet: "8.0.x"
             tfm: "net8.0"
+            # Bridge mode (TestingPlatformDotnetTestSupport): MTP args go after --
+            mtp_sep: "--"
           - dotnet: "9.0.x"
             tfm: "net9.0"
+            mtp_sep: "--"
           - dotnet: "10.0.x"
             tfm: "net10.0"
+            # Native mode (global.json test.runner): MTP args go directly after build args
+            mtp_sep: ""
 
     steps:
       - name: Checkout
@@ -38,14 +43,16 @@ jobs:
 
       - name: Unit & BDD tests (no containers)
         run: >
-          dotnet test --framework ${{ matrix.tfm }} -- --filter-trait "Category!=Integration"
+          dotnet test --framework ${{ matrix.tfm }} ${{ matrix.mtp_sep }}
+          --filter-trait "Category!=Integration"
           --report-trx
           --coverage --coverage-output-format cobertura --ignore-exit-code 7;8
 
       - name: Integration tests (Testcontainers — Docker required)
         if: github.event_name == 'push'
         run: >
-          dotnet test --framework ${{ matrix.tfm }} -- --filter-trait "Category=Integration"
+          dotnet test --framework ${{ matrix.tfm }} ${{ matrix.mtp_sep }}
+          --filter-trait "Category=Integration"
           --report-trx --ignore-exit-code 7;8
 
       - name: Upload test results
