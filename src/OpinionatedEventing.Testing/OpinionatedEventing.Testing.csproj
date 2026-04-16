@@ -8,6 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OpinionatedEventing.Core\OpinionatedEventing.Core.csproj" />
     <ProjectReference Include="..\OpinionatedEventing.Outbox\OpinionatedEventing.Outbox.csproj" />
+    <ProjectReference Include="..\OpinionatedEventing.Sagas\OpinionatedEventing.Sagas.csproj" />
   </ItemGroup>
 
 </Project>
