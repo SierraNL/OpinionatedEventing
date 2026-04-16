@@ -134,6 +134,21 @@ internal sealed class CustomCorrelationSaga : SagaOrchestrator<CustomCorrelation
     }
 }
 
+// --- Timeout saga that throws ---
+
+internal sealed class ThrowingTimeoutSagaState { }
+
+internal sealed class ThrowingTimeoutSaga : SagaOrchestrator<ThrowingTimeoutSagaState>
+{
+    protected override void Configure(ISagaBuilder<ThrowingTimeoutSagaState> builder)
+    {
+        builder
+            .StartWith<OrderPlaced>((_, _, _) => Task.CompletedTask)
+            .OnTimeout((_, _) => Task.FromException(new InvalidOperationException("timeout failure")))
+            .ExpireAfter(TimeSpan.FromMinutes(30));
+    }
+}
+
 // --- Choreography participant ---
 
 internal sealed class StockParticipant : ISagaParticipant<StockReserved>
