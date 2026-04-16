@@ -74,6 +74,8 @@ Always run `/review` on the staged changes before committing, and address any fi
 
 ## Issue tracking
 
-Each GitHub issue corresponds to a specific library. When implementing an issue, work on a branch named `issue/<number>-<short-description>` and open a PR targeting `main`.
+The GitHub repository is **`SierraNL/OpinionatedEventing`**. Use this owner/repo pair for all MCP GitHub tool calls.
+
+Each GitHub issue corresponds to a specific library. When implementing an issue, always fetch and reset to `origin/main` before creating a branch named `issue/<number>-<short-description>`, then open a PR targeting `main`.
 
 Always use the MCP GitHub tools (`mcp__github__*`) for all GitHub interactions — never the `gh` CLI.
