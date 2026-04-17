@@ -57,9 +57,11 @@ On Windows, use `pwsh` (PowerShell) for scripting tasks — never Python. Exampl
 ```bash
 dotnet restore
 dotnet build
-dotnet test --filter "Category!=Integration"   # fast, no Docker needed
-dotnet test --filter "Category=Integration"    # requires Docker (Testcontainers)
+dotnet test -- --filter-trait "Category!=Integration"   # fast, no Docker needed
+dotnet test -- --filter-trait "Category=Integration"    # requires Docker (Testcontainers)
 ```
+
+> **Note:** Use `-- --filter-trait` (MTP syntax), not `--filter`. The CI pipeline uses the same syntax.
 
 ### dotnet CLI gotchas
 
