@@ -120,7 +120,7 @@ public sealed class AzureServiceBusIntegrationTests : IAsyncLifetime
                 {
                     o.ConnectionString = _emulator!.ConnectionString;
                     o.ServiceName = "test-service";
-                    o.AutoCreateResources = true;
+                    o.AutoCreateResources = false;
                     o.MaxDeliveryCount = maxDeliveryCount;
                 });
                 configureExtra?.Invoke(services);

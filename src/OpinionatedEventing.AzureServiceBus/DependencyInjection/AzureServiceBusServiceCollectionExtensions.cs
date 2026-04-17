@@ -32,6 +32,7 @@ public static class AzureServiceBusServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(configure);
 
         services.Configure(configure);
+        services.TryAddSingleton(TimeProvider.System);
 
         // Capture the service collection for handler-type scanning at host startup.
         services.TryAddSingleton(new ServiceCollectionAccessor(services));
