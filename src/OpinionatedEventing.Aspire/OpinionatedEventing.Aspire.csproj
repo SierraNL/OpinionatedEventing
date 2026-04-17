@@ -8,6 +8,7 @@
     <PackageReference Include="Aspire.Hosting" />
     <PackageReference Include="Aspire.Hosting.RabbitMQ" />
     <PackageReference Include="Aspire.Hosting.Azure.ServiceBus" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
   </ItemGroup>
 
   <ItemGroup>
@@ -15,6 +16,7 @@
     <ProjectReference Include="..\OpinionatedEventing.Outbox\OpinionatedEventing.Outbox.csproj" />
     <ProjectReference Include="..\OpinionatedEventing.AzureServiceBus\OpinionatedEventing.AzureServiceBus.csproj" />
     <ProjectReference Include="..\OpinionatedEventing.RabbitMQ\OpinionatedEventing.RabbitMQ.csproj" />
+    <ProjectReference Include="..\OpinionatedEventing.Sagas\OpinionatedEventing.Sagas.csproj" />
   </ItemGroup>
 
 </Project>
