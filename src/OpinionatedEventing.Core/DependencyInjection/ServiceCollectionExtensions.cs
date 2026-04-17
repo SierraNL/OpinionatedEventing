@@ -29,6 +29,7 @@ public static class ServiceCollectionExtensions
 
         services.TryAddScoped<MessagingContext>();
         services.TryAddScoped<IMessagingContext>(sp => sp.GetRequiredService<MessagingContext>());
+        services.TryAddSingleton<IMessageHandlerRunner, MessageHandlerRunner>();
 
         return new OpinionatedEventingBuilder(services);
     }

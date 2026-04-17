@@ -83,6 +83,23 @@ public sealed class ServiceCollectionExtensionsTests
     }
 
     [Fact]
+    public void AddOpinionatedEventing_RegistersIMessageHandlerRunner()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<Microsoft.Extensions.Logging.ILoggerFactory>(
+            Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance);
+        services.AddSingleton(
+            typeof(Microsoft.Extensions.Logging.ILogger<>),
+            typeof(Microsoft.Extensions.Logging.Abstractions.NullLogger<>));
+        services.AddOpinionatedEventing();
+
+        var provider = services.BuildServiceProvider();
+        var runner = provider.GetService<IMessageHandlerRunner>();
+
+        Assert.NotNull(runner);
+    }
+
+    [Fact]
     public void AddHandlersFromAssemblies_RegistersEventHandlers()
     {
         var services = new ServiceCollection();

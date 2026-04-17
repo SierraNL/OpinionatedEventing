@@ -17,7 +17,7 @@ namespace OpinionatedEventing.Core.Specs.Features
     
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Reqnroll", "3.0.0.0")]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    public partial class CoreFeature : object, Xunit.IClassFixture<CoreFeature.FixtureData>, Xunit.IAsyncLifetime
+    public partial class DDDAggregateSupportAndMessagingContextFeature : object, Xunit.IClassFixture<DDDAggregateSupportAndMessagingContextFeature.FixtureData>, Xunit.IAsyncLifetime
     {
         
         private global::Reqnroll.ITestRunner testRunner;
@@ -26,13 +26,15 @@ namespace OpinionatedEventing.Core.Specs.Features
         
         private static string[] featureTags = ((string[])(null));
         
-        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en-US"), "Features", "Core", "  Placeholder feature file for OpinionatedEventing.Core BDD specs.\r\n  Replace wit" +
-                "h real scenarios when implementing issue #2.", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
+        private static global::Reqnroll.FeatureInfo featureInfo = new global::Reqnroll.FeatureInfo(new global::System.Globalization.CultureInfo("en-US"), "Features", "DDD Aggregate Support and Messaging Context", @"  As a developer using OpinionatedEventing
+  I want aggregate roots to collect domain events in memory
+  And I want the handler runner to initialise IMessagingContext from the inbound message envelope
+  So that correlation context flows automatically through the entire message chain", global::Reqnroll.ProgrammingLanguage.CSharp, featureTags, InitializeCucumberMessages());
         
 #line 1 "Core.feature"
 #line hidden
         
-        public CoreFeature(CoreFeature.FixtureData fixtureData, Xunit.ITestOutputHelper testOutputHelper)
+        public DDDAggregateSupportAndMessagingContextFeature(DDDAggregateSupportAndMessagingContextFeature.FixtureData fixtureData, Xunit.ITestOutputHelper testOutputHelper)
         {
             this._testOutputHelper = testOutputHelper;
         }
@@ -106,7 +108,7 @@ namespace OpinionatedEventing.Core.Specs.Features
         
         private static global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages InitializeCucumberMessages()
         {
-            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/Core.feature.ndjson", 3);
+            return new global::Reqnroll.Formatters.RuntimeSupport.FeatureLevelCucumberMessages("Features/Core.feature.ndjson", 7);
         }
         
         async System.Threading.Tasks.ValueTask Xunit.IAsyncLifetime.InitializeAsync()
@@ -134,18 +136,18 @@ namespace OpinionatedEventing.Core.Specs.Features
             await this.TestTearDownAsync();
         }
         
-        [global::Xunit.FactAttribute(DisplayName="Placeholder")]
-        [global::Xunit.TraitAttribute("FeatureTitle", "Core")]
-        [global::Xunit.TraitAttribute("Description", "Placeholder")]
-        public async global::System.Threading.Tasks.Task Placeholder()
+        [global::Xunit.FactAttribute(DisplayName="Aggregate collects domain events in order")]
+        [global::Xunit.TraitAttribute("FeatureTitle", "DDD Aggregate Support and Messaging Context")]
+        [global::Xunit.TraitAttribute("Description", "Aggregate collects domain events in order")]
+        public async global::System.Threading.Tasks.Task AggregateCollectsDomainEventsInOrder()
         {
             string[] tagsOfScenario = ((string[])(null));
             global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
             string pickleIndex = "0";
-            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Placeholder", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Aggregate collects domain events in order", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
             string[] tagsOfRule = ((string[])(null));
             global::Reqnroll.RuleInfo ruleInfo = null;
-#line 5
+#line 7
   this.ScenarioInitialize(scenarioInfo, ruleInfo);
 #line hidden
             if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
@@ -155,14 +157,154 @@ namespace OpinionatedEventing.Core.Specs.Features
             else
             {
                 await this.ScenarioStartAsync();
-#line 6
-    await testRunner.GivenAsync("this is a placeholder scenario", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
-#line hidden
-#line 7
-    await testRunner.WhenAsync("it is executed", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
-#line hidden
 #line 8
-    await testRunner.ThenAsync("it passes", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+    await testRunner.GivenAsync("an aggregate root", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 9
+    await testRunner.WhenAsync("two domain events are raised", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 10
+    await testRunner.ThenAsync("the DomainEvents collection contains both events in order", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::Xunit.FactAttribute(DisplayName="Domain events are cleared after ClearDomainEvents is called")]
+        [global::Xunit.TraitAttribute("FeatureTitle", "DDD Aggregate Support and Messaging Context")]
+        [global::Xunit.TraitAttribute("Description", "Domain events are cleared after ClearDomainEvents is called")]
+        public async global::System.Threading.Tasks.Task DomainEventsAreClearedAfterClearDomainEventsIsCalled()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "1";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Domain events are cleared after ClearDomainEvents is called", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 12
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 13
+    await testRunner.GivenAsync("an aggregate root with one domain event raised", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 14
+    await testRunner.WhenAsync("ClearDomainEvents is called", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 15
+    await testRunner.ThenAsync("the DomainEvents collection is empty", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::Xunit.FactAttribute(DisplayName="Handler runner initialises correlation context before the handler runs")]
+        [global::Xunit.TraitAttribute("FeatureTitle", "DDD Aggregate Support and Messaging Context")]
+        [global::Xunit.TraitAttribute("Description", "Handler runner initialises correlation context before the handler runs")]
+        public async global::System.Threading.Tasks.Task HandlerRunnerInitialisesCorrelationContextBeforeTheHandlerRuns()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "2";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Handler runner initialises correlation context before the handler runs", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 17
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 18
+    await testRunner.GivenAsync("a registered event handler that captures IMessagingContext", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 19
+    await testRunner.WhenAsync("the handler runner dispatches an event with a known CorrelationId and CausationId" +
+                        "", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 20
+    await testRunner.ThenAsync("the captured CorrelationId matches the dispatched CorrelationId", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+#line 21
+    await testRunner.AndAsync("the captured CausationId matches the dispatched CausationId", ((string)(null)), ((global::Reqnroll.Table)(null)), "And ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::Xunit.FactAttribute(DisplayName="Handler runner dispatches to all registered event handlers")]
+        [global::Xunit.TraitAttribute("FeatureTitle", "DDD Aggregate Support and Messaging Context")]
+        [global::Xunit.TraitAttribute("Description", "Handler runner dispatches to all registered event handlers")]
+        public async global::System.Threading.Tasks.Task HandlerRunnerDispatchesToAllRegisteredEventHandlers()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "3";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Handler runner dispatches to all registered event handlers", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 23
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 24
+    await testRunner.GivenAsync("two registered event handlers for the same event type", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 25
+    await testRunner.WhenAsync("the handler runner dispatches a matching event", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 26
+    await testRunner.ThenAsync("both handlers are invoked", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [global::Xunit.FactAttribute(DisplayName="Handler runner dispatches to the registered command handler")]
+        [global::Xunit.TraitAttribute("FeatureTitle", "DDD Aggregate Support and Messaging Context")]
+        [global::Xunit.TraitAttribute("Description", "Handler runner dispatches to the registered command handler")]
+        public async global::System.Threading.Tasks.Task HandlerRunnerDispatchesToTheRegisteredCommandHandler()
+        {
+            string[] tagsOfScenario = ((string[])(null));
+            global::System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new global::System.Collections.Specialized.OrderedDictionary();
+            string pickleIndex = "4";
+            global::Reqnroll.ScenarioInfo scenarioInfo = new global::Reqnroll.ScenarioInfo("Handler runner dispatches to the registered command handler", null, tagsOfScenario, argumentsOfScenario, featureTags, pickleIndex);
+            string[] tagsOfRule = ((string[])(null));
+            global::Reqnroll.RuleInfo ruleInfo = null;
+#line 28
+  this.ScenarioInitialize(scenarioInfo, ruleInfo);
+#line hidden
+            if ((global::Reqnroll.TagHelper.ContainsIgnoreTag(scenarioInfo.CombinedTags) || global::Reqnroll.TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                await testRunner.SkipScenarioAsync();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 29
+    await testRunner.GivenAsync("a registered command handler that captures the command", ((string)(null)), ((global::Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 30
+    await testRunner.WhenAsync("the handler runner dispatches a command", ((string)(null)), ((global::Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 31
+    await testRunner.ThenAsync("the command handler is invoked with the correct payload", ((string)(null)), ((global::Reqnroll.Table)(null)), "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
@@ -175,12 +317,12 @@ namespace OpinionatedEventing.Core.Specs.Features
             
             async System.Threading.Tasks.ValueTask Xunit.IAsyncLifetime.InitializeAsync()
             {
-                await CoreFeature.FeatureSetupAsync();
+                await DDDAggregateSupportAndMessagingContextFeature.FeatureSetupAsync();
             }
             
             async System.Threading.Tasks.ValueTask System.IAsyncDisposable.DisposeAsync()
             {
-                await CoreFeature.FeatureTearDownAsync();
+                await DDDAggregateSupportAndMessagingContextFeature.FeatureTearDownAsync();
             }
         }
     }
