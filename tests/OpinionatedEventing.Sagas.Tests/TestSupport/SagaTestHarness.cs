@@ -34,7 +34,7 @@ internal sealed class SagaTestHarness : IAsyncDisposable
         Publisher = publisher;
     }
 
-    public static SagaTestHarness Create(Action<IServiceCollection> configure)
+    public static SagaTestHarness Create(Action<IServiceCollection> configure, TimeProvider? timeProvider = null)
     {
         var store = new InMemorySagaStateStore();
         var publisher = new FakePublisher();
@@ -42,7 +42,7 @@ internal sealed class SagaTestHarness : IAsyncDisposable
         var services = new ServiceCollection();
         services.AddSingleton<ISagaStateStore>(store);
         services.AddSingleton<IPublisher>(publisher);
-        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton(timeProvider ?? TimeProvider.System);
         services.AddSingleton(typeof(Microsoft.Extensions.Logging.ILogger<SagaTimeoutWorker>),
             NullLogger<SagaTimeoutWorker>.Instance);
         services.AddOpinionatedEventingSagas();
