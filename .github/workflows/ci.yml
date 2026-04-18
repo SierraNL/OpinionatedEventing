@@ -44,10 +44,9 @@ jobs:
       - name: Unit & BDD tests (no containers)
         run: >
           dotnet test --framework ${{ matrix.tfm }} ${{ matrix.mtp_sep }}
-          --filter-trait "Category!=Integration"
+          --filter-not-trait "Category=Integration"
           --report-trx --results-directory ./TestResults
           --coverage --coverage-output-format cobertura
-          --ignore-exit-code "7;8"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v6
@@ -64,7 +63,7 @@ jobs:
         run: >
           dotnet test --framework ${{ matrix.tfm }} ${{ matrix.mtp_sep }}
           --filter-trait "Category=Integration"
-          --report-trx --ignore-exit-code "7;8"
+          --report-trx --results-directory ./TestResults
 
       - name: Upload test results
         if: always()
