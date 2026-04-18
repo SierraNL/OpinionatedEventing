@@ -1,0 +1,13 @@
+coverage:
+  precision: 2
+  round: down
+  range: "60...100"
+
+ignore:
+  - "tests/**"
+  - "samples/**"
+
+# MTP-generated cobertura files use absolute paths on the runner.
+# This strips the runner workspace prefix so paths resolve to repo-relative paths.
+fixes:
+  - "/home/runner/work/OpinionatedEventing/OpinionatedEventing/::"

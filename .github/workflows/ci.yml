@@ -45,14 +45,15 @@ jobs:
         run: >
           dotnet test --framework ${{ matrix.tfm }} ${{ matrix.mtp_sep }}
           --filter-trait "Category!=Integration"
-          --report-trx
-          --coverage --coverage-output-format cobertura --ignore-exit-code "7;8"
+          --report-trx --results-directory ./TestResults
+          --coverage --coverage-output-format cobertura
+          --ignore-exit-code "7;8"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: "**/*.cobertura.xml"
+          directory: ./TestResults
           flags: dotnet-${{ matrix.tfm }}
           fail_ci_if_error: false
 
@@ -70,7 +71,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: test-results-dotnet-${{ matrix.dotnet }}
-          path: "**/*.trx"
+          path: ./TestResults/**/*.trx
 
       # Pack on net10.0 only — one set of .nupkg files is sufficient.
       # NuGet push is intentionally omitted until the library reaches a stable release.
