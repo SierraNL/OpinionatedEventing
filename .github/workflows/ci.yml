@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+  # Temporary: opt into Node.js 24 runners ahead of the June 2026 forced migration.
+  # Remove once actions/checkout, actions/setup-dotnet, and actions/upload-artifact
+  # ship versions that bundle Node 24 natively (Dependabot will raise those PRs).
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-and-test:
     name: Build & Test (.NET ${{ matrix.dotnet }})
@@ -48,8 +54,18 @@ jobs:
           --report-trx
           --coverage --coverage-output-format cobertura --ignore-exit-code "7;8"
 
-      - name: Integration tests (Testcontainers — Docker required)
-        if: github.event_name == 'push'
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: "**/*.cobertura.xml"
+          flags: dotnet-${{ matrix.tfm }}
+          fail_ci_if_error: false
+
+      # Integration tests run on net10.0 only to avoid Docker container name conflicts
+      # that occur when all three TFM legs run Testcontainers concurrently on the same runner.
+      - name: Integration tests (Testcontainers — Docker required, .NET 10 only)
+        if: github.event_name == 'push' && matrix.tfm == 'net10.0'
         run: >
           dotnet test --framework ${{ matrix.tfm }} ${{ matrix.mtp_sep }}
           --filter-trait "Category=Integration"
