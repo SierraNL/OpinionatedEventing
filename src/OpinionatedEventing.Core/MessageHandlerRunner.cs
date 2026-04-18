@@ -1,6 +1,8 @@
 #nullable enable
 
 using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -85,7 +87,9 @@ public sealed class MessageHandlerRunner : IMessageHandlerRunner
         CancellationToken ct)
     {
         var handlerType = typeof(IEventHandler<>).MakeGenericType(eventType);
-        var handlers = sp.GetServices(handlerType).ToList();
+        // GetServices returns IEnumerable<object?> — filter nulls so InvokeHandlerAsync can
+        // safely assume a non-null target, giving a clear contract-violation error if DI is broken.
+        var handlers = sp.GetServices(handlerType).OfType<object>().ToList();
 
         if (handlers.Count == 0)
         {
@@ -98,8 +102,7 @@ public sealed class MessageHandlerRunner : IMessageHandlerRunner
 
         foreach (var handler in handlers)
         {
-            // Invoke returns Task (non-void), never null.
-            await ((Task)handleMethod.Invoke(handler, [message, ct])!).ConfigureAwait(false);
+            await InvokeHandlerAsync(handleMethod, handler, message, ct).ConfigureAwait(false);
         }
     }
 
@@ -114,7 +117,25 @@ public sealed class MessageHandlerRunner : IMessageHandlerRunner
 
         // HandleAsync is defined on ICommandHandler<T> — GetMethod never returns null here.
         var handleMethod = handlerType.GetMethod("HandleAsync")!;
-        // Invoke returns Task (non-void), never null.
-        await ((Task)handleMethod.Invoke(handler, [message, ct])!).ConfigureAwait(false);
+        await InvokeHandlerAsync(handleMethod, handler, message, ct).ConfigureAwait(false);
+    }
+
+    // Invokes a HandleAsync method via reflection, unwrapping TargetInvocationException so the
+    // original exception (not the reflection wrapper) propagates to callers.
+    private static async Task InvokeHandlerAsync(
+        MethodInfo method, object handler, object message, CancellationToken ct)
+    {
+        Task task;
+        try
+        {
+            task = (Task)method.Invoke(handler, [message, ct])!;
+        }
+        catch (TargetInvocationException ex) when (ex.InnerException is not null)
+        {
+            ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+            throw; // unreachable — satisfies compiler
+        }
+
+        await task.ConfigureAwait(false);
     }
 }
