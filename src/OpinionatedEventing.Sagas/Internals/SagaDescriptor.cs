@@ -34,6 +34,8 @@ internal sealed class SagaDescriptor<TOrchestrator, TSagaState> : SagaDescriptor
     where TOrchestrator : SagaOrchestrator<TSagaState>
     where TSagaState : class, new()
 {
+    // AssemblyQualifiedName is null only for generic type parameters and array element types;
+    // TOrchestrator is always a concrete named class so the value is guaranteed non-null.
     public override string SagaTypeName { get; } = typeof(TOrchestrator).AssemblyQualifiedName!;
 
     public override async Task HandleEventAsync(
@@ -76,6 +78,8 @@ internal sealed class SagaDescriptor<TOrchestrator, TSagaState> : SagaDescriptor
                 ExpiresAt = CalculateExpiry(def, timeProvider),
             };
         }
+        // isNew = (state is null), so the else branch guarantees state is non-null;
+        // the compiler cannot track this through the bool variable, hence the suppression.
         else if (state!.Status is SagaStatus.Completed or SagaStatus.Failed)
         {
             return;
@@ -93,10 +97,12 @@ internal sealed class SagaDescriptor<TOrchestrator, TSagaState> : SagaDescriptor
             if (isCompensation && state.Status == SagaStatus.Active)
             {
                 state.Status = SagaStatus.Compensating;
+                // isCompensation is true only when TryGetValue succeeded, so compensationHandler is non-null.
                 await compensationHandler!(@event, sagaStateObj, context);
             }
             else if (isNormal && state.Status == SagaStatus.Active)
             {
+                // isNormal is true only when TryGetValue succeeded, so handler is non-null.
                 await handler!(@event, sagaStateObj, context);
             }
 

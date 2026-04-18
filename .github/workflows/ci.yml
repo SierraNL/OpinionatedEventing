@@ -71,3 +71,16 @@ jobs:
         with:
           name: test-results-dotnet-${{ matrix.dotnet }}
           path: "**/*.trx"
+
+      # Pack on net10.0 only — one set of .nupkg files is sufficient.
+      # NuGet push is intentionally omitted until the library reaches a stable release.
+      - name: Pack NuGet packages
+        if: success() && matrix.tfm == 'net10.0'
+        run: dotnet pack --configuration Release --output ./artifacts/nuget
+
+      - name: Upload NuGet packages
+        if: success() && matrix.tfm == 'net10.0'
+        uses: actions/upload-artifact@v7
+        with:
+          name: nuget-packages
+          path: ./artifacts/nuget/*.nupkg

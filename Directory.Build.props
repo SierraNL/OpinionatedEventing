@@ -32,7 +32,7 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <Version>0.1.0</Version>
+    <Version>0.1.0-preview.1</Version>
   </PropertyGroup>
 
 </Project>
