@@ -26,5 +26,6 @@
     <Project Path="tests/OpinionatedEventing.RabbitMQ.Tests/OpinionatedEventing.RabbitMQ.Tests.csproj" />
     <Project Path="tests/OpinionatedEventing.Sagas.Specs/OpinionatedEventing.Sagas.Specs.csproj" />
     <Project Path="tests/OpinionatedEventing.Sagas.Tests/OpinionatedEventing.Sagas.Tests.csproj" />
+    <Project Path="tests/OpinionatedEventing.Testing.Tests/OpinionatedEventing.Testing.Tests.csproj" />
   </Folder>
 </Solution>
