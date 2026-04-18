@@ -1,9 +1,11 @@
 #nullable enable
 
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using OpinionatedEventing.Diagnostics;
 using OpinionatedEventing.Options;
 
 namespace OpinionatedEventing;
@@ -38,27 +40,41 @@ public sealed class MessageHandlerRunner : IMessageHandlerRunner
         Guid? causationId,
         CancellationToken ct)
     {
-        await using var scope = _scopeFactory.CreateAsyncScope();
-
-        var messagingContext = scope.ServiceProvider.GetRequiredService<MessagingContext>();
-        messagingContext.Initialize(correlationId, causationId);
-
-        var type = Type.GetType(messageType)
-            ?? throw new InvalidOperationException($"Cannot resolve type '{messageType}'.");
-
-        var message = JsonSerializer.Deserialize(payload, type, _options.Value.SerializerOptions)
-            ?? throw new InvalidOperationException($"Deserialised null for type '{messageType}'.");
-
-        switch (messageKind)
+        var sw = Stopwatch.GetTimestamp();
+        using var activity = CoreDiagnostics.StartConsumeActivity(messageType, messageKind, correlationId, causationId);
+        try
         {
-            case "Event":
-                await DispatchEventAsync(scope.ServiceProvider, type, message, ct).ConfigureAwait(false);
-                break;
-            case "Command":
-                await DispatchCommandAsync(scope.ServiceProvider, type, message, ct).ConfigureAwait(false);
-                break;
-            default:
-                throw new InvalidOperationException($"Unknown message kind '{messageKind}'.");
+            await using var scope = _scopeFactory.CreateAsyncScope();
+
+            var messagingContext = scope.ServiceProvider.GetRequiredService<MessagingContext>();
+            messagingContext.Initialize(correlationId, causationId);
+
+            var type = Type.GetType(messageType)
+                ?? throw new InvalidOperationException($"Cannot resolve type '{messageType}'.");
+
+            var message = JsonSerializer.Deserialize(payload, type, _options.Value.SerializerOptions)
+                ?? throw new InvalidOperationException($"Deserialised null for type '{messageType}'.");
+
+            switch (messageKind)
+            {
+                case "Event":
+                    await DispatchEventAsync(scope.ServiceProvider, type, message, ct).ConfigureAwait(false);
+                    break;
+                case "Command":
+                    await DispatchCommandAsync(scope.ServiceProvider, type, message, ct).ConfigureAwait(false);
+                    break;
+                default:
+                    throw new InvalidOperationException($"Unknown message kind '{messageKind}'.");
+            }
+        }
+        catch (Exception ex)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            throw;
+        }
+        finally
+        {
+            CoreDiagnostics.ConsumeDuration.Record(Stopwatch.GetElapsedTime(sw).TotalMilliseconds);
         }
     }
 
