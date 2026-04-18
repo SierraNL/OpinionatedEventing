@@ -15,20 +15,15 @@ namespace OpinionatedEventing.AzureServiceBus.Tests;
 /// Run with: dotnet test --filter "Category=Integration"
 /// </summary>
 [Trait("Category", "Integration")]
-public sealed class AzureServiceBusIntegrationTests : IAsyncLifetime
+[Collection(AzureServiceBusCollection.Name)]
+public sealed class AzureServiceBusIntegrationTests
 {
-    private AzureServiceBusEmulatorContainer? _emulator;
+    private readonly AzureServiceBusFixture _fixture;
 
-    public async ValueTask InitializeAsync()
+    /// <summary>Initialises the test class with the shared Azure Service Bus emulator fixture.</summary>
+    public AzureServiceBusIntegrationTests(AzureServiceBusFixture fixture)
     {
-        _emulator = await AzureServiceBusEmulatorContainer.StartAsync(
-            TestContext.Current.CancellationToken);
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_emulator is not null)
-            await _emulator.DisposeAsync();
+        _fixture = fixture;
     }
 
     [Fact]
@@ -118,7 +113,7 @@ public sealed class AzureServiceBusIntegrationTests : IAsyncLifetime
                 services.AddOpinionatedEventing();
                 services.AddAzureServiceBusTransport(o =>
                 {
-                    o.ConnectionString = _emulator!.ConnectionString;
+                    o.ConnectionString = _fixture.ConnectionString;
                     o.ServiceName = "test-service";
                     o.AutoCreateResources = true;
                     o.MaxDeliveryCount = maxDeliveryCount;
