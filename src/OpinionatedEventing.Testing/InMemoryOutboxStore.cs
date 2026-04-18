@@ -16,6 +16,16 @@ public sealed class InMemoryOutboxStore : IOutboxStore
     /// <summary>Gets a snapshot of all messages currently in the store, regardless of status.</summary>
     public IReadOnlyList<OutboxMessage> Messages => _messages.Values.ToList();
 
+    /// <summary>Gets a snapshot of messages that have not yet been processed or dead-lettered.</summary>
+    public IReadOnlyList<OutboxMessage> PendingMessages => _messages.Values
+        .Where(m => m.ProcessedAt is null && m.FailedAt is null)
+        .ToList();
+
+    /// <summary>Gets a snapshot of messages that have been successfully processed.</summary>
+    public IReadOnlyList<OutboxMessage> ProcessedMessages => _messages.Values
+        .Where(m => m.ProcessedAt is not null)
+        .ToList();
+
     /// <inheritdoc/>
     public Task SaveAsync(OutboxMessage message, CancellationToken cancellationToken = default)
     {
