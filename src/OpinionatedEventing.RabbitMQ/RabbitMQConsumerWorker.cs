@@ -168,9 +168,22 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
         {
             _logger.LogError(ex, "Failed to handle message with delivery tag {DeliveryTag}.", ea.DeliveryTag);
 
-            await WriteDeadLetterRecordAsync(ea, ex.Message, ct).ConfigureAwait(false);
-            await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false, ct)
-                .ConfigureAwait(false);
+            // Use CancellationToken.None for both the dead-letter write and the nack so that a
+            // host shutdown racing with handler failure does not silently drop the record or leave
+            // the message unacknowledged (causing redelivery into the next test or consumer).
+            await WriteDeadLetterRecordAsync(ea, ex.Message, CancellationToken.None).ConfigureAwait(false);
+
+            try
+            {
+                await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false, CancellationToken.None)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception nackEx)
+            {
+                _logger.LogWarning(nackEx,
+                    "Failed to nack message with delivery tag {DeliveryTag}; message may be redelivered.",
+                    ea.DeliveryTag);
+            }
         }
     }
 
