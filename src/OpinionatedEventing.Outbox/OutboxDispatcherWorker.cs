@@ -1,10 +1,12 @@
 #nullable enable
 
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpinionatedEventing.Options;
+using OpinionatedEventing.Outbox.Diagnostics;
 
 namespace OpinionatedEventing.Outbox;
 
@@ -79,10 +81,14 @@ public sealed class OutboxDispatcherWorker : BackgroundService
             if (stoppingToken.IsCancellationRequested)
                 return;
 
+            var sw = Stopwatch.GetTimestamp();
+            using var activity = OutboxDiagnostics.StartDispatchActivity(message.Id, message.MessageType);
             try
             {
                 await transport.SendAsync(message, stoppingToken).ConfigureAwait(false);
                 await store.MarkProcessedAsync(message.Id, stoppingToken).ConfigureAwait(false);
+                OutboxDiagnostics.Pending.Add(-1);
+                OutboxDiagnostics.Processed.Add(1);
                 _logger.LogDebug(
                     "Dispatched outbox message {MessageId} ({MessageType}).",
                     message.Id, message.MessageType);
@@ -93,6 +99,7 @@ public sealed class OutboxDispatcherWorker : BackgroundService
             }
             catch (Exception ex)
             {
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
                 var nextAttempt = message.AttemptCount + 1;
 
                 _logger.LogWarning(ex,
@@ -102,6 +109,8 @@ public sealed class OutboxDispatcherWorker : BackgroundService
                 if (nextAttempt >= outboxOptions.MaxAttempts)
                 {
                     await store.MarkFailedAsync(message.Id, ex.Message, stoppingToken).ConfigureAwait(false);
+                    OutboxDiagnostics.Pending.Add(-1);
+                    OutboxDiagnostics.Failed.Add(1);
                     _logger.LogError(
                         "Outbox message {MessageId} dead-lettered after {MaxAttempts} failed attempts.",
                         message.Id, outboxOptions.MaxAttempts);
@@ -110,6 +119,10 @@ public sealed class OutboxDispatcherWorker : BackgroundService
                 {
                     await store.IncrementAttemptAsync(message.Id, ex.Message, stoppingToken).ConfigureAwait(false);
                 }
+            }
+            finally
+            {
+                OutboxDiagnostics.DispatchDuration.Record(Stopwatch.GetElapsedTime(sw).TotalMilliseconds);
             }
         }
     }

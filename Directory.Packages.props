@@ -29,6 +29,11 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.5" />
   </ItemGroup>
 
+  <!-- OpenTelemetry -->
+  <ItemGroup>
+    <PackageVersion Include="OpenTelemetry" Version="1.11.2" />
+  </ItemGroup>
+
   <!-- Aspire -->
   <ItemGroup>
     <PackageVersion Include="Aspire.Hosting" Version="13.2.2" />

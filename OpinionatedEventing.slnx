@@ -4,6 +4,7 @@
     <Project Path="src/OpinionatedEventing.AzureServiceBus/OpinionatedEventing.AzureServiceBus.csproj" />
     <Project Path="src/OpinionatedEventing.Core/OpinionatedEventing.Core.csproj" />
     <Project Path="src/OpinionatedEventing.EntityFramework/OpinionatedEventing.EntityFramework.csproj" />
+    <Project Path="src/OpinionatedEventing.OpenTelemetry/OpinionatedEventing.OpenTelemetry.csproj" />
     <Project Path="src/OpinionatedEventing.Outbox/OpinionatedEventing.Outbox.csproj" />
     <Project Path="src/OpinionatedEventing.RabbitMQ/OpinionatedEventing.RabbitMQ.csproj" />
     <Project Path="src/OpinionatedEventing.Sagas/OpinionatedEventing.Sagas.csproj" />
@@ -18,6 +19,7 @@
     <Project Path="tests/OpinionatedEventing.Core.Tests/OpinionatedEventing.Core.Tests.csproj" />
     <Project Path="tests/OpinionatedEventing.EntityFramework.Specs/OpinionatedEventing.EntityFramework.Specs.csproj" />
     <Project Path="tests/OpinionatedEventing.EntityFramework.Tests/OpinionatedEventing.EntityFramework.Tests.csproj" />
+    <Project Path="tests/OpinionatedEventing.OpenTelemetry.Tests/OpinionatedEventing.OpenTelemetry.Tests.csproj" />
     <Project Path="tests/OpinionatedEventing.Outbox.Specs/OpinionatedEventing.Outbox.Specs.csproj" />
     <Project Path="tests/OpinionatedEventing.Outbox.Tests/OpinionatedEventing.Outbox.Tests.csproj" />
     <Project Path="tests/OpinionatedEventing.RabbitMQ.Specs/OpinionatedEventing.RabbitMQ.Specs.csproj" />

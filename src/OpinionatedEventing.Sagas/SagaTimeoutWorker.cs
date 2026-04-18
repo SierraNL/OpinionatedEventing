@@ -1,7 +1,10 @@
+#nullable enable
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using OpinionatedEventing.Sagas.Diagnostics;
 using OpinionatedEventing.Sagas.Options;
 
 namespace OpinionatedEventing.Sagas;
@@ -78,6 +81,7 @@ public sealed class SagaTimeoutWorker : BackgroundService
                 continue;
             }
 
+            using var activity = SagaDiagnostics.StartSagaTimeoutActivity(state.SagaType, state.CorrelationId);
             try
             {
                 await descriptor.HandleTimeoutAsync(
@@ -85,6 +89,7 @@ public sealed class SagaTimeoutWorker : BackgroundService
             }
             catch (Exception ex)
             {
+                activity?.SetStatus(System.Diagnostics.ActivityStatusCode.Error, ex.Message);
                 _logger.LogError(ex,
                     "Timeout handler failed for saga '{SagaType}' correlation='{CorrelationId}'.",
                     state.SagaType, state.CorrelationId);

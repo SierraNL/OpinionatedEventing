@@ -1,5 +1,9 @@
+#nullable enable
+
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using OpinionatedEventing.Sagas.Diagnostics;
 
 namespace OpinionatedEventing.Sagas;
 
@@ -81,6 +85,9 @@ internal sealed class SagaDescriptor<TOrchestrator, TSagaState> : SagaDescriptor
         var sagaStateObj = JsonSerializer.Deserialize<TSagaState>(state.State, serializerOptions)!;
         var context = new SagaContext(corrGuid, publisher, ct);
 
+        using var activity = SagaDiagnostics.StartSagaStepActivity(typeof(TOrchestrator).Name, correlationKey, eventType.FullName ?? eventType.Name);
+        bool countedActive = false;
+
         try
         {
             if (isCompensation && state.Status == SagaStatus.Active)
@@ -100,14 +107,33 @@ internal sealed class SagaDescriptor<TOrchestrator, TSagaState> : SagaDescriptor
             state.UpdatedAt = timeProvider.GetUtcNow();
 
             if (isNew)
+            {
                 await store.SaveAsync(state, ct);
+                // Only count as active after the save succeeds; skip if already completed.
+                if (state.Status != SagaStatus.Completed)
+                {
+                    SagaDiagnostics.Active.Add(1);
+                    countedActive = true;
+                }
+            }
             else
+            {
                 await store.UpdateAsync(state, ct);
+                if (context.IsCompleted)
+                    SagaDiagnostics.Active.Add(-1);
+            }
         }
         catch
         {
+            activity?.SetStatus(ActivityStatusCode.Error);
             if (state.Status == SagaStatus.Compensating)
+            {
                 state.Status = SagaStatus.Failed;
+                if (countedActive)
+                    SagaDiagnostics.Active.Add(-1);
+                else if (!isNew)
+                    SagaDiagnostics.Active.Add(-1);
+            }
 
             state.State = JsonSerializer.Serialize(sagaStateObj, serializerOptions);
             state.UpdatedAt = timeProvider.GetUtcNow();
@@ -133,7 +159,11 @@ internal sealed class SagaDescriptor<TOrchestrator, TSagaState> : SagaDescriptor
 
         if (def.TimeoutHandler is null) return;
 
+        // Mark timed-out once, before attempting the handler, so the counter fires exactly
+        // once per timeout event even if the handler or store call later throws.
         state.Status = SagaStatus.TimedOut;
+        SagaDiagnostics.TimedOut.Add(1);
+
         var sagaStateObj = JsonSerializer.Deserialize<TSagaState>(state.State, serializerOptions)!;
         _ = Guid.TryParse(state.CorrelationId, out var corrGuid);
         var context = new SagaContext(corrGuid, publisher, ct);
@@ -148,6 +178,7 @@ internal sealed class SagaDescriptor<TOrchestrator, TSagaState> : SagaDescriptor
             state.State = JsonSerializer.Serialize(sagaStateObj, serializerOptions);
             state.UpdatedAt = timeProvider.GetUtcNow();
             await store.UpdateAsync(state, ct);
+            SagaDiagnostics.Active.Add(-1);
         }
         catch
         {
@@ -155,6 +186,7 @@ internal sealed class SagaDescriptor<TOrchestrator, TSagaState> : SagaDescriptor
             state.State = JsonSerializer.Serialize(sagaStateObj, serializerOptions);
             state.UpdatedAt = timeProvider.GetUtcNow();
             await store.UpdateAsync(state, ct);
+            SagaDiagnostics.Active.Add(-1);
             throw;
         }
     }

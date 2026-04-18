@@ -1,8 +1,10 @@
 #nullable enable
 
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using OpinionatedEventing.Options;
+using OpinionatedEventing.Outbox.Diagnostics;
 
 namespace OpinionatedEventing.Outbox;
 
@@ -35,19 +37,51 @@ internal sealed class OutboxPublisher : IPublisher
     }
 
     /// <inheritdoc/>
-    public Task PublishEventAsync<TEvent>(TEvent @event, CancellationToken cancellationToken = default)
+    public async Task PublishEventAsync<TEvent>(TEvent @event, CancellationToken cancellationToken = default)
         where TEvent : IEvent
     {
         _transactionGuard?.EnsureTransaction();
-        return _store.SaveAsync(CreateMessage(@event, "Event"), cancellationToken);
+        var message = CreateMessage(@event, "Event");
+        var sw = Stopwatch.GetTimestamp();
+        using var activity = OutboxDiagnostics.StartPublishActivity(message.MessageType, "Event", message.CorrelationId, message.CausationId);
+        try
+        {
+            await _store.SaveAsync(message, cancellationToken).ConfigureAwait(false);
+            OutboxDiagnostics.Pending.Add(1);
+        }
+        catch (Exception ex)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            throw;
+        }
+        finally
+        {
+            OutboxDiagnostics.PublishDuration.Record(Stopwatch.GetElapsedTime(sw).TotalMilliseconds);
+        }
     }
 
     /// <inheritdoc/>
-    public Task SendCommandAsync<TCommand>(TCommand command, CancellationToken cancellationToken = default)
+    public async Task SendCommandAsync<TCommand>(TCommand command, CancellationToken cancellationToken = default)
         where TCommand : ICommand
     {
         _transactionGuard?.EnsureTransaction();
-        return _store.SaveAsync(CreateMessage(command, "Command"), cancellationToken);
+        var message = CreateMessage(command, "Command");
+        var sw = Stopwatch.GetTimestamp();
+        using var activity = OutboxDiagnostics.StartPublishActivity(message.MessageType, "Command", message.CorrelationId, message.CausationId);
+        try
+        {
+            await _store.SaveAsync(message, cancellationToken).ConfigureAwait(false);
+            OutboxDiagnostics.Pending.Add(1);
+        }
+        catch (Exception ex)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            throw;
+        }
+        finally
+        {
+            OutboxDiagnostics.PublishDuration.Record(Stopwatch.GetElapsedTime(sw).TotalMilliseconds);
+        }
     }
 
     private OutboxMessage CreateMessage<T>(T payload, string kind)
