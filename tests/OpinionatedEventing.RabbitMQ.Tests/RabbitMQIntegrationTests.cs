@@ -3,8 +3,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OpinionatedEventing.Outbox;
+using OpinionatedEventing.RabbitMQ.Tests.TestSupport;
 using OpinionatedEventing.Testing;
-using Testcontainers.RabbitMq;
 using Xunit;
 
 namespace OpinionatedEventing.RabbitMQ.Tests;
@@ -15,20 +15,15 @@ namespace OpinionatedEventing.RabbitMQ.Tests;
 /// Run with: dotnet test --project tests/OpinionatedEventing.RabbitMQ.Tests/...
 /// </summary>
 [Trait("Category", "Integration")]
-public sealed class RabbitMQIntegrationTests : IAsyncLifetime
+[Collection(RabbitMqCollection.Name)]
+public sealed class RabbitMQIntegrationTests
 {
-    private RabbitMqContainer? _container;
+    private readonly RabbitMqFixture _fixture;
 
-    public async ValueTask InitializeAsync()
+    /// <summary>Initialises the test class with the shared RabbitMQ fixture.</summary>
+    public RabbitMQIntegrationTests(RabbitMqFixture fixture)
     {
-        _container = new RabbitMqBuilder().Build();
-        await _container.StartAsync(TestContext.Current.CancellationToken);
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_container is not null)
-            await _container.DisposeAsync();
+        _fixture = fixture;
     }
 
     [Fact]
@@ -153,7 +148,7 @@ public sealed class RabbitMQIntegrationTests : IAsyncLifetime
                 services.AddOpinionatedEventing();
                 services.AddRabbitMQTransport(o =>
                 {
-                    o.ConnectionString = _container!.GetConnectionString();
+                    o.ConnectionString = _fixture.ConnectionString;
                     o.ServiceName = serviceName;
                     o.AutoDeclareTopology = true;
                 });
