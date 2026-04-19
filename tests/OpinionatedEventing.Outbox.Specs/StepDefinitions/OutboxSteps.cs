@@ -195,7 +195,9 @@ public sealed class OutboxSteps
             if (_savedMessage is not null)
             {
                 var msg = _store.Messages.SingleOrDefault(m => m.Id == _savedMessage.Id);
-                if (msg?.FailedAt is not null || msg?.AttemptCount > 0)
+                // Dead-lettered messages are excluded from GetPendingAsync, so pending.Count == 0
+                // is the reliable exit signal. FailedAt check here is a belt-and-suspenders guard.
+                if (msg?.FailedAt is not null)
                     break;
             }
 

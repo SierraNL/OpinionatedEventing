@@ -37,9 +37,12 @@ internal sealed class SagaDispatcher : ISagaDispatcher
     {
         foreach (var descriptor in _sagaDescriptors)
             await descriptor.HandleEventAsync(
+                // TEvent : IEvent does not imply notnull without an explicit class/notnull constraint;
+                // the ! is safe because callers always pass a non-null event instance.
                 @event!, _sp, _stateStore, _publisher, _timeProvider, _serializerOptions, cancellationToken);
 
         foreach (var descriptor in _participantDescriptors)
+            // Same reasoning — TEvent : IEvent does not imply notnull; caller guarantees non-null.
             await descriptor.HandleAsync(@event!, _sp, _publisher, cancellationToken);
     }
 }

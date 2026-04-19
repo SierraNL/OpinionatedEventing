@@ -44,16 +44,23 @@ jobs:
       - name: Unit & BDD tests (no containers)
         run: >
           dotnet test --framework ${{ matrix.tfm }} ${{ matrix.mtp_sep }}
-          --filter-trait "Category!=Integration"
-          --report-trx
-          --coverage --coverage-output-format cobertura --ignore-exit-code "7;8"
+          --filter-not-trait "Category=Integration"
+          --report-trx --results-directory ./TestResults
+          ${{ matrix.tfm == 'net10.0' && '--coverage --coverage-output-format cobertura' || '' }}
+
+      - name: Find coverage reports
+        if: matrix.tfm == 'net10.0'
+        id: cov
+        run: |
+          FILES=$(find ./TestResults -name '*.cobertura.xml' | tr '\n' ',')
+          echo "files=${FILES%,}" >> "$GITHUB_OUTPUT"
 
       - name: Upload coverage to Codecov
+        if: matrix.tfm == 'net10.0' && steps.cov.outputs.files != ''
         uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: "**/*.cobertura.xml"
-          flags: dotnet-${{ matrix.tfm }}
+          files: ${{ steps.cov.outputs.files }}
           fail_ci_if_error: false
 
       # Integration tests run on net10.0 only to avoid Docker container name conflicts
@@ -63,11 +70,24 @@ jobs:
         run: >
           dotnet test --framework ${{ matrix.tfm }} ${{ matrix.mtp_sep }}
           --filter-trait "Category=Integration"
-          --report-trx --ignore-exit-code "7;8"
+          --report-trx --results-directory ./TestResults
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: test-results-dotnet-${{ matrix.dotnet }}
-          path: "**/*.trx"
+          path: ./TestResults/**/*.trx
+
+      # Pack on net10.0 only — one set of .nupkg files is sufficient.
+      # NuGet push is intentionally omitted until the library reaches a stable release.
+      - name: Pack NuGet packages
+        if: success() && matrix.tfm == 'net10.0'
+        run: dotnet pack --configuration Release --output ./artifacts/nuget
+
+      - name: Upload NuGet packages
+        if: success() && matrix.tfm == 'net10.0'
+        uses: actions/upload-artifact@v7
+        with:
+          name: nuget-packages
+          path: ./artifacts/nuget/*.nupkg

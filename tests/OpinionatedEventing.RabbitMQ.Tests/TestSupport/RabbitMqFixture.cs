@@ -17,7 +17,7 @@ public sealed class RabbitMqFixture : IAsyncLifetime
     /// <inheritdoc/>
     public async ValueTask InitializeAsync()
     {
-        _container = new RabbitMqBuilder().Build();
+        _container = new RabbitMqBuilder("rabbitmq:management").Build();
         await _container.StartAsync(CancellationToken.None);
     }
 

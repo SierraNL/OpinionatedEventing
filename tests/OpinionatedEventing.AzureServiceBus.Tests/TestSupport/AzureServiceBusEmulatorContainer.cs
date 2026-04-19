@@ -78,7 +78,7 @@ internal sealed class AzureServiceBusEmulatorContainer : IAsyncDisposable
         IContainer? emulatorContainer = null;
         try
         {
-            sqlContainer = new MsSqlBuilder()
+            sqlContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04")
                 .WithNetwork(network)
                 .WithNetworkAliases(SqlAlias)
                 .WithPassword(SqlPassword)
@@ -86,15 +86,14 @@ internal sealed class AzureServiceBusEmulatorContainer : IAsyncDisposable
 
             await sqlContainer.StartAsync(ct);
 
-            emulatorContainer = new ContainerBuilder()
-                .WithImage(EmulatorImage)
+            emulatorContainer = new ContainerBuilder(EmulatorImage)
                 .WithNetwork(network)
                 .WithPortBinding(AmqpPort, true)
                 .WithEnvironment("ACCEPT_EULA", "Y")
                 .WithEnvironment("SQL_SERVER", SqlAlias)
                 .WithEnvironment("MSSQL_SA_PASSWORD", SqlPassword)
                 .WithBindMount(configPath, "/ServiceBus_Emulator/ConfigFiles/Config.json")
-                .WithWaitStrategy(Wait.ForUnixContainer().UntilPortIsAvailable(AmqpPort))
+                .WithWaitStrategy(Wait.ForUnixContainer().UntilInternalTcpPortIsAvailable(AmqpPort))
                 .Build();
 
             await emulatorContainer.StartAsync(ct);

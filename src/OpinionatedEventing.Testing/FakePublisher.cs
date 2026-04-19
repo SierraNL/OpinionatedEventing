@@ -22,6 +22,8 @@ public sealed class FakePublisher : IPublisher
     public Task SendCommandAsync<TCommand>(TCommand command, CancellationToken cancellationToken = default)
         where TCommand : ICommand
     {
+        // TCommand : ICommand does not imply notnull without a class/notnull constraint; safe because
+        // ICommand is an interface (reference type only) and callers always pass a non-null instance.
         _sentCommands.Add(command!);
         return Task.CompletedTask;
     }
@@ -30,6 +32,7 @@ public sealed class FakePublisher : IPublisher
     public Task PublishEventAsync<TEvent>(TEvent @event, CancellationToken cancellationToken = default)
         where TEvent : IEvent
     {
+        // Same reasoning as SendCommandAsync — TEvent is always a non-null reference type at the call site.
         _publishedEvents.Add(@event!);
         return Task.CompletedTask;
     }

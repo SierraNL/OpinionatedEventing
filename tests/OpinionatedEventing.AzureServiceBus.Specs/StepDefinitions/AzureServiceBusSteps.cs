@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using OpinionatedEventing.AzureServiceBus;
 using OpinionatedEventing.AzureServiceBus.Routing;
@@ -48,6 +50,8 @@ public sealed class AzureServiceBusSteps
     public void GivenTransportRegisteredWithConnectionString()
     {
         _services = new ServiceCollection();
+        _services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+        _services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
         _services.AddOpinionatedEventing();
         _services.AddAzureServiceBusTransport(o =>
         {
@@ -60,6 +64,8 @@ public sealed class AzureServiceBusSteps
     public void GivenTransportRegisteredWithServiceName(string serviceName)
     {
         _services = new ServiceCollection();
+        _services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+        _services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
         _services.AddOpinionatedEventing();
         _services.AddAzureServiceBusTransport(o =>
         {
