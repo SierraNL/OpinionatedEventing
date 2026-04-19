@@ -20,6 +20,9 @@ public sealed class RabbitMQIntegrationTests
 {
     private readonly RabbitMqFixture _fixture;
 
+    // Unique per instance (xUnit creates one per test) → isolated durable queues, no cross-test contamination.
+    private readonly string _testRunId = Guid.NewGuid().ToString("N")[..8];
+
     /// <summary>Initialises the test class with the shared RabbitMQ fixture.</summary>
     public RabbitMQIntegrationTests(RabbitMqFixture fixture)
     {
@@ -149,7 +152,7 @@ public sealed class RabbitMQIntegrationTests
                 services.AddRabbitMQTransport(o =>
                 {
                     o.ConnectionString = _fixture.ConnectionString;
-                    o.ServiceName = serviceName;
+                    o.ServiceName = $"{serviceName}-{_testRunId}";
                     o.AutoDeclareTopology = true;
                 });
                 configureExtra?.Invoke(services);
