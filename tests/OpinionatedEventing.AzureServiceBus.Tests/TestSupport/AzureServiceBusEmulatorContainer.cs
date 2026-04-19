@@ -15,6 +15,7 @@ internal sealed class AzureServiceBusEmulatorContainer : IAsyncDisposable
 {
     private const string EmulatorImage = "mcr.microsoft.com/azure-messaging/servicebus-emulator:latest";
     private const int AmqpPort = 5672;
+    private const int ManagementPort = 5300;
 
     // SA password shared between SQL Server and the emulator's env vars.
     private const string SqlPassword = "Strong@Passw0rd!";
@@ -89,6 +90,7 @@ internal sealed class AzureServiceBusEmulatorContainer : IAsyncDisposable
             emulatorContainer = new ContainerBuilder(EmulatorImage)
                 .WithNetwork(network)
                 .WithPortBinding(AmqpPort, true)
+                .WithPortBinding(ManagementPort, true)
                 .WithEnvironment("ACCEPT_EULA", "Y")
                 .WithEnvironment("SQL_SERVER", SqlAlias)
                 .WithEnvironment("MSSQL_SA_PASSWORD", SqlPassword)
@@ -113,12 +115,28 @@ internal sealed class AzureServiceBusEmulatorContainer : IAsyncDisposable
         return new AzureServiceBusEmulatorContainer(network, sqlContainer, emulatorContainer, configPath);
     }
 
-    /// <summary>Gets the connection string pointing at the running emulator.</summary>
+    /// <summary>Gets the AMQP connection string pointing at the running emulator.</summary>
     public string ConnectionString
     {
         get
         {
             var port = _emulatorContainer.GetMappedPublicPort(AmqpPort);
+            return string.Format(ConnectionStringTemplate, port);
+        }
+    }
+
+    /// <summary>
+    /// Gets a connection string for <see cref="Azure.Messaging.ServiceBus.Administration.ServiceBusAdministrationClient"/>
+    /// that points at the emulator's HTTP management port (5300).
+    /// With <c>UseDevelopmentEmulator=true</c> the SDK derives the management endpoint from the
+    /// port in the connection string, so the admin client must use the management port — not the
+    /// AMQP port — otherwise HTTP requests land on the AMQP listener and fail.
+    /// </summary>
+    public string ManagementConnectionString
+    {
+        get
+        {
+            var port = _emulatorContainer.GetMappedPublicPort(ManagementPort);
             return string.Format(ConnectionStringTemplate, port);
         }
     }
