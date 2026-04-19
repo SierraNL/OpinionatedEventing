@@ -9,9 +9,12 @@ public sealed class AzureServiceBusFixture : IAsyncLifetime
 {
     private AzureServiceBusEmulatorContainer? _emulator;
 
-    /// <summary>Gets the connection string for the running Azure Service Bus emulator.</summary>
+    /// <summary>Gets the AMQP connection string for the running Azure Service Bus emulator.</summary>
     // InitializeAsync guarantees _emulator is set before any test accesses this property
     public string ConnectionString => _emulator!.ConnectionString;
+
+    /// <summary>Gets the management (HTTP port 5300) connection string for the running emulator.</summary>
+    public string ManagementConnectionString => _emulator!.ManagementConnectionString;
 
     /// <inheritdoc/>
     public async ValueTask InitializeAsync()

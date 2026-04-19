@@ -1,5 +1,6 @@
 #nullable enable
 
+using Azure.Messaging.ServiceBus.Administration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OpinionatedEventing.AzureServiceBus.Tests.TestSupport;
@@ -111,6 +112,12 @@ public sealed class AzureServiceBusIntegrationTests
             .ConfigureServices(services =>
             {
                 services.AddOpinionatedEventing();
+                // Register the admin client before AddAzureServiceBusTransport so the TryAddSingleton
+                // inside skips it. The management API is on port 5300; with UseDevelopmentEmulator=true
+                // the SDK derives the HTTP endpoint from the port in the connection string, so using
+                // the AMQP connection string (port 5672) would send HTTP to the AMQP listener.
+                services.AddSingleton(
+                    new ServiceBusAdministrationClient(_fixture.ManagementConnectionString));
                 services.AddAzureServiceBusTransport(o =>
                 {
                     o.ConnectionString = _fixture.ConnectionString;
