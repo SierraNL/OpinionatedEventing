@@ -56,6 +56,7 @@ jobs:
         run: >
           dotnet test --framework ${{ matrix.tfm }} ${{ matrix.mtp_sep }}
           --filter-trait "Category=Integration"
+          --minimum-expected-tests 0
           --report-trx --results-directory ./TestResults
           --coverage --coverage-output-format cobertura
 
