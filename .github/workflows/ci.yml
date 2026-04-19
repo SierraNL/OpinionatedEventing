@@ -67,6 +67,7 @@ jobs:
       # that occur when all three TFM legs run Testcontainers concurrently on the same runner.
       - name: Integration tests (Testcontainers — Docker required, .NET 10 only)
         if: github.event_name == 'push' && matrix.tfm == 'net10.0'
+        timeout-minutes: 20
         run: >
           dotnet test --framework ${{ matrix.tfm }} ${{ matrix.mtp_sep }}
           --filter-trait "Category=Integration"

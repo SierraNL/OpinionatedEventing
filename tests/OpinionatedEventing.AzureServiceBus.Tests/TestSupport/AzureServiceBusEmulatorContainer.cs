@@ -93,7 +93,10 @@ internal sealed class AzureServiceBusEmulatorContainer : IAsyncDisposable
                 .WithEnvironment("SQL_SERVER", SqlAlias)
                 .WithEnvironment("MSSQL_SA_PASSWORD", SqlPassword)
                 .WithBindMount(configPath, "/ServiceBus_Emulator/ConfigFiles/Config.json")
-                .WithWaitStrategy(Wait.ForUnixContainer().UntilInternalTcpPortIsAvailable(AmqpPort))
+                // Port 5672 opens before SQL Server init completes; the log message is the
+                // definitive signal that the emulator is ready to accept AMQP connections.
+                .WithWaitStrategy(Wait.ForUnixContainer()
+                    .UntilMessageIsLogged("Emulator Service is Successfully Up!"))
                 .Build();
 
             await emulatorContainer.StartAsync(ct);
