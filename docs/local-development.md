@@ -4,8 +4,10 @@ OpinionatedEventing is designed to run locally without any cloud accounts. The `
 
 ## Prerequisites
 
-- [.NET Aspire workload](https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/setup-tooling): `dotnet workload install aspire`
-- Docker Desktop (or compatible container runtime)
+- **.NET 10 SDK** — required for the Aspire AppHost. Service projects can target .NET 8 or later.
+- **A container runtime** — Docker Desktop, Podman, or Rancher Desktop.
+
+> **Note:** From Aspire 9 onwards the separate `dotnet workload install aspire` step is no longer needed. Aspire is now a set of NuGet packages; there is no workload to install. See [aspire.dev](https://aspire.dev/get-started/prerequisites/) for the current prerequisites.
 
 ## Project structure
 
