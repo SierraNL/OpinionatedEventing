@@ -154,7 +154,7 @@ The Aspire dashboard polls `/health` and reflects the status in the resources vi
 
 | Health check | Tag | Condition |
 |---|---|---|
-| Broker connectivity | `live`, `broker` | Unhealthy if broker is unreachable |
+| Broker connectivity | `ready`, `broker` | Unhealthy if broker is unreachable |
 | Outbox backlog | `ready`, `outbox` | Degraded above `OutboxBacklogThreshold` |
 | Saga timeout backlog | `ready`, `saga` | Degraded above `SagaTimeoutBacklogThreshold` |
 

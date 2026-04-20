@@ -116,7 +116,7 @@ app.MapHealthChecks("/health/live",  new HealthCheckOptions { Predicate = c => c
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") });
 ```
 
-Liveness (`/health/live`) fails if the broker is unreachable. Readiness (`/health/ready`) degrades if the outbox or saga timeout backlog grows too large.
+All three built-in checks are tagged `ready`. Broker connectivity belongs on readiness, not liveness: a broker outage is a dependency failure that restarting the process cannot fix. Failing liveness would cause needless container restarts while the broker is down, delaying recovery once it comes back. Failing readiness removes the service from the load balancer until the broker is reachable again, which is the correct behaviour.
 
 ## Correlation and causation IDs
 
