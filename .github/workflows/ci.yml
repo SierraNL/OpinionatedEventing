@@ -53,12 +53,14 @@ jobs:
       - name: Integration tests (Testcontainers — Docker required, .NET 10 only)
         if: github.event_name == 'push' && matrix.tfm == 'net10.0'
         timeout-minutes: 20
-        run: >
-          dotnet test --framework ${{ matrix.tfm }} ${{ matrix.mtp_sep }}
-          --filter-trait "Category=Integration"
-          --minimum-expected-tests 0
-          --report-trx --results-directory ./TestResults
-          --coverage --coverage-output-format cobertura
+        run: |
+          dotnet test --framework ${{ matrix.tfm }} \
+            --filter-trait "Category=Integration" \
+            --report-trx --results-directory ./TestResults \
+            --coverage --coverage-output-format cobertura
+          result=$?
+          # Exit code 8 = zero tests ran; expected for assemblies with no integration tests
+          [ $result -eq 0 ] || [ $result -eq 8 ] || exit $result
 
       - name: Find coverage reports
         if: matrix.tfm == 'net10.0'
