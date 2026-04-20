@@ -10,6 +10,17 @@
     <Project Path="src/OpinionatedEventing.Sagas/OpinionatedEventing.Sagas.csproj" />
     <Project Path="src/OpinionatedEventing.Testing/OpinionatedEventing.Testing.csproj" />
   </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Samples.AppHost/Samples.AppHost.csproj" />
+    <Project Path="samples/Samples.Contracts/Samples.Contracts.csproj" />
+    <Project Path="samples/Samples.FulfillmentService/Samples.FulfillmentService.csproj" />
+    <Project Path="samples/Samples.NotificationService/Samples.NotificationService.csproj" />
+    <Project Path="samples/Samples.OrderService.Api/Samples.OrderService.Api.csproj" />
+    <Project Path="samples/Samples.OrderService.Application/Samples.OrderService.Application.csproj" />
+    <Project Path="samples/Samples.OrderService.Domain/Samples.OrderService.Domain.csproj" />
+    <Project Path="samples/Samples.OrderService.Infrastructure/Samples.OrderService.Infrastructure.csproj" />
+    <Project Path="samples/Samples.PaymentService/Samples.PaymentService.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/OpinionatedEventing.Aspire.Specs/OpinionatedEventing.Aspire.Specs.csproj" />
     <Project Path="tests/OpinionatedEventing.Aspire.Tests/OpinionatedEventing.Aspire.Tests.csproj" />

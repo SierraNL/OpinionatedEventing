@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Samples.Contracts\Samples.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\OpinionatedEventing.Core\OpinionatedEventing.Core.csproj" />
+  </ItemGroup>
+
+</Project>

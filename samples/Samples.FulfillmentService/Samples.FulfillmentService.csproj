@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Samples.Contracts\Samples.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\OpinionatedEventing.EntityFramework\OpinionatedEventing.EntityFramework.csproj" />
+    <ProjectReference Include="..\..\src\OpinionatedEventing.Sagas\OpinionatedEventing.Sagas.csproj" />
+    <ProjectReference Include="..\..\src\OpinionatedEventing.RabbitMQ\OpinionatedEventing.RabbitMQ.csproj" />
+    <ProjectReference Include="..\..\src\OpinionatedEventing.Aspire\OpinionatedEventing.Aspire.csproj" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+  </ItemGroup>
+
+</Project>
