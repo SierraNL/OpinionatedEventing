@@ -116,7 +116,11 @@ app.MapHealthChecks("/health/live",  new HealthCheckOptions { Predicate = c => c
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") });
 ```
 
-All three built-in checks are tagged `ready`. Broker connectivity belongs on readiness, not liveness: a broker outage is a dependency failure that restarting the process cannot fix. Failing liveness would cause needless container restarts while the broker is down, delaying recovery once it comes back. Failing readiness removes the service from the load balancer until the broker is reachable again, which is the correct behaviour.
+All three built-in checks are tagged `ready`. Broker connectivity belongs on readiness, not liveness: a broker outage is a dependency failure that restarting the process cannot fix — failing liveness would just cause needless container restarts.
+
+**Important limitation for event-driven services:** readiness probes only control the Kubernetes `Service` endpoint, which governs *HTTP* traffic. The broker consumer workers (`RabbitMQConsumerWorker`, `AzureServiceBusConsumerWorker`) are `BackgroundService` instances that pull messages directly from the broker, independent of any load balancer. Failing readiness does **not** pause event consumption.
+
+This means the health checks here are best treated as **observability signals** — surfacing problems in dashboards and triggering alerts — rather than as back-pressure mechanisms. If you need to actually stop a service from consuming events (for example, during an overload situation), you need an explicit mechanism such as scaling down the deployment or pausing the consumer workers in application code.
 
 ## Correlation and causation IDs
 
