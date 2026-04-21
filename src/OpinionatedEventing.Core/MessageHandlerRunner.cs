@@ -57,6 +57,13 @@ public sealed class MessageHandlerRunner : IMessageHandlerRunner
             var message = JsonSerializer.Deserialize(payload, type, _options.Value.SerializerOptions)
                 ?? throw new InvalidOperationException($"Deserialised null for type '{messageType}'.");
 
+            using var logScope = _logger.BeginScope(new Dictionary<string, object?>
+            {
+                ["CorrelationId"] = correlationId,
+                ["CausationId"] = causationId,
+                ["MessageType"] = messageType,
+            });
+
             switch (messageKind)
             {
                 case "Event":
