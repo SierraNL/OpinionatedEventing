@@ -2,29 +2,30 @@ using Aspire.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-// RabbitMQ container (fanout exchanges + direct queues, management UI at :15672).
-// WithManagementPlugin() enables the management UI on port 15672.
-// To switch to Azure Service Bus emulator replace this line with:
-//   var rabbit = builder.AddAzureServiceBus("servicebus").RunAsEmulator();
-// and update each service's Program.cs to use AddAzureServiceBusTransport.
 var rabbit = builder.AddRabbitMQ("rabbitmq").WithManagementPlugin();
 
-// Each service receives ConnectionStrings__rabbitmq via Aspire service discovery.
-// The OpinionatedEventing RabbitMQ transport reads this key automatically.
+// PostgreSQL container with one logical database per service.
+// SQLite was intentionally avoided: its DateTimeOffset handling breaks saga timeouts.
+var postgres = builder.AddPostgres("postgres").WithPgAdmin();
+var orderDb        = postgres.AddDatabase("orderdb");
+var paymentDb      = postgres.AddDatabase("paymentdb");
+var fulfillmentDb  = postgres.AddDatabase("fulfillmentdb");
+var notificationDb = postgres.AddDatabase("notificationdb");
+
 builder.AddProject<Projects.Samples_OrderService_Api>("order-service")
-    .WithReference(rabbit)
-    .WaitFor(rabbit);
+    .WithReference(rabbit).WaitFor(rabbit)
+    .WithReference(orderDb).WaitFor(postgres);
 
 builder.AddProject<Projects.Samples_PaymentService>("payment-service")
-    .WithReference(rabbit)
-    .WaitFor(rabbit);
+    .WithReference(rabbit).WaitFor(rabbit)
+    .WithReference(paymentDb).WaitFor(postgres);
 
 builder.AddProject<Projects.Samples_FulfillmentService>("fulfillment-service")
-    .WithReference(rabbit)
-    .WaitFor(rabbit);
+    .WithReference(rabbit).WaitFor(rabbit)
+    .WithReference(fulfillmentDb).WaitFor(postgres);
 
 builder.AddProject<Projects.Samples_NotificationService>("notification-service")
-    .WithReference(rabbit)
-    .WaitFor(rabbit);
+    .WithReference(rabbit).WaitFor(rabbit)
+    .WithReference(notificationDb).WaitFor(postgres);
 
 builder.Build().Run();

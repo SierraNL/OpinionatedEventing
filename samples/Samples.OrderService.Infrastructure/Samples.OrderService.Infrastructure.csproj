@@ -3,7 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Samples.OrderService.Application\Samples.OrderService.Application.csproj" />
     <ProjectReference Include="..\..\src\OpinionatedEventing.EntityFramework\OpinionatedEventing.EntityFramework.csproj" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
 
 </Project>

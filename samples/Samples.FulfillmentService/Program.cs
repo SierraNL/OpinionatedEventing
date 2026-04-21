@@ -13,8 +13,9 @@ builder.Services
 // DomainEventInterceptor is also registered but not wired — this service has no aggregates.
 builder.Services.AddOpinionatedEventingEntityFramework<FulfillmentDbContext>();
 builder.Services.AddDbContext<FulfillmentDbContext>(options =>
-    options.UseSqlite(
-        builder.Configuration.GetConnectionString("FulfillmentDb") ?? "Data Source=fulfillment.db"));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("fulfillmentdb")
+            ?? throw new InvalidOperationException("Connection string 'fulfillmentdb' not found.")));
 
 // Saga engine (participant-only — no orchestrators registered here).
 builder.Services.AddOpinionatedEventingSagas();

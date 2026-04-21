@@ -14,7 +14,8 @@ builder.Services
 
 // ── Infrastructure ────────────────────────────────────────────────────────────
 builder.Services.AddOrderServiceInfrastructure(
-    builder.Configuration.GetConnectionString("OrderDb") ?? "Data Source=orders.db");
+    builder.Configuration.GetConnectionString("orderdb")
+        ?? throw new InvalidOperationException("Connection string 'orderdb' not found."));
 
 // ── Saga engine ───────────────────────────────────────────────────────────────
 builder.Services.AddOpinionatedEventingSagas();

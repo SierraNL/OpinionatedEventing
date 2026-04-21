@@ -12,8 +12,9 @@ builder.Services
 // — this service has no aggregates and never publishes outbound messages.
 builder.Services.AddOpinionatedEventingEntityFramework<NotificationDbContext>();
 builder.Services.AddDbContext<NotificationDbContext>(options =>
-    options.UseSqlite(
-        builder.Configuration.GetConnectionString("NotificationDb") ?? "Data Source=notifications.db"));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("notificationdb")
+            ?? throw new InvalidOperationException("Connection string 'notificationdb' not found.")));
 
 builder.Services.AddRabbitMQTransport(options =>
 {

@@ -17,7 +17,7 @@ public static class ServiceCollectionExtensions
 
         services.AddDbContext<OrderDbContext>((sp, options) =>
         {
-            options.UseSqlite(connectionString);
+            options.UseNpgsql(connectionString);
             // DomainEventInterceptor harvests aggregate domain events during SaveChanges
             // and writes them to the outbox in the same transaction.
             options.AddInterceptors(sp.GetRequiredService<DomainEventInterceptor>());
