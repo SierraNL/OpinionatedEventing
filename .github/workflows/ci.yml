@@ -47,9 +47,11 @@ jobs:
         if: matrix.tfm == 'net10.0'
         run: dotnet restore OpinionatedEventing.slnx && dotnet build OpinionatedEventing.slnx --no-restore --configuration Release
 
+      # dotnet test naturally skips non-test projects, so the full solution is safe
+      # here — samples are excluded automatically without needing the filter.
       - name: Unit & BDD tests (no containers)
         run: >
-          dotnet test LibrariesOnly.slnf --framework ${{ matrix.tfm }} ${{ matrix.mtp_sep }}
+          dotnet test --framework ${{ matrix.tfm }} ${{ matrix.mtp_sep }}
           --filter-not-trait "Category=Integration"
           --report-trx --results-directory ./TestResults
           ${{ matrix.tfm == 'net10.0' && '--coverage --coverage-output-format cobertura' || '' }}
@@ -60,7 +62,7 @@ jobs:
         if: github.event_name == 'push' && matrix.tfm == 'net10.0'
         timeout-minutes: 20
         run: >
-          dotnet test LibrariesOnly.slnf --framework ${{ matrix.tfm }}
+          dotnet test --framework ${{ matrix.tfm }}
           --filter-trait "Category=Integration"
           --ignore-exit-code 8
           --report-trx --results-directory ./TestResults
