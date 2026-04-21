@@ -113,36 +113,12 @@ The choreography version is simpler to write and deploy, but harder to debug acr
 
 ## Testing participants
 
-`ISagaParticipant<TEvent>.HandleAsync` receives an `ISagaContext` — a different interface from `IMessagingContext`. The `OpinionatedEventing.Testing` package does not ship a `FakeSagaContext`, so write a minimal one inline for your tests:
+`ISagaParticipant<TEvent>.HandleAsync` receives an `ISagaContext`. Use `FakeSagaContext` from `OpinionatedEventing.Testing` to assert on sent commands and published events without any broker interaction:
 
 ```csharp
-using OpinionatedEventing.Sagas;
+using OpinionatedEventing.Testing;
 
-sealed class TestSagaContext(Guid correlationId) : ISagaContext
-{
-    public Guid CorrelationId { get; } = correlationId;
-    public List<object> SentCommands { get; } = [];
-    public List<object> PublishedEvents { get; } = [];
-
-    public Task SendCommandAsync<TCommand>(TCommand command, CancellationToken ct = default)
-        where TCommand : ICommand
-    {
-        SentCommands.Add(command!);
-        return Task.CompletedTask;
-    }
-
-    public Task PublishEventAsync<TEvent>(TEvent @event, CancellationToken ct = default)
-        where TEvent : IEvent
-    {
-        PublishedEvents.Add(@event!);
-        return Task.CompletedTask;
-    }
-
-    public void Complete() { }
-}
-
-// In your test:
-var ctx = new TestSagaContext(Guid.NewGuid());
+var ctx = new FakeSagaContext { CorrelationId = Guid.NewGuid() };
 var participant = new FulfillmentParticipant(new FakeInventoryService());
 
 await participant.HandleAsync(
@@ -151,4 +127,7 @@ await participant.HandleAsync(
     CancellationToken.None);
 
 Assert.Single(ctx.PublishedEvents.OfType<StockReserved>());
+Assert.False(ctx.IsCompleted); // Complete() was not called
 ```
+
+`FakeSagaContext` captures commands and events in `SentCommands` and `PublishedEvents` (both `IReadOnlyList<object>`). Use `.OfType<T>()` to filter by type, consistent with `FakePublisher`.

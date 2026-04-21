@@ -45,7 +45,7 @@ jobs:
         run: >
           dotnet test --framework ${{ matrix.tfm }} ${{ matrix.mtp_sep }}
           --filter-not-trait "Category=Integration"
-          --report-trx --results-directory ./TestResults
+          --report-trx --results-directory ./TestResults/unit
           ${{ matrix.tfm == 'net10.0' && '--coverage --coverage-output-format cobertura' || '' }}
 
       # Integration tests run on net10.0 only to avoid Docker container name conflicts
@@ -57,22 +57,39 @@ jobs:
           dotnet test --framework ${{ matrix.tfm }}
           --filter-trait "Category=Integration"
           --ignore-exit-code 8
-          --report-trx --results-directory ./TestResults
+          --report-trx --results-directory ./TestResults/integration
           --coverage --coverage-output-format cobertura
 
-      - name: Find coverage reports
+      - name: Find unit coverage reports
         if: matrix.tfm == 'net10.0'
-        id: cov
+        id: cov_unit
         run: |
-          FILES=$(find ./TestResults -name '*.cobertura.xml' | tr '\n' ',')
+          FILES=$(find ./TestResults/unit -name '*.cobertura.xml' 2>/dev/null | tr '\n' ',')
           echo "files=${FILES%,}" >> "$GITHUB_OUTPUT"
 
-      - name: Upload coverage to Codecov
-        if: matrix.tfm == 'net10.0' && steps.cov.outputs.files != ''
+      - name: Find integration coverage reports
+        if: github.event_name == 'push' && matrix.tfm == 'net10.0'
+        id: cov_integration
+        run: |
+          FILES=$(find ./TestResults/integration -name '*.cobertura.xml' 2>/dev/null | tr '\n' ',')
+          echo "files=${FILES%,}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload unit coverage to Codecov
+        if: matrix.tfm == 'net10.0' && steps.cov_unit.outputs.files != ''
         uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.cov.outputs.files }}
+          files: ${{ steps.cov_unit.outputs.files }}
+          flags: unit
+          fail_ci_if_error: false
+
+      - name: Upload integration coverage to Codecov
+        if: github.event_name == 'push' && matrix.tfm == 'net10.0' && steps.cov_integration.outputs.files != ''
+        uses: codecov/codecov-action@v6
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.cov_integration.outputs.files }}
+          flags: integration
           fail_ci_if_error: false
 
       - name: Upload test results
