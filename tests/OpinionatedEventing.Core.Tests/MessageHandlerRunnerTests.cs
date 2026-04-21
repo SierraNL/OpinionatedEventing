@@ -8,6 +8,50 @@ namespace OpinionatedEventing.Tests;
 
 public sealed class MessageHandlerRunnerTests
 {
+    private sealed class CapturingLoggerProvider : ILoggerProvider, ISupportExternalScope
+    {
+        private IExternalScopeProvider? _scopeProvider;
+        public List<CapturedLogEntry> Entries { get; } = [];
+
+        public void SetScopeProvider(IExternalScopeProvider scopeProvider) => _scopeProvider = scopeProvider;
+        public ILogger CreateLogger(string categoryName) => new CapturingLogger(categoryName, Entries, () => _scopeProvider);
+        public void Dispose() { }
+    }
+
+    private sealed class CapturingLogger(
+        string category,
+        List<CapturedLogEntry> entries,
+        Func<IExternalScopeProvider?> getScopeProvider) : ILogger
+    {
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull
+            => getScopeProvider()?.Push(state);
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state,
+            Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            var scopes = new Dictionary<string, object?>();
+            getScopeProvider()?.ForEachScope((scope, acc) =>
+            {
+                if (scope is IEnumerable<KeyValuePair<string, object?>> kvps)
+                    foreach (var kvp in kvps) acc[kvp.Key] = kvp.Value;
+            }, scopes);
+            entries.Add(new CapturedLogEntry(category, scopes));
+        }
+    }
+
+    private sealed record CapturedLogEntry(string Category, Dictionary<string, object?> Scopes);
+
+    private sealed class LoggingEventHandler(ILogger<LoggingEventHandler> logger) : IEventHandler<RunnerEvent>
+    {
+        public Task HandleAsync(RunnerEvent @event, CancellationToken ct)
+        {
+            logger.LogInformation("Handling event {EventId}", @event.Id);
+            return Task.CompletedTask;
+        }
+    }
+
     private sealed record RunnerEvent(Guid Id) : IEvent;
     private sealed record RunnerCommand(Guid Id) : ICommand;
 
@@ -52,11 +96,21 @@ public sealed class MessageHandlerRunnerTests
         }
     }
 
-    private static ServiceProvider BuildProvider(Action<IServiceCollection>? configure = null)
+    private static ServiceProvider BuildProvider(
+        Action<IServiceCollection>? configure = null,
+        ILoggerFactory? loggerFactory = null)
     {
         var services = new ServiceCollection();
-        services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
-        services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+        if (loggerFactory is not null)
+        {
+            services.AddSingleton(loggerFactory);
+            services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
+        }
+        else
+        {
+            services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+            services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+        }
         services.AddOpinionatedEventing();
         configure?.Invoke(services);
         return services.BuildServiceProvider();
@@ -240,6 +294,36 @@ public sealed class MessageHandlerRunnerTests
                 Guid.NewGuid(),
                 null,
                 ct));
+    }
+
+    [Fact]
+    public async Task RunAsync_exposes_correlation_causation_and_message_type_in_logging_scope()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var capturingProvider = new CapturingLoggerProvider();
+        using var loggerFactory = LoggerFactory.Create(b => b.AddProvider(capturingProvider));
+
+        await using var provider = BuildProvider(
+            s => s.AddScoped<IEventHandler<RunnerEvent>>(
+                sp => new LoggingEventHandler(sp.GetRequiredService<ILogger<LoggingEventHandler>>())),
+            loggerFactory);
+
+        var runner = provider.GetRequiredService<IMessageHandlerRunner>();
+        var correlationId = Guid.NewGuid();
+        var causationId = Guid.NewGuid();
+        var messageType = typeof(RunnerEvent).AssemblyQualifiedName!;
+
+        await runner.RunAsync(
+            messageType, "Event",
+            JsonSerializer.Serialize(new RunnerEvent(Guid.NewGuid())),
+            correlationId, causationId, ct);
+
+        var handlerEntry = capturingProvider.Entries
+            .Single(e => e.Category.Contains(nameof(LoggingEventHandler)));
+
+        Assert.Equal(correlationId, handlerEntry.Scopes["CorrelationId"]);
+        Assert.Equal(causationId, handlerEntry.Scopes["CausationId"]);
+        Assert.Equal(messageType, handlerEntry.Scopes["MessageType"]);
     }
 
     [Fact]

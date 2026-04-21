@@ -143,10 +143,16 @@ public class OrderNotificationHandler(IMessagingContext context) : IEventHandler
 }
 ```
 
-Log the correlation ID in every handler to make log aggregation trivial:
+### Automatic logging scope
 
-```csharp
-_logger.LogInformation(
-    "Handling {EventType} for order {OrderId}, correlation={CorrelationId}",
-    nameof(OrderPlaced), @event.OrderId, context.CorrelationId);
+`MessageHandlerRunner` calls `ILogger.BeginScope` before invoking handlers, pushing `CorrelationId`, `CausationId`, and `MessageType` as structured properties into the ambient logging scope:
+
+```json
+{
+  "CorrelationId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "CausationId":   "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+  "MessageType":   "MyApp.Orders.OrderPlaced, MyApp"
+}
 ```
+
+Any `ILogger<T>` used inside a handler automatically inherits these properties — no manual logging required. Logging providers that support structured scopes (OpenTelemetry, Serilog, Application Insights) pick them up and include them on every log entry emitted during handler execution.
