@@ -1,0 +1,31 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/OpinionatedEventing.Aspire/OpinionatedEventing.Aspire.csproj" />
+    <Project Path="src/OpinionatedEventing.AzureServiceBus/OpinionatedEventing.AzureServiceBus.csproj" />
+    <Project Path="src/OpinionatedEventing.Core/OpinionatedEventing.Core.csproj" />
+    <Project Path="src/OpinionatedEventing.EntityFramework/OpinionatedEventing.EntityFramework.csproj" />
+    <Project Path="src/OpinionatedEventing.OpenTelemetry/OpinionatedEventing.OpenTelemetry.csproj" />
+    <Project Path="src/OpinionatedEventing.Outbox/OpinionatedEventing.Outbox.csproj" />
+    <Project Path="src/OpinionatedEventing.RabbitMQ/OpinionatedEventing.RabbitMQ.csproj" />
+    <Project Path="src/OpinionatedEventing.Sagas/OpinionatedEventing.Sagas.csproj" />
+    <Project Path="src/OpinionatedEventing.Testing/OpinionatedEventing.Testing.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/OpinionatedEventing.Aspire.Specs/OpinionatedEventing.Aspire.Specs.csproj" />
+    <Project Path="tests/OpinionatedEventing.Aspire.Tests/OpinionatedEventing.Aspire.Tests.csproj" />
+    <Project Path="tests/OpinionatedEventing.AzureServiceBus.Specs/OpinionatedEventing.AzureServiceBus.Specs.csproj" />
+    <Project Path="tests/OpinionatedEventing.AzureServiceBus.Tests/OpinionatedEventing.AzureServiceBus.Tests.csproj" />
+    <Project Path="tests/OpinionatedEventing.Core.Specs/OpinionatedEventing.Core.Specs.csproj" />
+    <Project Path="tests/OpinionatedEventing.Core.Tests/OpinionatedEventing.Core.Tests.csproj" />
+    <Project Path="tests/OpinionatedEventing.EntityFramework.Specs/OpinionatedEventing.EntityFramework.Specs.csproj" />
+    <Project Path="tests/OpinionatedEventing.EntityFramework.Tests/OpinionatedEventing.EntityFramework.Tests.csproj" />
+    <Project Path="tests/OpinionatedEventing.OpenTelemetry.Tests/OpinionatedEventing.OpenTelemetry.Tests.csproj" />
+    <Project Path="tests/OpinionatedEventing.Outbox.Specs/OpinionatedEventing.Outbox.Specs.csproj" />
+    <Project Path="tests/OpinionatedEventing.Outbox.Tests/OpinionatedEventing.Outbox.Tests.csproj" />
+    <Project Path="tests/OpinionatedEventing.RabbitMQ.Specs/OpinionatedEventing.RabbitMQ.Specs.csproj" />
+    <Project Path="tests/OpinionatedEventing.RabbitMQ.Tests/OpinionatedEventing.RabbitMQ.Tests.csproj" />
+    <Project Path="tests/OpinionatedEventing.Sagas.Specs/OpinionatedEventing.Sagas.Specs.csproj" />
+    <Project Path="tests/OpinionatedEventing.Sagas.Tests/OpinionatedEventing.Sagas.Tests.csproj" />
+    <Project Path="tests/OpinionatedEventing.Testing.Tests/OpinionatedEventing.Testing.Tests.csproj" />
+  </Folder>
+</Solution>

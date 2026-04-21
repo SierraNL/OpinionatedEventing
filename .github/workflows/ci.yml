@@ -36,14 +36,18 @@ jobs:
           dotnet-version: ${{ matrix.dotnet }}
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore LibrariesOnly.slnx
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release --framework ${{ matrix.tfm }}
+        run: dotnet build LibrariesOnly.slnx --no-restore --configuration Release --framework ${{ matrix.tfm }}
+
+      - name: Build samples (net10.0 only)
+        if: matrix.tfm == 'net10.0'
+        run: dotnet restore OpinionatedEventing.slnx && dotnet build OpinionatedEventing.slnx --no-restore --configuration Release
 
       - name: Unit & BDD tests (no containers)
         run: >
-          dotnet test --framework ${{ matrix.tfm }} ${{ matrix.mtp_sep }}
+          dotnet test LibrariesOnly.slnx --framework ${{ matrix.tfm }} ${{ matrix.mtp_sep }}
           --filter-not-trait "Category=Integration"
           --report-trx --results-directory ./TestResults
           ${{ matrix.tfm == 'net10.0' && '--coverage --coverage-output-format cobertura' || '' }}
@@ -54,7 +58,7 @@ jobs:
         if: github.event_name == 'push' && matrix.tfm == 'net10.0'
         timeout-minutes: 20
         run: >
-          dotnet test --framework ${{ matrix.tfm }}
+          dotnet test LibrariesOnly.slnx --framework ${{ matrix.tfm }}
           --filter-trait "Category=Integration"
           --ignore-exit-code 8
           --report-trx --results-directory ./TestResults
@@ -86,7 +90,7 @@ jobs:
       # NuGet push is intentionally omitted until the library reaches a stable release.
       - name: Pack NuGet packages
         if: success() && matrix.tfm == 'net10.0'
-        run: dotnet pack --configuration Release --output ./artifacts/nuget
+        run: dotnet pack LibrariesOnly.slnx --configuration Release --output ./artifacts/nuget
 
       - name: Upload NuGet packages
         if: success() && matrix.tfm == 'net10.0'
