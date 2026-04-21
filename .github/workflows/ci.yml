@@ -41,11 +41,9 @@ jobs:
       - name: Build
         run: dotnet build LibrariesOnly.slnf --no-restore --configuration Release --framework ${{ matrix.tfm }}
 
-      # Samples target net10.0 only; restore+build the full solution here so the
-      # filter (LibrariesOnly.slnf) stays clean of sample project paths.
       - name: Build samples (net10.0 only)
         if: matrix.tfm == 'net10.0'
-        run: dotnet restore OpinionatedEventing.slnx && dotnet build OpinionatedEventing.slnx --no-restore --configuration Release
+        run: dotnet restore SamplesOnly.slnf && dotnet build SamplesOnly.slnf --no-restore --configuration Release
 
       # dotnet test naturally skips non-test projects, so the full solution is safe
       # here — samples are excluded automatically without needing the filter.

@@ -1,0 +1,16 @@
+{
+  "solution": {
+    "path": "OpinionatedEventing.slnx",
+    "projects": [
+      "samples/Samples.AppHost/Samples.AppHost.csproj",
+      "samples/Samples.Contracts/Samples.Contracts.csproj",
+      "samples/Samples.FulfillmentService/Samples.FulfillmentService.csproj",
+      "samples/Samples.NotificationService/Samples.NotificationService.csproj",
+      "samples/Samples.OrderService.Api/Samples.OrderService.Api.csproj",
+      "samples/Samples.OrderService.Application/Samples.OrderService.Application.csproj",
+      "samples/Samples.OrderService.Domain/Samples.OrderService.Domain.csproj",
+      "samples/Samples.OrderService.Infrastructure/Samples.OrderService.Infrastructure.csproj",
+      "samples/Samples.PaymentService/Samples.PaymentService.csproj"
+    ]
+  }
+}
