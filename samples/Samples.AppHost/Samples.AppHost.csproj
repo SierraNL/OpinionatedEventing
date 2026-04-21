@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Aspire AppHost SDK wires up project discovery, resource injection, and the dashboard. -->
+  <Sdk Name="Aspire.AppHost.Sdk" Version="13.2.2" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsAspireHost>true</IsAspireHost>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.RabbitMQ" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Each service project is discovered at build time as Projects.Samples_* type. -->
+    <ProjectReference Include="..\Samples.OrderService.Api\Samples.OrderService.Api.csproj" />
+    <ProjectReference Include="..\Samples.PaymentService\Samples.PaymentService.csproj" />
+    <ProjectReference Include="..\Samples.FulfillmentService\Samples.FulfillmentService.csproj" />
+    <ProjectReference Include="..\Samples.NotificationService\Samples.NotificationService.csproj" />
+  </ItemGroup>
+
+</Project>

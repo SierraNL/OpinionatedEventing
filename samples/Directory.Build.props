@@ -1,0 +1,13 @@
+<Project>
+  <!-- Import root Directory.Build.props so samples inherit Nullable, ImplicitUsings, etc. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <!-- Samples target a single framework — no multi-targeting overhead. -->
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsSampleProject>true</IsSampleProject>
+    <!-- Samples don't ship XML docs. -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+</Project>

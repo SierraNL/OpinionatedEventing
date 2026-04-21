@@ -36,11 +36,17 @@ jobs:
           dotnet-version: ${{ matrix.dotnet }}
 
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore LibrariesOnly.slnf
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release --framework ${{ matrix.tfm }}
+        run: dotnet build LibrariesOnly.slnf --no-restore --configuration Release --framework ${{ matrix.tfm }}
 
+      - name: Build samples (net10.0 only)
+        if: matrix.tfm == 'net10.0'
+        run: dotnet restore SamplesOnly.slnf && dotnet build SamplesOnly.slnf --no-restore --configuration Release
+
+      # dotnet test naturally skips non-test projects, so the full solution is safe
+      # here — samples are excluded automatically without needing the filter.
       - name: Unit & BDD tests (no containers)
         run: >
           dotnet test --framework ${{ matrix.tfm }} ${{ matrix.mtp_sep }}
@@ -103,7 +109,7 @@ jobs:
       # NuGet push is intentionally omitted until the library reaches a stable release.
       - name: Pack NuGet packages
         if: success() && matrix.tfm == 'net10.0'
-        run: dotnet pack --configuration Release --output ./artifacts/nuget
+        run: dotnet pack LibrariesOnly.slnf --configuration Release --output ./artifacts/nuget
 
       - name: Upload NuGet packages
         if: success() && matrix.tfm == 'net10.0'
