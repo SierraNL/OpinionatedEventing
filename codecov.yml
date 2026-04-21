@@ -2,6 +2,28 @@ coverage:
   precision: 2
   round: down
   range: "60...100"
+  status:
+    project:
+      default:
+        # Evaluate project coverage using both flags so that integration coverage
+        # carried forward from the last main build is included on PR runs.
+        flags:
+          - unit
+          - integration
+    patch:
+      default:
+        flags:
+          - unit
+
+# unit:      always uploaded (PRs and main). carryforward is a no-op here but
+#            keeps the flag symmetric for status rules.
+# integration: only uploaded on push to main; carried forward on PR runs so
+#              the project check does not regress purely because Docker is absent.
+flags:
+  unit:
+    carryforward: true
+  integration:
+    carryforward: true
 
 ignore:
   - "tests/**"
