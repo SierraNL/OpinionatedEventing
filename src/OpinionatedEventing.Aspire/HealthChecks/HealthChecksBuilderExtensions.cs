@@ -3,6 +3,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using OpinionatedEventing;
 using OpinionatedEventing.Aspire.HealthChecks;
 
 // Placed in this namespace so the extension is available without an extra using directive.
@@ -51,6 +52,40 @@ public static class OpinionatedEventingHealthChecksBuilderExtensions
             "opinionatedeventing-saga-timeout-backlog",
             failureStatus: HealthStatus.Degraded,
             tags: ["ready", "saga"]);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Registers <see cref="HealthCheckConsumerPauseController"/> as both
+    /// <see cref="IConsumerPauseController"/> and <see cref="IHealthCheckPublisher"/>,
+    /// so that broker consumer workers automatically pause when readiness probes are
+    /// unhealthy and resume when they recover.
+    /// </summary>
+    /// <param name="builder">The health checks builder to extend.</param>
+    /// <returns>The same <paramref name="builder"/> for chaining.</returns>
+    /// <remarks>
+    /// Call this after <see cref="AddOpinionatedEventingHealthChecks"/> and before
+    /// building the service provider. The default (always-consuming) behaviour is
+    /// preserved when this method is not called.
+    /// </remarks>
+    public static IHealthChecksBuilder WithConsumerPause(this IHealthChecksBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Services.AddSingleton<HealthCheckConsumerPauseController>();
+
+        // Remove any previously registered IConsumerPauseController (e.g. the NullConsumerPauseController
+        // registered by the transport DI extensions) so there is exactly one implementation.
+        var existing = builder.Services.FirstOrDefault(
+            d => d.ServiceType == typeof(IConsumerPauseController));
+        if (existing is not null)
+            builder.Services.Remove(existing);
+
+        builder.Services.AddSingleton<IConsumerPauseController>(
+            sp => sp.GetRequiredService<HealthCheckConsumerPauseController>());
+        builder.Services.AddSingleton<IHealthCheckPublisher>(
+            sp => sp.GetRequiredService<HealthCheckConsumerPauseController>());
 
         return builder;
     }
