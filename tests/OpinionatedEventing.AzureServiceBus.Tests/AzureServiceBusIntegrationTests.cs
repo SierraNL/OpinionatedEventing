@@ -1,8 +1,10 @@
 #nullable enable
 
+using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpinionatedEventing.AzureServiceBus.Attributes;
 using OpinionatedEventing.AzureServiceBus.Tests.TestSupport;
 using OpinionatedEventing.Outbox;
 using OpinionatedEventing.Testing;
@@ -80,6 +82,133 @@ public sealed class AzureServiceBusIntegrationTests
     }
 
     [Fact]
+    public async Task Session_enabled_command_is_consumed_via_session_processor()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var received = new List<CheckoutOrder>();
+
+        using var host = BuildHost(
+            services =>
+            {
+                services.AddScoped<ICommandHandler<CheckoutOrder>>(_ =>
+                    new CapturingCommandHandler<CheckoutOrder>(received));
+            },
+            enableSessions: true);
+
+        await host.StartAsync(ct);
+        await Task.Delay(500, ct);
+
+        var transport = host.Services.GetRequiredService<ITransport>();
+        await transport.SendAsync(BuildOutboxMessage(new CheckoutOrder("checkout-1"), "Command"), ct);
+
+        await WaitForConditionAsync(() => received.Count == 1, ct);
+
+        Assert.Single(received);
+        Assert.Equal("checkout-1", received[0].CheckoutId);
+
+        await host.StopAsync(ct);
+    }
+
+    [Fact]
+    public async Task Message_without_required_properties_is_dead_lettered_without_invoking_handler()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var received = new List<OrderPlaced>();
+
+        using var host = BuildHost(services =>
+        {
+            services.AddScoped<IEventHandler<OrderPlaced>>(_ =>
+                new CapturingEventHandler<OrderPlaced>(received));
+        });
+
+        await host.StartAsync(ct);
+        await Task.Delay(500, ct);
+
+        // Send a raw message with no OpinionatedEventing application properties.
+        var client = host.Services.GetRequiredService<ServiceBusClient>();
+        await using var sender = client.CreateSender("order-placed");
+        await sender.SendMessageAsync(new ServiceBusMessage("{\"OrderId\":\"raw\"}"), ct);
+
+        // Allow time for the message to be processed; handler must NOT be invoked.
+        await Task.Delay(2_000, ct);
+        Assert.Empty(received);
+
+        await host.StopAsync(ct);
+    }
+
+    [Fact]
+    public async Task Topology_initializer_is_idempotent_when_resources_already_exist()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        // First host: creates topics, subscriptions, and queues.
+        using (var first = BuildHost(services =>
+        {
+            services.AddScoped<IEventHandler<OrderPlaced>>(_ =>
+                new CapturingEventHandler<OrderPlaced>(new List<OrderPlaced>()));
+            services.AddScoped<ICommandHandler<ProcessPayment>>(_ =>
+                new CapturingCommandHandler<ProcessPayment>(new List<ProcessPayment>()));
+        }))
+        {
+            await first.StartAsync(ct);
+            await first.StopAsync(ct);
+        }
+
+        // Second host: same handlers — topology initializer must hit "already exists" branches
+        // on every resource without throwing.
+        using var second = BuildHost(services =>
+        {
+            services.AddScoped<IEventHandler<OrderPlaced>>(_ =>
+                new CapturingEventHandler<OrderPlaced>(new List<OrderPlaced>()));
+            services.AddScoped<ICommandHandler<ProcessPayment>>(_ =>
+                new CapturingCommandHandler<ProcessPayment>(new List<ProcessPayment>()));
+        });
+
+        var ex = await Record.ExceptionAsync(() => second.StartAsync(ct));
+        Assert.Null(ex);
+        await second.StopAsync(ct);
+    }
+
+    [Fact]
+    public async Task Dead_lettered_message_with_causation_id_records_causation_id_in_outbox()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var outboxStore = new InMemoryOutboxStore();
+        var causationId = Guid.NewGuid();
+
+        using var host = BuildHost(services =>
+        {
+            services.AddScoped<IEventHandler<OrderPlaced>>(_ => new ThrowingHandler<OrderPlaced>());
+            services.AddSingleton<IOutboxStore>(outboxStore);
+        }, maxDeliveryCount: 1);
+
+        await host.StartAsync(ct);
+        await Task.Delay(500, ct);
+
+        var payload = new OrderPlaced("causal-order");
+        var msg = new OutboxMessage
+        {
+            Id = Guid.NewGuid(),
+            MessageType = typeof(OrderPlaced).AssemblyQualifiedName!,
+            MessageKind = "Event",
+            Payload = System.Text.Json.JsonSerializer.Serialize(payload),
+            CorrelationId = Guid.NewGuid(),
+            CausationId = causationId,
+            CreatedAt = DateTimeOffset.UtcNow,
+        };
+
+        var transport = host.Services.GetRequiredService<ITransport>();
+        await transport.SendAsync(msg, ct);
+
+        await WaitForConditionAsync(() => outboxStore.Messages.Any(m => m.FailedAt.HasValue), ct);
+
+        var deadLetter = outboxStore.Messages.Single(m => m.FailedAt.HasValue);
+        Assert.Equal(causationId, deadLetter.CausationId);
+
+        await host.StopAsync(ct);
+    }
+
+    [Fact]
     public async Task Dead_lettered_message_is_recorded_in_outbox()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -107,7 +236,10 @@ public sealed class AzureServiceBusIntegrationTests
 
     // --- helpers ---
 
-    private IHost BuildHost(Action<IServiceCollection>? configureExtra = null, int maxDeliveryCount = 5)
+    private IHost BuildHost(
+        Action<IServiceCollection>? configureExtra = null,
+        int maxDeliveryCount = 5,
+        bool enableSessions = false)
         => Host.CreateDefaultBuilder()
             .ConfigureServices(services =>
             {
@@ -124,6 +256,7 @@ public sealed class AzureServiceBusIntegrationTests
                     o.ServiceName = "test-service";
                     o.AutoCreateResources = true;
                     o.MaxDeliveryCount = maxDeliveryCount;
+                    o.EnableSessions = enableSessions;
                 });
                 configureExtra?.Invoke(services);
             })
@@ -153,6 +286,9 @@ public sealed class AzureServiceBusIntegrationTests
 
     private sealed record OrderPlaced(string OrderId) : IEvent;
     private sealed record ProcessPayment(string PaymentId, decimal Amount) : ICommand;
+
+    [SessionEnabled]
+    private sealed record CheckoutOrder(string CheckoutId) : ICommand;
 
     // --- handler implementations ---
 
