@@ -111,6 +111,24 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
         await _context.SaveChangesAsync();
     }
 
+    [When("SaveChanges is called synchronously with the DomainEventInterceptor active")]
+    public void WhenSaveChangesSyncWithInterceptorActive()
+    {
+        var messagingContext = new FakeMessagingContext(Guid.NewGuid());
+        var opts = Microsoft.Extensions.Options.Options.Create(new OpinionatedEventingOptions());
+        var interceptor = new DomainEventInterceptor(messagingContext, opts, TimeProvider.System);
+
+        var options = new DbContextOptionsBuilder<SpecsDbContext>()
+            .UseInMemoryDatabase(_databaseName + "-sync")
+            .AddInterceptors(interceptor)
+            .Options;
+        _context = new SpecsDbContext(options);
+
+        // _order is always set by GivenOrderAggregateWithPendingDomainEvent before this step runs.
+        _context.Set<SpecsTestOrder>().Add(_order!);
+        _context.SaveChanges();
+    }
+
     [When("pending messages are queried")]
     public async Task WhenPendingMessagesQueried()
     {
@@ -127,6 +145,36 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
     public async Task WhenMessageMarkedAsFailed()
     {
         await _store!.MarkFailedAsync(_savedMessage!.Id, "test error");
+    }
+
+    [When("the message attempt count is incremented with error {string}")]
+    public async Task WhenMessageAttemptCountIncremented(string error)
+    {
+        await _store!.IncrementAttemptAsync(_savedMessage!.Id, error);
+    }
+
+    [When("MarkProcessedAsync is called with an unknown message ID")]
+    public async Task WhenMarkProcessedCalledWithUnknownId()
+    {
+        var context = GetOrCreateContext();
+        _store = new EFCoreOutboxStore<SpecsDbContext>(context, TimeProvider.System);
+        await _store.MarkProcessedAsync(Guid.NewGuid());
+    }
+
+    [When("MarkFailedAsync is called with an unknown message ID")]
+    public async Task WhenMarkFailedCalledWithUnknownId()
+    {
+        var context = GetOrCreateContext();
+        _store = new EFCoreOutboxStore<SpecsDbContext>(context, TimeProvider.System);
+        await _store.MarkFailedAsync(Guid.NewGuid(), "unknown");
+    }
+
+    [When("IncrementAttemptAsync is called with an unknown message ID")]
+    public async Task WhenIncrementAttemptCalledWithUnknownId()
+    {
+        var context = GetOrCreateContext();
+        _store = new EFCoreOutboxStore<SpecsDbContext>(context, TimeProvider.System);
+        await _store.IncrementAttemptAsync(Guid.NewGuid(), "unknown");
     }
 
     [When("the saga state is saved via EFCoreSagaStateStore")]
@@ -184,6 +232,15 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
     {
         Xunit.Assert.NotNull(_pendingMessages);
         Xunit.Assert.Empty(_pendingMessages!);
+    }
+
+    [Then("the message attempt count is {int} and error is {string}")]
+    public async Task ThenMessageAttemptCountIsWithError(int expectedCount, string expectedError)
+    {
+        var messages = await _store!.GetPendingAsync(10);
+        var message = Xunit.Assert.Single(messages);
+        Xunit.Assert.Equal(expectedCount, message.AttemptCount);
+        Xunit.Assert.Equal(expectedError, message.Error);
     }
 
     [Then("the saga state can be found by type {string} and correlation ID {string}")]
