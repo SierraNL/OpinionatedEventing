@@ -4,21 +4,27 @@ coverage:
   range: "60...100"
   status:
     project:
-      default:
-        # Evaluate project coverage using both flags so that integration coverage
-        # carried forward from the last main build is included on PR runs.
+      # Unit project check: tracks overall unit-test coverage on every run (PRs and main).
+      # Never mixes in integration coverage, so broker-only code paths added in a PR
+      # cannot cause a false coverage drop — those lines are also excluded from the
+      # patch check, so the two checks stay in sync.
+      unit:
         flags:
           - unit
+      # Integration project check: informational-only on PRs (Docker absent).
+      # Runs properly on pushes to main where integration tests execute.
+      integration:
+        informational: true
+        flags:
           - integration
     patch:
       default:
         flags:
           - unit
 
-# unit:      always uploaded (PRs and main). carryforward is a no-op here but
-#            keeps the flag symmetric for status rules.
-# integration: only uploaded on push to main; carried forward on PR runs so
-#              the project check does not regress purely because Docker is absent.
+# unit:      always uploaded (PRs and main).
+# integration: only uploaded on push to main; carried forward on PR runs so the
+#              informational project check does not go stale.
 flags:
   unit:
     carryforward: true
