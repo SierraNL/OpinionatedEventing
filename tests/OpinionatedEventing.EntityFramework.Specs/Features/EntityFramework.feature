@@ -59,3 +59,29 @@ Feature: EntityFramework EF Core integration
     And the saga state status is Completed
     When the saga state is saved via EFCoreSagaStateStore
     Then the expired saga query returns no results
+
+  Scenario: Synchronous SaveChanges triggers domain event harvest
+    Given an order aggregate with a pending domain event
+    When SaveChanges is called synchronously with the DomainEventInterceptor active
+    Then one outbox message with kind "Event" is written to the database
+    And the aggregate has no remaining domain events
+
+  Scenario: IncrementAttemptAsync increments the attempt count on an existing message
+    Given a message is staged and committed via EFCoreOutboxStore
+    When the message attempt count is incremented with error "transient error"
+    Then the message attempt count is 1 and error is "transient error"
+
+  Scenario: MarkProcessedAsync with an unknown ID is a no-op
+    When MarkProcessedAsync is called with an unknown message ID
+    And pending messages are queried
+    Then no pending messages are returned
+
+  Scenario: MarkFailedAsync with an unknown ID is a no-op
+    When MarkFailedAsync is called with an unknown message ID
+    And pending messages are queried
+    Then no pending messages are returned
+
+  Scenario: IncrementAttemptAsync with an unknown ID is a no-op
+    When IncrementAttemptAsync is called with an unknown message ID
+    And pending messages are queried
+    Then no pending messages are returned
