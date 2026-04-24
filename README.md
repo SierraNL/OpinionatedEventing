@@ -74,6 +74,27 @@ await db.SaveChangesAsync(ct);
 
 .NET 8, 9, or 10. See [REQUIREMENTS.md](REQUIREMENTS.md) for the full specification.
 
+## Why I build it
+
+Over the years I've worked with quite a few dotnet frameworks around eventing or messenging.
+Before one is picked it's always a big discussion, especially with paid solutions.
+Personally I feel that the best ones are paid now, and given the companies I worked for in the past, they end up very pricy for a few dotnet libraries.
+
+So I was happy when Microsoft had a plan to create something:
+https://github.com/dotnet/aspnetcore/issues/53219
+
+But if you quickly scroll to the end, it never happened ☹️ 
+Mostly due to the fact, that if there is a Microsoft library for it, it will kill the Open Source community on that subject.
+
+That maybe true, but I really like defacto standard solutions, instead of picking out of 10+ options. (That's why I switched from Java to .Net in the first place, way back 😉)
+Every now and again this plan popped up in my mind to do it myself, like Microsoft usually does it, it doesn't have to tackle each usecase, but at least 80 / 90%.
+So an opinionated library, targetting only a few brokers, that are used most with dotnet, use Entity Framework for outbox and sagas, and force good DDD behavior.
+
+I always had this "How hard can it be" mindset, but I lacked the spare time to actually build it.
+But thanks to the rise of GenAI this is really doable. So Claude and I took the plunge.
+
+Yes, Claude did most of the typing, but I have reviewed all the code, steered where needed, and I have been a C# developer for 20+ years.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
