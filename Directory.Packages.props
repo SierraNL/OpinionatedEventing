@@ -28,6 +28,13 @@
   <ItemGroup>
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.5" />
+    <!-- SqlServer provider is used for migration integration tests; per-framework VersionOverrides
+         are required in each test .csproj to match the EF Core version for that TFM.
+         NOTE: Microsoft.EntityFrameworkCore.Sqlite is NOT suitable for migration tests because
+         SQLite has no native DateTimeOffset type — columns are stored as TEXT, which means
+         CREATE TABLE DDL generated for SQL Server / PostgreSQL would pass silently with
+         incorrect semantics. Use SQL Server or PostgreSQL for migration integration tests. -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.5" />
   </ItemGroup>
 
   <!-- OpenTelemetry -->
