@@ -74,6 +74,26 @@ public sealed class AzureServiceBusSteps
         });
     }
 
+    [Given("a command type with a MessageQueue attribute set to {string}")]
+    public void GivenACommandTypeWithMessageQueueAttribute(string _)
+    {
+        _messageType = typeof(CustomQueueCommand);
+    }
+
+    [Given("the Azure Service Bus transport is registered with FullyQualifiedNamespace {string}")]
+    public void GivenTransportRegisteredWithFullyQualifiedNamespace(string fqns)
+    {
+        _services = new ServiceCollection();
+        _services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+        _services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+        _services.AddOpinionatedEventing();
+        _services.AddAzureServiceBusTransport(o =>
+        {
+            o.FullyQualifiedNamespace = fqns;
+            o.ServiceName = "test-service";
+        });
+    }
+
     // --- When ---
 
     [When("I resolve the topic name")]
@@ -121,6 +141,27 @@ public sealed class AzureServiceBusSteps
         Xunit.Assert.Equal(expected, opts.ServiceName);
     }
 
+    [Then("the default MaxDeliveryCount is {int}")]
+    public void ThenDefaultMaxDeliveryCountIs(int expected)
+    {
+        var opts = _serviceProvider!.GetRequiredService<IOptions<AzureServiceBusOptions>>().Value;
+        Xunit.Assert.Equal(expected, opts.MaxDeliveryCount);
+    }
+
+    [Then("the default MaxConcurrentCalls is {int}")]
+    public void ThenDefaultMaxConcurrentCallsIs(int expected)
+    {
+        var opts = _serviceProvider!.GetRequiredService<IOptions<AzureServiceBusOptions>>().Value;
+        Xunit.Assert.Equal(expected, opts.MaxConcurrentCalls);
+    }
+
+    [Then("sessions are disabled by default")]
+    public void ThenSessionsAreDisabledByDefault()
+    {
+        var opts = _serviceProvider!.GetRequiredService<IOptions<AzureServiceBusOptions>>().Value;
+        Xunit.Assert.False(opts.EnableSessions);
+    }
+
     // --- message types ---
 
     private sealed record OrderPlaced(string OrderId = "") : IEvent;
@@ -128,4 +169,7 @@ public sealed class AzureServiceBusSteps
 
     [MessageTopic("my-custom-topic")]
     private sealed record CustomTopicEvent : IEvent;
+
+    [MessageQueue("my-custom-queue")]
+    private sealed record CustomQueueCommand : ICommand;
 }

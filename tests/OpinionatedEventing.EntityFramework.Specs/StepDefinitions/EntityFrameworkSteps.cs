@@ -2,11 +2,13 @@
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using OpinionatedEventing;
 using OpinionatedEventing.EntityFramework;
 using OpinionatedEventing.Options;
 using OpinionatedEventing.Outbox;
+using OpinionatedEventing.Sagas;
 using Reqnroll;
 
 namespace OpinionatedEventing.EntityFramework.Specs.StepDefinitions;
@@ -22,6 +24,14 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
     private Guid _correlationId;
     private SpecsTestOrder? _order;
 
+    // --- saga state store fields ---
+    private ServiceProvider? _sagaServiceProvider;
+    private IServiceScope? _sagaScope;
+    private ISagaStateStore? _sagaStore;
+    private SagaState? _sagaState;
+    private SagaState? _foundSagaState;
+    private IReadOnlyList<SagaState>? _expiredSagaStates;
+
     // --- Given ---
 
     [Given("an order aggregate with a pending domain event")]
@@ -34,6 +44,40 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
     public void GivenKnownCorrelationId()
     {
         _correlationId = Guid.NewGuid();
+    }
+
+    [Given("a new saga state for type {string} with correlation ID {string}")]
+    public void GivenNewSagaState(string sagaType, string correlationId)
+    {
+        _sagaState = new SagaState
+        {
+            Id = Guid.NewGuid(),
+            SagaType = sagaType,
+            CorrelationId = correlationId,
+            State = "{}",
+            Status = SagaStatus.Active,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        };
+        _sagaStore ??= GetOrCreateSagaStore();
+    }
+
+    [Given("the saga state expires in the past")]
+    public void GivenSagaStateExpiresInThePast()
+    {
+        _sagaState!.ExpiresAt = DateTimeOffset.UtcNow.AddDays(-1);
+    }
+
+    [Given("the saga state status is Completed")]
+    public void GivenSagaStateStatusIsCompleted()
+    {
+        _sagaState!.Status = SagaStatus.Completed;
+    }
+
+    [Given("the saga state is saved via EFCoreSagaStateStore")]
+    public async Task GivenSagaStateSaved()
+    {
+        await _sagaStore!.SaveAsync(_sagaState!);
     }
 
     [Given("a message is staged and committed via EFCoreOutboxStore")]
@@ -85,6 +129,26 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
         await _store!.MarkFailedAsync(_savedMessage!.Id, "test error");
     }
 
+    [When("the saga state is saved via EFCoreSagaStateStore")]
+    public async Task WhenSagaStateSaved()
+    {
+        await _sagaStore!.SaveAsync(_sagaState!);
+    }
+
+    [When("the saga state status is updated to Completed")]
+    public async Task WhenSagaStateStatusUpdatedToCompleted()
+    {
+        _sagaState!.Status = SagaStatus.Completed;
+        await _sagaStore!.UpdateAsync(_sagaState);
+    }
+
+    [When("a saga state is looked up with type {string} and correlation ID {string}")]
+    public async Task WhenSagaStateLookedUp(string sagaType, string correlationId)
+    {
+        _sagaStore ??= GetOrCreateSagaStore();
+        _foundSagaState = await _sagaStore.FindAsync(sagaType, correlationId);
+    }
+
     // --- Then ---
 
     [Then("one outbox message with kind {string} is written to the database")]
@@ -122,14 +186,63 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
         Xunit.Assert.Empty(_pendingMessages!);
     }
 
+    [Then("the saga state can be found by type {string} and correlation ID {string}")]
+    public async Task ThenSagaStateCanBeFound(string sagaType, string correlationId)
+    {
+        _foundSagaState = await _sagaStore!.FindAsync(sagaType, correlationId);
+        Xunit.Assert.NotNull(_foundSagaState);
+        Xunit.Assert.Equal(sagaType, _foundSagaState.SagaType);
+        Xunit.Assert.Equal(correlationId, _foundSagaState.CorrelationId);
+    }
+
+    [Then("the found saga state has status Completed")]
+    public async Task ThenFoundSagaStateHasStatusCompleted()
+    {
+        var found = await _sagaStore!.FindAsync(_sagaState!.SagaType, _sagaState.CorrelationId);
+        Xunit.Assert.Equal(SagaStatus.Completed, found!.Status);
+    }
+
+    [Then("the found saga state is null")]
+    public void ThenFoundSagaStateIsNull()
+    {
+        Xunit.Assert.Null(_foundSagaState);
+    }
+
+    [Then("the expired saga query returns the saga state")]
+    public async Task ThenExpiredSagaQueryReturnsState()
+    {
+        _expiredSagaStates = await _sagaStore!.GetExpiredAsync(DateTimeOffset.UtcNow);
+        Xunit.Assert.Contains(_expiredSagaStates, s => s.CorrelationId == _sagaState!.CorrelationId);
+    }
+
+    [Then("the expired saga query returns no results")]
+    public async Task ThenExpiredSagaQueryReturnsNoResults()
+    {
+        _expiredSagaStates = await _sagaStore!.GetExpiredAsync(DateTimeOffset.UtcNow);
+        Xunit.Assert.Empty(_expiredSagaStates);
+    }
+
     // --- IAsyncDisposable ---
 
     public async ValueTask DisposeAsync()
     {
         if (_context is not null) await _context.DisposeAsync();
+        _sagaScope?.Dispose();
+        if (_sagaServiceProvider is not null) await _sagaServiceProvider.DisposeAsync();
     }
 
     // --- private helpers ---
+
+    private ISagaStateStore GetOrCreateSagaStore()
+    {
+        var sagaDbName = _databaseName + "-saga";
+        var services = new ServiceCollection();
+        services.AddDbContext<SpecsSagaDbContext>(opts => opts.UseInMemoryDatabase(sagaDbName));
+        services.AddOpinionatedEventingEntityFramework<SpecsSagaDbContext>();
+        _sagaServiceProvider = services.BuildServiceProvider(validateScopes: true);
+        _sagaScope = _sagaServiceProvider.CreateScope();
+        return _sagaScope.ServiceProvider.GetRequiredService<ISagaStateStore>();
+    }
 
     private SpecsDbContext GetOrCreateContext()
     {
@@ -189,6 +302,17 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
                 b.HasKey(o => o.Id);
                 b.Ignore(o => o.DomainEvents);
             });
+        }
+    }
+
+    private sealed class SpecsSagaDbContext : DbContext
+    {
+        public SpecsSagaDbContext(DbContextOptions<SpecsSagaDbContext> options) : base(options) { }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.ApplyOutboxConfiguration();
+            modelBuilder.ApplySagaStateConfiguration();
         }
     }
 }

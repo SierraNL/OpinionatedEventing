@@ -27,3 +27,20 @@ Feature: AzureServiceBus Transport
     Given the Azure Service Bus transport is registered with ServiceName "order-service"
     When the service provider is built
     Then the ServiceName option is "order-service"
+
+  Scenario: Message naming convention respects explicit MessageQueue attribute
+    Given a command type with a MessageQueue attribute set to "my-custom-queue"
+    When I resolve the queue name
+    Then the queue name is "my-custom-queue"
+
+  Scenario: Default AzureServiceBusOptions has expected values
+    Given the Azure Service Bus transport is registered with a connection string
+    When the service provider is built
+    Then the default MaxDeliveryCount is 5
+    And the default MaxConcurrentCalls is 1
+    And sessions are disabled by default
+
+  Scenario: Transport registration with FullyQualifiedNamespace wires up ITransport
+    Given the Azure Service Bus transport is registered with FullyQualifiedNamespace "mybus.servicebus.windows.net"
+    When the service provider is built
+    Then ITransport is registered in the container

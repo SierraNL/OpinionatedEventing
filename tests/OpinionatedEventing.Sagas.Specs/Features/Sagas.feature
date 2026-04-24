@@ -22,3 +22,20 @@ Feature: Saga Orchestration
     When a PaymentFailed event is dispatched
     Then the saga status is Completed
     And the saga instance state shows payment was not processed
+
+  Scenario: Choreography participant reacts to an event and sends a command
+    Given the notification participant is registered
+    When an OrderShipped event is dispatched
+    Then the notification participant command was published
+
+  Scenario: Saga with a timeout handler fires when an expired saga is processed
+    Given the order saga with timeout is registered
+    When an OrderPlaced event is dispatched
+    And the saga timeout worker processes expired sagas
+    Then the saga timeout handler was invoked
+
+  Scenario: Saga with custom correlation routes events by the custom key
+    Given the order saga with custom correlation is registered
+    When an OrderPlaced event is dispatched with custom correlation key "custom-key-1"
+    And a PaymentReceived event is dispatched with custom correlation key "custom-key-1"
+    Then the saga instance state shows payment was processed
