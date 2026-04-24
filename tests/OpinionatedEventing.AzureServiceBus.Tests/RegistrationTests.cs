@@ -2,6 +2,7 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using OpinionatedEventing;
 using OpinionatedEventing.AzureServiceBus;
 using OpinionatedEventing.Outbox;
 using Xunit;
@@ -23,6 +24,34 @@ public sealed class RegistrationTests
 
         var descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(ITransport));
         Assert.NotNull(descriptor);
+    }
+
+    [Fact]
+    public void AddAzureServiceBusTransport_registers_default_IConsumerPauseController()
+    {
+        var services = new ServiceCollection();
+        services.AddOpinionatedEventing();
+        services.AddAzureServiceBusTransport(o => o.ConnectionString =
+            "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
+
+        // Default controller is registered and never paused
+        var descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IConsumerPauseController));
+        Assert.NotNull(descriptor);
+        var controller = services.BuildServiceProvider().GetRequiredService<IConsumerPauseController>();
+        Assert.False(controller.IsPaused);
+    }
+
+    [Fact]
+    public void AddAzureServiceBusTransport_IConsumerPauseController_can_be_overridden()
+    {
+        var services = new ServiceCollection();
+        services.AddOpinionatedEventing();
+        services.AddSingleton<IConsumerPauseController, FakeConsumerPauseController>();
+        services.AddAzureServiceBusTransport(o => o.ConnectionString =
+            "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
+
+        var sp = services.BuildServiceProvider();
+        Assert.IsType<FakeConsumerPauseController>(sp.GetRequiredService<IConsumerPauseController>());
     }
 
     [Fact]

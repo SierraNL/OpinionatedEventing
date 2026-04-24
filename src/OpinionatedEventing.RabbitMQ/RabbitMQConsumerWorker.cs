@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using OpinionatedEventing;
 using OpinionatedEventing.Outbox;
 using OpinionatedEventing.RabbitMQ.DependencyInjection;
 using OpinionatedEventing.RabbitMQ.Routing;
@@ -25,10 +26,18 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ServiceCollectionAccessor _accessor;
     private readonly IOptions<RabbitMQOptions> _options;
+    private readonly IConsumerPauseController _pauseController;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<RabbitMQConsumerWorker> _logger;
 
-    private readonly List<IChannel> _consumerChannels = new();
+    private sealed class ConsumerEntry
+    {
+        public required IChannel Channel { get; init; }
+        public required string QueueName { get; init; }
+        public string ConsumerTag { get; set; } = string.Empty;
+    }
+
+    private readonly List<ConsumerEntry> _consumers = new();
 
     /// <summary>Initialises a new <see cref="RabbitMQConsumerWorker"/>.</summary>
     public RabbitMQConsumerWorker(
@@ -37,6 +46,7 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
         IServiceScopeFactory scopeFactory,
         ServiceCollectionAccessor accessor,
         IOptions<RabbitMQOptions> options,
+        IConsumerPauseController pauseController,
         TimeProvider timeProvider,
         ILogger<RabbitMQConsumerWorker> logger)
     {
@@ -45,6 +55,7 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
         _scopeFactory = scopeFactory;
         _accessor = accessor;
         _options = options;
+        _pauseController = pauseController;
         _timeProvider = timeProvider;
         _logger = logger;
     }
@@ -85,16 +96,87 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
                 commandType.Name, queueName);
         }
 
-        try
-        {
-            await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            // normal shutdown
-        }
+        await RunPauseLoopAsync(stoppingToken).ConfigureAwait(false);
 
         await CloseConsumerChannelsAsync().ConfigureAwait(false);
+    }
+
+    private async Task RunPauseLoopAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            if (_pauseController.IsPaused)
+            {
+                await PauseAllConsumersAsync().ConfigureAwait(false);
+                _logger.LogWarning("Broker consumers paused: readiness probe is unhealthy.");
+
+                try
+                {
+                    await _pauseController.WhenStateChangedAsync(stoppingToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                if (!stoppingToken.IsCancellationRequested)
+                {
+                    await ResumeAllConsumersAsync(stoppingToken).ConfigureAwait(false);
+                    _logger.LogInformation("Broker consumers resumed: readiness probe recovered.");
+                }
+            }
+            else
+            {
+                try
+                {
+                    await _pauseController.WhenStateChangedAsync(stoppingToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    return;
+                }
+            }
+        }
+    }
+
+    private async Task PauseAllConsumersAsync()
+    {
+        foreach (var entry in _consumers)
+        {
+            if (string.IsNullOrEmpty(entry.ConsumerTag))
+                continue;
+            try
+            {
+                await entry.Channel.BasicCancelAsync(entry.ConsumerTag).ConfigureAwait(false);
+                entry.ConsumerTag = string.Empty;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error pausing consumer for queue '{Queue}'.", entry.QueueName);
+            }
+        }
+    }
+
+    private async Task ResumeAllConsumersAsync(CancellationToken ct)
+    {
+        foreach (var entry in _consumers)
+        {
+            try
+            {
+                var consumer = new AsyncEventingBasicConsumer(entry.Channel);
+                consumer.ReceivedAsync += (_, ea) => ProcessDeliveryAsync(entry.Channel, ea, ct);
+                var tag = await entry.Channel.BasicConsumeAsync(
+                    queue: entry.QueueName,
+                    autoAck: false,
+                    consumer: consumer,
+                    cancellationToken: ct).ConfigureAwait(false);
+                entry.ConsumerTag = tag;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error resuming consumer for queue '{Queue}'.", entry.QueueName);
+            }
+        }
     }
 
     private async Task StartConsumerAsync(
@@ -102,7 +184,6 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
         CancellationToken ct)
     {
         var channel = await _connection.CreateChannelAsync(cancellationToken: ct).ConfigureAwait(false);
-        _consumerChannels.Add(channel);
 
         await channel.BasicQosAsync(
             prefetchSize: 0,
@@ -111,13 +192,19 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
             cancellationToken: ct).ConfigureAwait(false);
 
         var consumer = new AsyncEventingBasicConsumer(channel);
+
+        var entry = new ConsumerEntry { Channel = channel, QueueName = queueName };
+        _consumers.Add(entry);
+
         consumer.ReceivedAsync += (_, ea) => ProcessDeliveryAsync(channel, ea, ct);
 
-        await channel.BasicConsumeAsync(
+        var tag = await channel.BasicConsumeAsync(
             queue: queueName,
             autoAck: false,
             consumer: consumer,
             cancellationToken: ct).ConfigureAwait(false);
+
+        entry.ConsumerTag = tag;
     }
 
     private async Task ProcessDeliveryAsync(
@@ -230,19 +317,19 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
 
     private async Task CloseConsumerChannelsAsync()
     {
-        foreach (var channel in _consumerChannels)
+        foreach (var entry in _consumers)
         {
             try
             {
-                await channel.CloseAsync().ConfigureAwait(false);
+                await entry.Channel.CloseAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Error closing consumer channel.");
             }
-            await channel.DisposeAsync().ConfigureAwait(false);
+            await entry.Channel.DisposeAsync().ConfigureAwait(false);
         }
-        _consumerChannels.Clear();
+        _consumers.Clear();
     }
 
     private List<Type> ScanHandlerTypes(Type openGenericInterface)

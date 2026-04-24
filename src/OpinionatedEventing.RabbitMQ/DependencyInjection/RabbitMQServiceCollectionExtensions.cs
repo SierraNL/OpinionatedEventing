@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using OpinionatedEventing;
 using OpinionatedEventing.Outbox;
 using OpinionatedEventing.RabbitMQ;
 using OpinionatedEventing.RabbitMQ.DependencyInjection;
@@ -45,6 +46,7 @@ public static class RabbitMQServiceCollectionExtensions
             return factory.CreateConnectionAsync().GetAwaiter().GetResult();
         });
 
+        services.TryAddSingleton<IConsumerPauseController, NullConsumerPauseController>();
         services.TryAddSingleton<ITransport, RabbitMQTransport>();
 
         services.TryAddEnumerable(

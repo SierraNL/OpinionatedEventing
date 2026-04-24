@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using OpinionatedEventing;
 using OpinionatedEventing.AzureServiceBus.Attributes;
 using OpinionatedEventing.AzureServiceBus.DependencyInjection;
 using OpinionatedEventing.AzureServiceBus.Routing;
@@ -23,6 +24,7 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ServiceCollectionAccessor _accessor;
     private readonly IOptions<AzureServiceBusOptions> _options;
+    private readonly IConsumerPauseController _pauseController;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<AzureServiceBusConsumerWorker> _logger;
 
@@ -36,6 +38,7 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
         IServiceScopeFactory scopeFactory,
         ServiceCollectionAccessor accessor,
         IOptions<AzureServiceBusOptions> options,
+        IConsumerPauseController pauseController,
         TimeProvider timeProvider,
         ILogger<AzureServiceBusConsumerWorker> logger)
     {
@@ -44,6 +47,7 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
         _scopeFactory = scopeFactory;
         _accessor = accessor;
         _options = options;
+        _pauseController = pauseController;
         _timeProvider = timeProvider;
         _logger = logger;
     }
@@ -117,16 +121,75 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
             }
         }
 
-        try
-        {
-            await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            // normal shutdown
-        }
+        await RunPauseLoopAsync(stoppingToken).ConfigureAwait(false);
 
         await StopAllProcessorsAsync().ConfigureAwait(false);
+    }
+
+    private async Task RunPauseLoopAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            if (_pauseController.IsPaused)
+            {
+                await PauseAllProcessorsAsync().ConfigureAwait(false);
+                _logger.LogWarning("Broker consumers paused: readiness probe is unhealthy.");
+
+                try
+                {
+                    await _pauseController.WhenStateChangedAsync(stoppingToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                if (!stoppingToken.IsCancellationRequested)
+                {
+                    await ResumeAllProcessorsAsync(stoppingToken).ConfigureAwait(false);
+                    _logger.LogInformation("Broker consumers resumed: readiness probe recovered.");
+                }
+            }
+            else
+            {
+                try
+                {
+                    await _pauseController.WhenStateChangedAsync(stoppingToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    return;
+                }
+            }
+        }
+    }
+
+    private async Task PauseAllProcessorsAsync()
+    {
+        foreach (var processor in _processors)
+        {
+            try { await processor.StopProcessingAsync().ConfigureAwait(false); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Error pausing processor."); }
+        }
+        foreach (var processor in _sessionProcessors)
+        {
+            try { await processor.StopProcessingAsync().ConfigureAwait(false); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Error pausing session processor."); }
+        }
+    }
+
+    private async Task ResumeAllProcessorsAsync(CancellationToken ct)
+    {
+        foreach (var processor in _processors)
+        {
+            try { await processor.StartProcessingAsync(ct).ConfigureAwait(false); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Error resuming processor."); }
+        }
+        foreach (var processor in _sessionProcessors)
+        {
+            try { await processor.StartProcessingAsync(ct).ConfigureAwait(false); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Error resuming session processor."); }
+        }
     }
 
     private async Task StopAllProcessorsAsync()

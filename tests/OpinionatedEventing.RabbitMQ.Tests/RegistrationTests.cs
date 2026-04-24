@@ -2,6 +2,7 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using OpinionatedEventing;
 using OpinionatedEventing.Outbox;
 using OpinionatedEventing.RabbitMQ;
 using Xunit;
@@ -23,6 +24,33 @@ public sealed class RegistrationTests
 
         var descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(ITransport));
         Assert.NotNull(descriptor);
+    }
+
+    [Fact]
+    public void AddRabbitMQTransport_registers_default_IConsumerPauseController()
+    {
+        var services = new ServiceCollection();
+        services.AddOpinionatedEventing();
+        services.AddRabbitMQTransport(o => o.ConnectionString = "amqp://guest:guest@localhost:5672/");
+
+        // Default controller is registered and never paused
+        var descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IConsumerPauseController));
+        Assert.NotNull(descriptor);
+        var controller = services.BuildServiceProvider().GetRequiredService<IConsumerPauseController>();
+        Assert.False(controller.IsPaused);
+    }
+
+    [Fact]
+    public void AddRabbitMQTransport_IConsumerPauseController_can_be_overridden()
+    {
+        var services = new ServiceCollection();
+        services.AddOpinionatedEventing();
+        // Register a custom controller BEFORE the transport — TryAdd skips the default
+        services.AddSingleton<IConsumerPauseController, FakeConsumerPauseController>();
+        services.AddRabbitMQTransport(o => o.ConnectionString = "amqp://guest:guest@localhost:5672/");
+
+        var sp = services.BuildServiceProvider();
+        Assert.IsType<FakeConsumerPauseController>(sp.GetRequiredService<IConsumerPauseController>());
     }
 
     [Fact]

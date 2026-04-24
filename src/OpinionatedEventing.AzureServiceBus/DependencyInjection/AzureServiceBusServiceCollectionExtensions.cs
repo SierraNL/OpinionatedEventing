@@ -6,6 +6,7 @@ using Azure.Messaging.ServiceBus.Administration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using OpinionatedEventing;
 using OpinionatedEventing.AzureServiceBus;
 using OpinionatedEventing.AzureServiceBus.DependencyInjection;
 using OpinionatedEventing.Outbox;
@@ -50,6 +51,7 @@ public static class AzureServiceBusServiceCollectionExtensions
             return BuildAdministrationClient(opts);
         });
 
+        services.TryAddSingleton<IConsumerPauseController, NullConsumerPauseController>();
         services.TryAddSingleton<ITransport, AzureServiceBusTransport>();
 
         services.TryAddEnumerable(

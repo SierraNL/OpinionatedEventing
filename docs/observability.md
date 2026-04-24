@@ -118,9 +118,17 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c
 
 All three built-in checks are tagged `ready`. Broker connectivity belongs on readiness, not liveness: a broker outage is a dependency failure that restarting the process cannot fix — failing liveness would just cause needless container restarts.
 
-**Important limitation for event-driven services:** readiness probes only control the Kubernetes `Service` endpoint, which governs *HTTP* traffic. The broker consumer workers (`RabbitMQConsumerWorker`, `AzureServiceBusConsumerWorker`) are `BackgroundService` instances that pull messages directly from the broker, independent of any load balancer. Failing readiness does **not** pause event consumption.
+**Readiness and broker consumers:** readiness probes only control the Kubernetes `Service` endpoint, which governs *HTTP* traffic. The broker consumer workers are `BackgroundService` instances that pull messages directly from the broker, independent of any load balancer. By default, failing readiness does **not** pause event consumption.
 
-This means the health checks here are best treated as **observability signals** — surfacing problems in dashboards and triggering alerts — rather than as back-pressure mechanisms. If you need to actually stop a service from consuming events (for example, during an overload situation), you need an explicit mechanism such as scaling down the deployment or pausing the consumer workers in application code.
+To automatically pause consumers when readiness probes become unhealthy, chain `WithConsumerPause()` onto `AddOpinionatedEventingHealthChecks()`:
+
+```csharp
+services.AddHealthChecks()
+    .AddOpinionatedEventingHealthChecks()
+    .WithConsumerPause();
+```
+
+When any check tagged `ready` reports `Degraded` or `Unhealthy`, the consumer workers stop accepting new messages from the broker. They resume automatically once all readiness checks recover to `Healthy`. This is opt-in — the default behaviour (always consuming) is preserved when `WithConsumerPause()` is not called.
 
 ## Correlation and causation IDs
 
