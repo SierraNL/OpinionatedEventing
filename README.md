@@ -95,6 +95,14 @@ But thanks to the rise of GenAI this is really doable. So Claude and I took the 
 
 Yes, Claude did most of the typing, but I have reviewed all the code, steered where needed, and I have been a C# developer for 20+ years.
 
+## Future plans
+
+I hope this is enough, for now, scope wise.
+Ideas are always welcome, I can't oversee the whole dotnet world, nor am I an expert on DDD and eventing / messenging.
+
+There can always be bugs, vulnerabilities and dependency updates, I will pick them up.
+The plan is to move along with the dotnet versions that are in support, with the EF Core version that matches it.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
