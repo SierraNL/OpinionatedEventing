@@ -59,15 +59,24 @@ public static class OpinionatedEventingHealthChecksBuilderExtensions
     /// <summary>
     /// Registers <see cref="HealthCheckConsumerPauseController"/> as both
     /// <see cref="IConsumerPauseController"/> and <see cref="IHealthCheckPublisher"/>,
-    /// so that broker consumer workers automatically pause when readiness probes are
-    /// unhealthy and resume when they recover.
+    /// so that broker consumer workers automatically pause when a health check tagged
+    /// <c>"pause"</c> becomes unhealthy, and resume when all such checks recover.
     /// </summary>
     /// <param name="builder">The health checks builder to extend.</param>
     /// <returns>The same <paramref name="builder"/> for chaining.</returns>
     /// <remarks>
+    /// <para>
     /// Call this after <see cref="AddOpinionatedEventingHealthChecks"/> and before
     /// building the service provider. The default (always-consuming) behaviour is
     /// preserved when this method is not called.
+    /// </para>
+    /// <para>
+    /// Only checks explicitly tagged <c>"pause"</c> influence the pause decision.
+    /// The built-in backlog checks (<c>"ready"</c>) are intentionally excluded —
+    /// pausing consumers does not help drain the outbox or saga-timeout backlogs.
+    /// Tag your own dependency checks (e.g. database connectivity) with <c>"pause"</c>
+    /// to use this feature.
+    /// </para>
     /// </remarks>
     public static IHealthChecksBuilder WithConsumerPause(this IHealthChecksBuilder builder)
     {

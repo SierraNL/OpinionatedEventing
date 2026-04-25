@@ -30,31 +30,31 @@ public sealed class HealthCheckConsumerPauseControllerTests
     }
 
     [Fact]
-    public async Task PublishAsync_pauses_when_ready_check_is_Degraded()
+    public async Task PublishAsync_pauses_when_pause_check_is_Degraded()
     {
         var ct = TestContext.Current.CancellationToken;
         var controller = CreateController();
 
-        var report = BuildReport(("check1", HealthStatus.Degraded, ["ready"]));
+        var report = BuildReport(("check1", HealthStatus.Degraded, ["pause"]));
         await controller.PublishAsync(report, ct);
 
         Assert.True(controller.IsPaused);
     }
 
     [Fact]
-    public async Task PublishAsync_pauses_when_ready_check_is_Unhealthy()
+    public async Task PublishAsync_pauses_when_pause_check_is_Unhealthy()
     {
         var ct = TestContext.Current.CancellationToken;
         var controller = CreateController();
 
-        var report = BuildReport(("check1", HealthStatus.Unhealthy, ["ready"]));
+        var report = BuildReport(("check1", HealthStatus.Unhealthy, ["pause"]));
         await controller.PublishAsync(report, ct);
 
         Assert.True(controller.IsPaused);
     }
 
     [Fact]
-    public async Task PublishAsync_does_not_pause_for_non_ready_tags()
+    public async Task PublishAsync_does_not_pause_for_non_pause_tags()
     {
         var ct = TestContext.Current.CancellationToken;
         var controller = CreateController();
@@ -66,12 +66,28 @@ public sealed class HealthCheckConsumerPauseControllerTests
     }
 
     [Fact]
-    public async Task PublishAsync_does_not_pause_when_ready_check_is_Healthy()
+    public async Task PublishAsync_does_not_pause_for_ready_tag_without_pause()
+    {
+        // "ready"-tagged checks (e.g. backlog) must not trigger consumer pause —
+        // pausing consumers does not help drain internal backlogs.
+        var ct = TestContext.Current.CancellationToken;
+        var controller = CreateController();
+
+        var report = BuildReport(
+            ("outbox-backlog", HealthStatus.Degraded, ["ready", "outbox"]),
+            ("saga-backlog", HealthStatus.Degraded, ["ready", "saga"]));
+        await controller.PublishAsync(report, ct);
+
+        Assert.False(controller.IsPaused);
+    }
+
+    [Fact]
+    public async Task PublishAsync_does_not_pause_when_pause_check_is_Healthy()
     {
         var ct = TestContext.Current.CancellationToken;
         var controller = CreateController();
 
-        var report = BuildReport(("check1", HealthStatus.Healthy, ["ready"]));
+        var report = BuildReport(("check1", HealthStatus.Healthy, ["pause"]));
         await controller.PublishAsync(report, ct);
 
         Assert.False(controller.IsPaused);
@@ -83,10 +99,10 @@ public sealed class HealthCheckConsumerPauseControllerTests
         var ct = TestContext.Current.CancellationToken;
         var controller = CreateController();
 
-        await controller.PublishAsync(BuildReport(("check1", HealthStatus.Degraded, ["ready"])), ct);
+        await controller.PublishAsync(BuildReport(("check1", HealthStatus.Degraded, ["pause"])), ct);
         Assert.True(controller.IsPaused);
 
-        await controller.PublishAsync(BuildReport(("check1", HealthStatus.Healthy, ["ready"])), ct);
+        await controller.PublishAsync(BuildReport(("check1", HealthStatus.Healthy, ["pause"])), ct);
         Assert.False(controller.IsPaused);
     }
 
@@ -99,7 +115,7 @@ public sealed class HealthCheckConsumerPauseControllerTests
         var waitTask = controller.WhenStateChangedAsync(ct);
         Assert.False(waitTask.IsCompleted);
 
-        await controller.PublishAsync(BuildReport(("check1", HealthStatus.Degraded, ["ready"])), ct);
+        await controller.PublishAsync(BuildReport(("check1", HealthStatus.Degraded, ["pause"])), ct);
 
         await waitTask.WaitAsync(TimeSpan.FromSeconds(1), ct);
         Assert.True(waitTask.IsCompletedSuccessfully);
@@ -112,13 +128,13 @@ public sealed class HealthCheckConsumerPauseControllerTests
         var controller = CreateController();
 
         // First, pause
-        await controller.PublishAsync(BuildReport(("check1", HealthStatus.Degraded, ["ready"])), ct);
+        await controller.PublishAsync(BuildReport(("check1", HealthStatus.Degraded, ["pause"])), ct);
 
         var waitTask = controller.WhenStateChangedAsync(ct);
         Assert.False(waitTask.IsCompleted);
 
         // Now resume
-        await controller.PublishAsync(BuildReport(("check1", HealthStatus.Healthy, ["ready"])), ct);
+        await controller.PublishAsync(BuildReport(("check1", HealthStatus.Healthy, ["pause"])), ct);
 
         await waitTask.WaitAsync(TimeSpan.FromSeconds(1), ct);
         Assert.True(waitTask.IsCompletedSuccessfully);
@@ -145,13 +161,13 @@ public sealed class HealthCheckConsumerPauseControllerTests
         var controller = CreateController();
 
         // Pause first
-        await controller.PublishAsync(BuildReport(("check1", HealthStatus.Degraded, ["ready"])), ct);
+        await controller.PublishAsync(BuildReport(("check1", HealthStatus.Degraded, ["pause"])), ct);
 
         // Capture the next state-changed task
         var waitTask = controller.WhenStateChangedAsync(ct);
 
         // Publish degraded again — state doesn't change, so no signal
-        await controller.PublishAsync(BuildReport(("check1", HealthStatus.Unhealthy, ["ready"])), ct);
+        await controller.PublishAsync(BuildReport(("check1", HealthStatus.Unhealthy, ["pause"])), ct);
 
         Assert.False(waitTask.IsCompleted);
     }
