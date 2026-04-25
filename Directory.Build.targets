@@ -1,0 +1,24 @@
+<Project>
+
+  <!-- Workaround for MSB3030 "apphost.exe not found" when SDK 10 cross-compiles
+       net9.0 test projects. SDK 10 ships KnownAppHostPack entries pointing to a
+       specific net9.0 patch version (e.g. 9.0.15) that may not be installed locally
+       (e.g. only 9.0.2 present). When exactly one 9.0.x apphost pack is on disk and
+       the SDK-expected version is absent, redirect KnownAppHostPack to use the
+       installed version. See: https://learn.microsoft.com/dotnet/core/tools/sdk-errors/netsdk1145
+       This block runs during project evaluation, after BundledVersions.props has
+       populated KnownAppHostPack, so the Update operation takes effect. -->
+  <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
+    <_Net9AppHostPackDir>$([MSBuild]::EnsureTrailingSlash($([System.IO.Path]::Combine('$(NetCoreTargetingPackRoot)', 'Microsoft.NETCore.App.Host.$(NETCoreSdkRuntimeIdentifier)'))))</_Net9AppHostPackDir>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(IsTestProject)' == 'true' and Exists('$(_Net9AppHostPackDir)')">
+    <_InstalledNet9AppHostPackDirs Include="$([System.IO.Directory]::GetDirectories('$(_Net9AppHostPackDir)', '9.0.*'))" />
+  </ItemGroup>
+  <ItemGroup Condition="'@(_InstalledNet9AppHostPackDirs->Count())' == '1'">
+    <KnownAppHostPack Update="@(KnownAppHostPack)">
+      <AppHostPackVersion Condition="'%(TargetFramework)' == 'net9.0' and
+                                     !Exists('$(_Net9AppHostPackDir)%(AppHostPackVersion)')">@(_InstalledNet9AppHostPackDirs->'%(Filename)%(Extension)')</AppHostPackVersion>
+    </KnownAppHostPack>
+  </ItemGroup>
+
+</Project>
