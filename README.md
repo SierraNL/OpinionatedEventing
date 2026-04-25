@@ -74,6 +74,37 @@ await db.SaveChangesAsync(ct);
 
 .NET 8, 9, or 10. See [REQUIREMENTS.md](REQUIREMENTS.md) for the full specification.
 
+## Why I built it
+
+Over the years, I've worked with quite a few .NET frameworks around eventing or messaging.
+Before one is picked, it's always a big discussion—especially with paid solutions.
+Personally, I feel that the best ones are paid now, and given the companies I worked for in the past, they end up being very pricey for just a few .NET libraries.
+
+So I was happy when Microsoft had a plan to create something:
+https://github.com/dotnet/aspnetcore/issues/53219
+
+But if you scroll to the end, it never happened ☹️
+Mostly due to the concern that if there is a Microsoft library for it, it will kill the open‑source community around that topic.
+
+That may be true, but I really like de‑facto standard solutions instead of picking from 10+ options.
+(That's why I switched from Java to .NET in the first place, way back 😉)
+
+Every now and then, this plan popped back into my mind—to build it myself, the way Microsoft usually does it. It doesn’t have to tackle every use case, but at least 80–90%.
+So: an opinionated library, targeting only a few brokers commonly used with .NET, using Entity Framework for outbox and sagas, and encouraging good DDD practices.
+
+I always had this “How hard can it be?” mindset, but I lacked the spare time to actually build it.
+Thanks to the rise of GenAI, this became really doable. So Claude and I took the plunge.
+
+Yes, Claude did most of the typing, but I reviewed all the code, steered where needed, and I’ve been a C# developer for 20+ years.
+
+## Future plans
+
+I hope this is enough for now, scope‑wise.
+Ideas are always welcome—I can’t oversee the entire .NET world, nor am I an expert on DDD or eventing/messaging.
+
+There can always be bugs, vulnerabilities, and dependency updates; I’ll pick them up.
+The plan is to move along with the .NET versions that are in support, together with the matching EF Core versions.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
