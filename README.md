@@ -69,6 +69,7 @@ await db.SaveChangesAsync(ct);
 | [DDD Aggregates](docs/ddd-aggregates.md) | Aggregate roots, domain events, and the interceptor |
 | [Local Development](docs/local-development.md) | Running locally with Aspire, RabbitMQ, and ASB emulator |
 | [Observability](docs/observability.md) | Logging, distributed tracing, and metrics |
+| [Idempotency](docs/idempotency.md) | At-least-once delivery, duplicate handling, and inbox-pattern guidance |
 
 ## Requirements
 
