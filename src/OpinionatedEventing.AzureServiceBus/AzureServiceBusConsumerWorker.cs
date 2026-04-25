@@ -9,7 +9,6 @@ using OpinionatedEventing;
 using OpinionatedEventing.AzureServiceBus.Attributes;
 using OpinionatedEventing.AzureServiceBus.DependencyInjection;
 using OpinionatedEventing.AzureServiceBus.Routing;
-using OpinionatedEventing.Outbox;
 
 namespace OpinionatedEventing.AzureServiceBus;
 
@@ -290,62 +289,12 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
 
             if (message.DeliveryCount >= _options.Value.MaxDeliveryCount)
             {
-                await WriteDeadLetterRecordAsync(message, ex.Message, ct).ConfigureAwait(false);
                 await deadLetter("HandlerException", ex.Message, ct).ConfigureAwait(false);
             }
             else
             {
                 await abandon(ct).ConfigureAwait(false);
             }
-        }
-    }
-
-    private async Task WriteDeadLetterRecordAsync(
-        ServiceBusReceivedMessage message,
-        string error,
-        CancellationToken ct)
-    {
-        try
-        {
-            var messageType = message.ApplicationProperties.TryGetValue("MessageType", out var mt)
-                ? mt as string ?? string.Empty : string.Empty;
-            var messageKind = message.ApplicationProperties.TryGetValue("MessageKind", out var mk)
-                ? mk as string ?? string.Empty : string.Empty;
-            var correlationIdStr = message.ApplicationProperties.TryGetValue("CorrelationId", out var cid)
-                ? cid as string : null;
-            var causationIdStr = message.ApplicationProperties.TryGetValue("CausationId", out var caus)
-                ? caus as string : null;
-
-            _ = Guid.TryParse(correlationIdStr, out var correlationId);
-            Guid? causationId = Guid.TryParse(causationIdStr, out var c) ? c : null;
-
-            var record = new OutboxMessage
-            {
-                Id = Guid.NewGuid(),
-                MessageType = messageType,
-                MessageKind = messageKind,
-                Payload = message.Body.ToString(),
-                CorrelationId = correlationId,
-                CausationId = causationId,
-                CreatedAt = _timeProvider.GetUtcNow(),
-                AttemptCount = message.DeliveryCount,
-            };
-
-            await using var scope = _scopeFactory.CreateAsyncScope();
-            var store = scope.ServiceProvider.GetRequiredService<IOutboxStore>();
-            await store.SaveAsync(record, ct).ConfigureAwait(false);
-            // MarkFailedAsync calls SaveChanges for EF-backed stores, persisting the record.
-            await store.MarkFailedAsync(record.Id, error, ct).ConfigureAwait(false);
-
-            _logger.LogWarning(
-                "Dead-lettered message {OriginalMessageId} recorded in outbox as {RecordId}.",
-                message.MessageId, record.Id);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex,
-                "Failed to write dead-letter record for message {MessageId} to outbox.",
-                message.MessageId);
         }
     }
 

@@ -6,11 +6,23 @@ This guide walks you through installing OpinionatedEventing, picking a transport
 
 - .NET 8, 9, or 10
 - An Azure Service Bus namespace **or** a RabbitMQ broker (or run either locally via [Aspire](local-development.md))
-- Entity Framework Core (for outbox persistence and saga state)
+- Entity Framework Core (only required if the service **publishes** messages or uses sagas — receive-only services do not need it)
 
 ## 1. Install packages
 
-Install the packages you need via NuGet. At minimum you need the core package, the EF Core outbox store, and a transport.
+The packages you need depend on what the service does.
+
+**Receive-only service** (handles events or commands, never publishes):
+
+```
+dotnet add package OpinionatedEventing.Core
+
+# Pick one transport:
+dotnet add package OpinionatedEventing.AzureServiceBus
+dotnet add package OpinionatedEventing.RabbitMQ
+```
+
+**Service that publishes** (also sends events or commands):
 
 ```
 dotnet add package OpinionatedEventing.Core
@@ -76,9 +88,9 @@ public class PaymentCommandHandler : ICommandHandler<ProcessPayment>
 }
 ```
 
-## 4. Configure your DbContext
+## 4. Configure your DbContext (publishing services only)
 
-Add `OutboxMessage` to your `DbContext` and wire up the `DomainEventInterceptor`.
+Skip this step if your service only handles messages and never publishes. Add `OutboxMessage` to your `DbContext` and wire up the `DomainEventInterceptor`.
 
 ```csharp
 using Microsoft.EntityFrameworkCore;

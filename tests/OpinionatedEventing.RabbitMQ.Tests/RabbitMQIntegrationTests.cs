@@ -114,32 +114,6 @@ public sealed class RabbitMQIntegrationTests
         await host.StopAsync(ct);
     }
 
-    [Fact]
-    public async Task Dead_lettered_message_is_recorded_in_outbox()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var outboxStore = new InMemoryOutboxStore();
-
-        using var host = BuildHost(services =>
-        {
-            services.AddScoped<IEventHandler<OrderPlaced>>(_ => new ThrowingHandler<OrderPlaced>());
-            services.AddSingleton<IOutboxStore>(outboxStore);
-        });
-
-        await host.StartAsync(ct);
-        await Task.Delay(500, ct);
-
-        var transport = host.Services.GetRequiredService<ITransport>();
-        await transport.SendAsync(BuildOutboxMessage(new OrderPlaced("dead-order"), "Event"), ct);
-
-        await WaitForConditionAsync(() => outboxStore.Messages.Any(m => m.FailedAt.HasValue), ct);
-
-        var deadLetter = outboxStore.Messages.Single(m => m.FailedAt.HasValue);
-        Assert.NotNull(deadLetter.Error);
-
-        await host.StopAsync(ct);
-    }
-
     // --- helpers ---
 
     private IHost BuildHost(
@@ -200,9 +174,4 @@ public sealed class RabbitMQIntegrationTests
         public Task HandleAsync(T command, CancellationToken ct) { _captured.Add(command); return Task.CompletedTask; }
     }
 
-    private sealed class ThrowingHandler<T> : IEventHandler<T> where T : class, IEvent
-    {
-        public Task HandleAsync(T @event, CancellationToken ct)
-            => throw new InvalidOperationException("Simulated handler failure.");
-    }
 }

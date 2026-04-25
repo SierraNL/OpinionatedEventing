@@ -2,10 +2,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Samples.Contracts\Samples.Contracts.csproj" />
-    <ProjectReference Include="..\..\src\OpinionatedEventing.EntityFramework\OpinionatedEventing.EntityFramework.csproj" />
     <ProjectReference Include="..\..\src\OpinionatedEventing.RabbitMQ\OpinionatedEventing.RabbitMQ.csproj" />
     <ProjectReference Include="..\..\src\OpinionatedEventing.Aspire\OpinionatedEventing.Aspire.csproj" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
 
 </Project>
