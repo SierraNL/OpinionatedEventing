@@ -9,8 +9,17 @@ namespace OpinionatedEventing.EntityFramework.Configuration;
 /// Maps the saga state table to <c>saga_states</c> with an index optimised for timeout polling.
 /// </summary>
 /// <remarks>
-/// Apply via <c>modelBuilder.ApplySagaStateConfiguration()</c> inside <c>OnModelCreating</c>,
-/// or let EF Core discover it automatically via <c>modelBuilder.ApplyConfigurationsFromAssembly</c>.
+/// <para>
+/// Apply via <c>modelBuilder.ApplySagaStateConfiguration(Database.ProviderName)</c> inside
+/// <c>OnModelCreating</c>. Passing <c>Database.ProviderName</c> enables the automatic
+/// SQLite value-converter that stores <see cref="DateTimeOffset"/> columns as UTC ticks,
+/// preserving sort order on the saga-timeout index.
+/// </para>
+/// <para>
+/// When using <c>modelBuilder.ApplyConfigurationsFromAssembly</c>, this configuration is
+/// discovered automatically but the SQLite converters are <b>not</b> applied — call
+/// <c>modelBuilder.ApplySagaStateConfiguration(Database.ProviderName)</c> explicitly instead.
+/// </para>
 /// </remarks>
 public sealed class SagaStateEntityTypeConfiguration : IEntityTypeConfiguration<SagaState>
 {

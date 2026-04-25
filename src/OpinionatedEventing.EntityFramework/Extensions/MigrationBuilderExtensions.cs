@@ -10,11 +10,24 @@ namespace Microsoft.EntityFrameworkCore.Migrations;
 /// </summary>
 public static class OpinionatedEventingMigrationBuilderExtensions
 {
-    /// <summary>Creates the <c>outbox_messages</c> table.</summary>
+    /// <summary>
+    /// Creates the <c>outbox_messages</c> table.
+    /// </summary>
+    /// <remarks>
+    /// When <see cref="MigrationBuilder.ActiveProvider"/> contains <c>"Sqlite"</c> (case-insensitive),
+    /// <see cref="DateTimeOffset"/> columns (<c>CreatedAt</c>, <c>ProcessedAt</c>, <c>FailedAt</c>) are
+    /// emitted as <c>long</c> (<c>INTEGER</c>) to store UTC ticks, matching the
+    /// <see cref="Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter{TModel,TProvider}"/>
+    /// applied by <c>modelBuilder.ApplyOutboxConfiguration(Database.ProviderName)</c>.
+    /// </remarks>
     /// <param name="migrationBuilder">The migration builder.</param>
     /// <returns>The same <paramref name="migrationBuilder"/> for chaining.</returns>
     public static MigrationBuilder CreateOutboxTable(this MigrationBuilder migrationBuilder)
     {
+        // null-safe: ActiveProvider is non-nullable in EF Core 8–10, but defensive here;
+        // a missing/null provider is treated as non-SQLite (correct default).
+        var sqlite = migrationBuilder.ActiveProvider?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true;
+
         migrationBuilder.CreateTable(
             name: "outbox_messages",
             columns: table => new
@@ -25,9 +38,9 @@ public static class OpinionatedEventingMigrationBuilderExtensions
                 MessageKind = table.Column<string>(maxLength: 16, nullable: false),
                 CorrelationId = table.Column<Guid>(nullable: false),
                 CausationId = table.Column<Guid>(nullable: true),
-                CreatedAt = table.Column<DateTimeOffset>(nullable: false),
-                ProcessedAt = table.Column<DateTimeOffset>(nullable: true),
-                FailedAt = table.Column<DateTimeOffset>(nullable: true),
+                CreatedAt = sqlite ? table.Column<long>(nullable: false) : table.Column<DateTimeOffset>(nullable: false),
+                ProcessedAt = sqlite ? table.Column<long>(nullable: true) : table.Column<DateTimeOffset>(nullable: true),
+                FailedAt = sqlite ? table.Column<long>(nullable: true) : table.Column<DateTimeOffset>(nullable: true),
                 AttemptCount = table.Column<int>(nullable: false, defaultValue: 0),
                 Error = table.Column<string>(nullable: true),
             },
@@ -51,11 +64,24 @@ public static class OpinionatedEventingMigrationBuilderExtensions
         return migrationBuilder;
     }
 
-    /// <summary>Creates the <c>saga_states</c> table.</summary>
+    /// <summary>
+    /// Creates the <c>saga_states</c> table.
+    /// </summary>
+    /// <remarks>
+    /// When <see cref="MigrationBuilder.ActiveProvider"/> contains <c>"Sqlite"</c> (case-insensitive),
+    /// <see cref="DateTimeOffset"/> columns (<c>CreatedAt</c>, <c>UpdatedAt</c>, <c>ExpiresAt</c>) are
+    /// emitted as <c>long</c> (<c>INTEGER</c>) to store UTC ticks, matching the
+    /// <see cref="Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter{TModel,TProvider}"/>
+    /// applied by <c>modelBuilder.ApplySagaStateConfiguration(Database.ProviderName)</c>.
+    /// </remarks>
     /// <param name="migrationBuilder">The migration builder.</param>
     /// <returns>The same <paramref name="migrationBuilder"/> for chaining.</returns>
     public static MigrationBuilder CreateSagaStateTable(this MigrationBuilder migrationBuilder)
     {
+        // null-safe: ActiveProvider is non-nullable in EF Core 8–10, but defensive here;
+        // a missing/null provider is treated as non-SQLite (correct default).
+        var sqlite = migrationBuilder.ActiveProvider?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true;
+
         migrationBuilder.CreateTable(
             name: "saga_states",
             columns: table => new
@@ -65,9 +91,9 @@ public static class OpinionatedEventingMigrationBuilderExtensions
                 CorrelationId = table.Column<string>(maxLength: 256, nullable: false),
                 State = table.Column<string>(nullable: false),
                 Status = table.Column<int>(nullable: false),
-                CreatedAt = table.Column<DateTimeOffset>(nullable: false),
-                UpdatedAt = table.Column<DateTimeOffset>(nullable: false),
-                ExpiresAt = table.Column<DateTimeOffset>(nullable: true),
+                CreatedAt = sqlite ? table.Column<long>(nullable: false) : table.Column<DateTimeOffset>(nullable: false),
+                UpdatedAt = sqlite ? table.Column<long>(nullable: false) : table.Column<DateTimeOffset>(nullable: false),
+                ExpiresAt = sqlite ? table.Column<long>(nullable: true) : table.Column<DateTimeOffset>(nullable: true),
             },
             constraints: table =>
                 table.PrimaryKey("PK_saga_states", x => x.Id));

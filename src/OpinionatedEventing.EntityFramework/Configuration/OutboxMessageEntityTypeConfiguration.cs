@@ -9,8 +9,17 @@ namespace OpinionatedEventing.EntityFramework.Configuration;
 /// Maps the outbox table to <c>outbox_messages</c> with an index optimised for pending-message queries.
 /// </summary>
 /// <remarks>
-/// Apply via <c>modelBuilder.ApplyOutboxConfiguration()</c> inside <c>OnModelCreating</c>,
-/// or let EF Core discover it automatically via <c>modelBuilder.ApplyConfigurationsFromAssembly</c>.
+/// <para>
+/// Apply via <c>modelBuilder.ApplyOutboxConfiguration(Database.ProviderName)</c> inside
+/// <c>OnModelCreating</c>. Passing <c>Database.ProviderName</c> enables the automatic
+/// SQLite value-converter that stores <see cref="DateTimeOffset"/> columns as UTC ticks,
+/// preserving sort order on the pending-message index.
+/// </para>
+/// <para>
+/// When using <c>modelBuilder.ApplyConfigurationsFromAssembly</c>, this configuration is
+/// discovered automatically but the SQLite converters are <b>not</b> applied — call
+/// <c>modelBuilder.ApplyOutboxConfiguration(Database.ProviderName)</c> explicitly instead.
+/// </para>
 /// </remarks>
 public sealed class OutboxMessageEntityTypeConfiguration : IEntityTypeConfiguration<OutboxMessage>
 {
