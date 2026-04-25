@@ -28,11 +28,19 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.ApplyOutboxConfiguration();
-        modelBuilder.ApplySagaStateConfiguration();
+        modelBuilder.ApplyOutboxConfiguration(Database.ProviderName);
+        modelBuilder.ApplySagaStateConfiguration(Database.ProviderName);
     }
 }
 ```
+
+### Supported databases
+
+| Provider | Notes |
+|----------|-------|
+| **SQL Server** | Fully supported. `DateTimeOffset` columns stored natively. |
+| **PostgreSQL** | Fully supported. `DateTimeOffset` columns stored natively. |
+| **SQLite** | ⚠️ **Not for production use.** SQLite has no native `DateTimeOffset` type. When `Database.ProviderName` contains `"Sqlite"`, the library automatically applies a value converter that stores all `DateTimeOffset` columns as UTC ticks (`long` / `INTEGER`), preserving sort order on the pending-message and saga-timeout indexes. Useful for local development, testing, and demos. |
 
 Then add a migration:
 
