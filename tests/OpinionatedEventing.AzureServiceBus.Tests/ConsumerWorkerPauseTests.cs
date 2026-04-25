@@ -93,6 +93,48 @@ public sealed class ConsumerWorkerPauseTests
         await ((IHostedService)worker).StopAsync(CancellationToken.None);
     }
 
+    [Fact]
+    public async Task Worker_stops_cleanly_when_cancelled_while_paused()
+    {
+        // Simulates the host stopping during an active readiness failure — the worker
+        // must exit via the OperationCanceledException path without hanging.
+        var ct = TestContext.Current.CancellationToken;
+        var pauseController = new FakeConsumerPauseController(startPaused: true);
+        var worker = CreateWorker(pauseController);
+
+        await ((IHostedService)worker).StartAsync(CancellationToken.None);
+
+        // Give the worker time to enter the paused branch and block on WhenStateChangedAsync
+        await Task.Delay(50, ct);
+
+        // Stop without ever resuming — stoppingToken cancellation must unblock the worker
+        await ((IHostedService)worker).StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Worker_stops_cleanly_after_rapid_pause_resume_cycle()
+    {
+        // Stress-tests the volatile flag + Interlocked.Exchange state machine to ensure
+        // no stuck state survives multiple rapid transitions before shutdown.
+        var ct = TestContext.Current.CancellationToken;
+        var pauseController = new FakeConsumerPauseController(startPaused: false);
+        var worker = CreateWorker(pauseController);
+
+        await ((IHostedService)worker).StartAsync(CancellationToken.None);
+        await Task.Delay(20, ct);
+
+        pauseController.SetPaused(true);
+        await Task.Delay(20, ct);
+        pauseController.SetPaused(false);
+        await Task.Delay(20, ct);
+        pauseController.SetPaused(true);
+        await Task.Delay(20, ct);
+        pauseController.SetPaused(false);
+        await Task.Delay(20, ct);
+
+        await ((IHostedService)worker).StopAsync(CancellationToken.None);
+    }
+
     // ─── Minimal fakes ────────────────────────────────────────────────────────────
 
     /// <summary>

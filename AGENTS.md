@@ -74,6 +74,10 @@ dotnet test -- --filter-trait "Category=Integration"    # requires Docker (Testc
 
 On Windows, use `pwsh` (PowerShell) for scripting tasks — never Python. Example: `pwsh -Command "..."`.
 
+## Planning
+
+For any non-trivial implementation task, **present a plan and get explicit confirmation before writing code**. A task is non-trivial if it touches more than one file, introduces a new abstraction, or has architectural trade-offs worth discussing. Keep the plan concise: what will change, why, and any notable trade-offs. Only proceed once the user approves.
+
 ## Issue tracking & branching
 
 The GitHub repository is **`SierraNL/OpinionatedEventing`**.
