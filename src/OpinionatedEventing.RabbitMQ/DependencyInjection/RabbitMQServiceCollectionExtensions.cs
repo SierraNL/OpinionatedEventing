@@ -20,7 +20,7 @@ public static class RabbitMQServiceCollectionExtensions
 {
     /// <summary>
     /// Registers the RabbitMQ transport. Requires a prior call to
-    /// <c>AddOpinionatedEventing()</c> and a registered <see cref="IOutboxStore"/>.
+    /// <c>AddOpinionatedEventing()</c>.
     /// </summary>
     /// <param name="services">The service collection to register into.</param>
     /// <param name="configure">Delegate to configure <see cref="RabbitMQOptions"/>.</param>

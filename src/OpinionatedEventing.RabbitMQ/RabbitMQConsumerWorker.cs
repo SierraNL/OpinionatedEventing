@@ -6,7 +6,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpinionatedEventing;
-using OpinionatedEventing.Outbox;
 using OpinionatedEventing.RabbitMQ.DependencyInjection;
 using OpinionatedEventing.RabbitMQ.Routing;
 using RabbitMQ.Client;
@@ -255,11 +254,7 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
         {
             _logger.LogError(ex, "Failed to handle message with delivery tag {DeliveryTag}.", ea.DeliveryTag);
 
-            // Use CancellationToken.None for both the dead-letter write and the nack so that a
-            // host shutdown racing with handler failure does not silently drop the record or leave
-            // the message unacknowledged (causing redelivery into the next test or consumer).
-            await WriteDeadLetterRecordAsync(ea, ex.Message, CancellationToken.None).ConfigureAwait(false);
-
+            // CancellationToken.None: host shutdown must not leave the message unacknowledged.
             try
             {
                 await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false, CancellationToken.None)
@@ -271,47 +266,6 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
                     "Failed to nack message with delivery tag {DeliveryTag}; message may be redelivered.",
                     ea.DeliveryTag);
             }
-        }
-    }
-
-    private async Task WriteDeadLetterRecordAsync(
-        BasicDeliverEventArgs ea,
-        string error,
-        CancellationToken ct)
-    {
-        try
-        {
-            var messageType = GetHeader(ea.BasicProperties, "MessageType") ?? string.Empty;
-            var messageKind = GetHeader(ea.BasicProperties, "MessageKind") ?? string.Empty;
-            var correlationIdStr = GetHeader(ea.BasicProperties, "CorrelationId");
-            var causationIdStr = GetHeader(ea.BasicProperties, "CausationId");
-
-            _ = Guid.TryParse(correlationIdStr, out var correlationId);
-            Guid? causationId = Guid.TryParse(causationIdStr, out var c) ? c : null;
-
-            var record = new OutboxMessage
-            {
-                Id = Guid.NewGuid(),
-                MessageType = messageType,
-                MessageKind = messageKind,
-                Payload = Encoding.UTF8.GetString(ea.Body.Span),
-                CorrelationId = correlationId,
-                CausationId = causationId,
-                CreatedAt = _timeProvider.GetUtcNow(),
-                AttemptCount = 1,
-            };
-
-            await using var scope = _scopeFactory.CreateAsyncScope();
-            var store = scope.ServiceProvider.GetRequiredService<IOutboxStore>();
-            await store.SaveAsync(record, ct).ConfigureAwait(false);
-            await store.MarkFailedAsync(record.Id, error, ct).ConfigureAwait(false);
-
-            _logger.LogWarning(
-                "Dead-lettered message recorded in outbox as {RecordId}.", record.Id);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to write dead-letter record to outbox.");
         }
     }
 
