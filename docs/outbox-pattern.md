@@ -146,6 +146,10 @@ services.AddHealthChecks()
     });
 ```
 
+## Delivery guarantees and consumer idempotency
+
+The outbox guarantees **at-least-once delivery** — under certain failure conditions the same message may be delivered more than once. Consumers are responsible for handling duplicates. See [Idempotency](idempotency.md) for strategies and code examples.
+
 ## EF Core migration helpers
 
 Rather than writing migration SQL by hand, use the provided extension methods:
