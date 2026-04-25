@@ -116,19 +116,29 @@ app.MapHealthChecks("/health/live",  new HealthCheckOptions { Predicate = c => c
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") });
 ```
 
-All three built-in checks are tagged `ready`. Broker connectivity belongs on readiness, not liveness: a broker outage is a dependency failure that restarting the process cannot fix — failing liveness would just cause needless container restarts.
+The built-in checks use two tags:
 
-**Readiness and broker consumers:** readiness probes only control the Kubernetes `Service` endpoint, which governs *HTTP* traffic. The broker consumer workers are `BackgroundService` instances that pull messages directly from the broker, independent of any load balancer. By default, failing readiness does **not** pause event consumption.
+| Tag | Checks |
+|---|---|
+| `live` | Broker connectivity |
+| `ready` | Outbox backlog, saga timeout backlog |
 
-To automatically pause consumers when readiness probes become unhealthy, chain `WithConsumerPause()` onto `AddOpinionatedEventingHealthChecks()`:
+Broker connectivity is a liveness check (`live`), not readiness: if the broker is unreachable the process is genuinely broken and a restart may help re-establish the connection. Backlog checks are readiness signals — a load balancer can stop routing HTTP traffic to the instance while the background workers drain the queue.
+
+**Readiness and broker consumers:** readiness probes only control the Kubernetes `Service` endpoint, which governs *HTTP* traffic. The broker consumer workers are `BackgroundService` instances that pull messages directly from the broker, independent of any load balancer. By default, a degraded readiness check does **not** pause event consumption.
+
+To automatically pause consumers when a dependency becomes unavailable, chain `WithConsumerPause()` and tag the relevant checks with `"pause"`:
 
 ```csharp
 services.AddHealthChecks()
     .AddOpinionatedEventingHealthChecks()
+    .AddNpgsql(connectionString, tags: ["pause"])   // pause consumers when DB is unreachable
     .WithConsumerPause();
 ```
 
-When any check tagged `ready` reports `Degraded` or `Unhealthy`, the consumer workers stop accepting new messages from the broker. They resume automatically once all readiness checks recover to `Healthy`. This is opt-in — the default behaviour (always consuming) is preserved when `WithConsumerPause()` is not called.
+When any check tagged `"pause"` reports `Degraded` or `Unhealthy`, the consumer workers stop accepting new messages from the broker. They resume automatically once all `"pause"`-tagged checks recover to `Healthy`. This is opt-in — the default behaviour (always consuming) is preserved when `WithConsumerPause()` is not called.
+
+The built-in backlog checks (`"ready"`) intentionally do **not** carry the `"pause"` tag. Pausing consumers does not help drain the outbox or saga-timeout backlogs — those are drained by `OutboxDispatcherWorker` and `SagaTimeoutWorker`, which are never paused. Wiring backlog checks to consumer pause would cause oscillation: consumers pause → broker queue grows → backlogs eventually drain → consumers resume → new messages create more backlog → repeat.
 
 ## Correlation and causation IDs
 

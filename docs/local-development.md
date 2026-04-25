@@ -152,9 +152,9 @@ app.MapHealthChecks("/health");
 
 The Aspire dashboard polls `/health` and reflects the status in the resources view.
 
-| Health check | Tag | Condition |
+| Health check | Tags | Condition |
 |---|---|---|
-| Broker connectivity | `ready`, `broker` | Unhealthy if broker is unreachable |
+| Broker connectivity | `live`, `broker` | Unhealthy if broker is unreachable |
 | Outbox backlog | `ready`, `outbox` | Degraded above `OutboxBacklogThreshold` |
 | Saga timeout backlog | `ready`, `saga` | Degraded above `SagaTimeoutBacklogThreshold` |
 

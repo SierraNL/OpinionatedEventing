@@ -7,12 +7,15 @@ using OpinionatedEventing;
 namespace OpinionatedEventing.Aspire.HealthChecks;
 
 /// <summary>
-/// Pauses broker consumer workers when any readiness health check reports
+/// Pauses broker consumer workers when any health check tagged <c>"pause"</c> reports
 /// <see cref="HealthStatus.Degraded"/> or <see cref="HealthStatus.Unhealthy"/>,
-/// and resumes them when all readiness checks recover to <see cref="HealthStatus.Healthy"/>.
+/// and resumes them when all such checks recover to <see cref="HealthStatus.Healthy"/>.
 /// </summary>
 /// <remarks>
 /// Register via <c>AddOpinionatedEventingHealthChecks().WithConsumerPause()</c>.
+/// Only checks explicitly tagged <c>"pause"</c> influence the pause decision — backlog
+/// checks (tagged <c>"ready"</c>) are intentionally excluded because pausing consumers
+/// does not help drain internal backlogs.
 /// </remarks>
 public sealed class HealthCheckConsumerPauseController : IConsumerPauseController, IHealthCheckPublisher
 {
@@ -35,26 +38,26 @@ public sealed class HealthCheckConsumerPauseController : IConsumerPauseControlle
         => _stateChangedTcs.Task.WaitAsync(cancellationToken);
 
     /// <summary>
-    /// Evaluates the health report and pauses or resumes consumers based on readiness check results.
+    /// Evaluates the health report and pauses or resumes consumers based on <c>"pause"</c>-tagged check results.
     /// </summary>
     /// <param name="report">The health report published by the health check framework.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public Task PublishAsync(HealthReport report, CancellationToken cancellationToken)
     {
         var shouldPause = report.Entries.Any(e =>
-            e.Value.Tags.Contains("ready") &&
+            e.Value.Tags.Contains("pause") &&
             e.Value.Status != HealthStatus.Healthy);
 
         if (shouldPause && !_isPaused)
         {
             _isPaused = true;
-            _logger.LogWarning("Readiness probes unhealthy — pausing broker consumers.");
+            _logger.LogWarning("Dependency health checks unhealthy — pausing broker consumers.");
             SignalStateChanged();
         }
         else if (!shouldPause && _isPaused)
         {
             _isPaused = false;
-            _logger.LogInformation("Readiness probes recovered — resuming broker consumers.");
+            _logger.LogInformation("Dependency health checks recovered — resuming broker consumers.");
             SignalStateChanged();
         }
 
