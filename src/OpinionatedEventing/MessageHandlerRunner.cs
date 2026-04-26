@@ -1,8 +1,6 @@
 #nullable enable
 
 using System.Diagnostics;
-using System.Reflection;
-using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -93,10 +91,8 @@ public sealed class MessageHandlerRunner : IMessageHandlerRunner
         object message,
         CancellationToken ct)
     {
-        var handlerType = typeof(IEventHandler<>).MakeGenericType(eventType);
-        // GetServices returns IEnumerable<object?> — filter nulls so InvokeHandlerAsync can
-        // safely assume a non-null target, giving a clear contract-violation error if DI is broken.
-        var handlers = sp.GetServices(handlerType).OfType<object>().ToList();
+        HandlerDispatcherCache.Entry entry = HandlerDispatcherCache.GetEventEntry(eventType);
+        List<object> handlers = sp.GetServices(entry.HandlerServiceType).OfType<object>().ToList();
 
         if (handlers.Count == 0)
         {
@@ -104,12 +100,9 @@ public sealed class MessageHandlerRunner : IMessageHandlerRunner
             return;
         }
 
-        // HandleAsync is defined on IEventHandler<T> — GetMethod never returns null here.
-        var handleMethod = handlerType.GetMethod("HandleAsync")!;
-
-        foreach (var handler in handlers)
+        foreach (object handler in handlers)
         {
-            await InvokeHandlerAsync(handleMethod, handler, message, ct).ConfigureAwait(false);
+            await entry.Dispatcher(handler, message, ct).ConfigureAwait(false);
         }
     }
 
@@ -119,30 +112,8 @@ public sealed class MessageHandlerRunner : IMessageHandlerRunner
         object message,
         CancellationToken ct)
     {
-        var handlerType = typeof(ICommandHandler<>).MakeGenericType(commandType);
-        var handler = sp.GetRequiredService(handlerType);
-
-        // HandleAsync is defined on ICommandHandler<T> — GetMethod never returns null here.
-        var handleMethod = handlerType.GetMethod("HandleAsync")!;
-        await InvokeHandlerAsync(handleMethod, handler, message, ct).ConfigureAwait(false);
-    }
-
-    // Invokes a HandleAsync method via reflection, unwrapping TargetInvocationException so the
-    // original exception (not the reflection wrapper) propagates to callers.
-    private static async Task InvokeHandlerAsync(
-        MethodInfo method, object handler, object message, CancellationToken ct)
-    {
-        Task task;
-        try
-        {
-            task = (Task)method.Invoke(handler, [message, ct])!;
-        }
-        catch (TargetInvocationException ex) when (ex.InnerException is not null)
-        {
-            ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
-            throw; // unreachable — satisfies compiler
-        }
-
-        await task.ConfigureAwait(false);
+        HandlerDispatcherCache.Entry entry = HandlerDispatcherCache.GetCommandEntry(commandType);
+        object handler = sp.GetRequiredService(entry.HandlerServiceType);
+        await entry.Dispatcher(handler, message, ct).ConfigureAwait(false);
     }
 }

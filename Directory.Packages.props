@@ -66,6 +66,11 @@
     <PackageVersion Include="Reqnroll.xUnit.v3" Version="3.3.4" />
   </ItemGroup>
 
+  <!-- Benchmarks -->
+  <ItemGroup>
+    <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
+  </ItemGroup>
+
   <!-- Test packages -->
   <ItemGroup>
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.4.0" />

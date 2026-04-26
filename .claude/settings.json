@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build *)",
+      "Bash(dotnet test *)",
+      "Bash(dotnet restore *)",
+      "Bash(dotnet clean *)",
+      "Bash(dotnet pack *)",
+      "Bash(cd * && dotnet build *)",
+      "Bash(cd * && dotnet test *)",
+      "Bash(cd * && dotnet restore *)",
+      "Bash(cd * && dotnet clean *)",
+      "mcp__github__get_issue"
+    ]
+  }
+}
