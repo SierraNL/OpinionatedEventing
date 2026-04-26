@@ -1,8 +1,9 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/OpinionatedEventing.Abstractions/OpinionatedEventing.Abstractions.csproj" />
     <Project Path="src/OpinionatedEventing.Aspire/OpinionatedEventing.Aspire.csproj" />
     <Project Path="src/OpinionatedEventing.AzureServiceBus/OpinionatedEventing.AzureServiceBus.csproj" />
-    <Project Path="src/OpinionatedEventing.Core/OpinionatedEventing.Core.csproj" />
+    <Project Path="src/OpinionatedEventing/OpinionatedEventing.csproj" />
     <Project Path="src/OpinionatedEventing.EntityFramework/OpinionatedEventing.EntityFramework.csproj" />
     <Project Path="src/OpinionatedEventing.OpenTelemetry/OpinionatedEventing.OpenTelemetry.csproj" />
     <Project Path="src/OpinionatedEventing.Outbox/OpinionatedEventing.Outbox.csproj" />
@@ -26,8 +27,8 @@
     <Project Path="tests/OpinionatedEventing.Aspire.Tests/OpinionatedEventing.Aspire.Tests.csproj" />
     <Project Path="tests/OpinionatedEventing.AzureServiceBus.Specs/OpinionatedEventing.AzureServiceBus.Specs.csproj" />
     <Project Path="tests/OpinionatedEventing.AzureServiceBus.Tests/OpinionatedEventing.AzureServiceBus.Tests.csproj" />
-    <Project Path="tests/OpinionatedEventing.Core.Specs/OpinionatedEventing.Core.Specs.csproj" />
-    <Project Path="tests/OpinionatedEventing.Core.Tests/OpinionatedEventing.Core.Tests.csproj" />
+    <Project Path="tests/OpinionatedEventing.Specs/OpinionatedEventing.Specs.csproj" />
+    <Project Path="tests/OpinionatedEventing.Tests/OpinionatedEventing.Tests.csproj" />
     <Project Path="tests/OpinionatedEventing.EntityFramework.Specs/OpinionatedEventing.EntityFramework.Specs.csproj" />
     <Project Path="tests/OpinionatedEventing.EntityFramework.Tests/OpinionatedEventing.EntityFramework.Tests.csproj" />
     <Project Path="tests/OpinionatedEventing.OpenTelemetry.Tests/OpinionatedEventing.OpenTelemetry.Tests.csproj" />

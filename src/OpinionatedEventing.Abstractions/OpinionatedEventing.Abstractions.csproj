@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Pure contracts for OpinionatedEventing — IEvent, ICommand, IPublisher, IOutboxStore, AggregateRoot, and handler interfaces. No infrastructure dependencies. Reference this package from domain and application assemblies.</Description>
+  </PropertyGroup>
+
+</Project>

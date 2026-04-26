@@ -3,7 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Samples.Contracts\Samples.Contracts.csproj" />
     <ProjectReference Include="..\Samples.OrderService.Domain\Samples.OrderService.Domain.csproj" />
-    <ProjectReference Include="..\..\src\OpinionatedEventing.Core\OpinionatedEventing.Core.csproj" />
+    <ProjectReference Include="..\..\src\OpinionatedEventing\OpinionatedEventing.csproj" />
     <ProjectReference Include="..\..\src\OpinionatedEventing.Sagas\OpinionatedEventing.Sagas.csproj" />
   </ItemGroup>
 

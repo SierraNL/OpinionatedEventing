@@ -21,7 +21,8 @@ A suite of opinionated .NET libraries for event-driven and command-driven messag
 
 | Package | NuGet | Purpose |
 |---|---|---|
-| `OpinionatedEventing.Core` | [![NuGet](https://img.shields.io/nuget/v/OpinionatedEventing.Core.svg)](https://www.nuget.org/packages/OpinionatedEventing.Core) | Abstractions only — `IEvent`, `ICommand`, `IPublisher`, `AggregateRoot` |
+| `OpinionatedEventing.Abstractions` | [![NuGet](https://img.shields.io/nuget/v/OpinionatedEventing.Abstractions.svg)](https://www.nuget.org/packages/OpinionatedEventing.Abstractions) | Pure contracts — `IEvent`, `ICommand`, `IPublisher`, `AggregateRoot`, `IOutboxStore` |
+| `OpinionatedEventing` | [![NuGet](https://img.shields.io/nuget/v/OpinionatedEventing.svg)](https://www.nuget.org/packages/OpinionatedEventing) | Runtime hosting — `MessageHandlerRunner`, DI extensions, diagnostics, options |
 | `OpinionatedEventing.Outbox` | [![NuGet](https://img.shields.io/nuget/v/OpinionatedEventing.Outbox.svg)](https://www.nuget.org/packages/OpinionatedEventing.Outbox) | `OutboxDispatcherWorker`, `IOutboxStore` contract |
 | `OpinionatedEventing.EntityFramework` | [![NuGet](https://img.shields.io/nuget/v/OpinionatedEventing.EntityFramework.svg)](https://www.nuget.org/packages/OpinionatedEventing.EntityFramework) | EF Core outbox store, `DomainEventInterceptor`, saga state |
 | `OpinionatedEventing.Sagas` | [![NuGet](https://img.shields.io/nuget/v/OpinionatedEventing.Sagas.svg)](https://www.nuget.org/packages/OpinionatedEventing.Sagas) | Orchestration and choreography engine |

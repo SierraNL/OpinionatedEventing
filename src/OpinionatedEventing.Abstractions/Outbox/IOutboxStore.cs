@@ -21,7 +21,7 @@ public interface IOutboxStore
     /// Implementations must ensure that concurrent calls do not return overlapping sets of messages.
     /// Use pessimistic row-level locking (e.g. <c>SELECT … FOR UPDATE SKIP LOCKED</c>) when the
     /// store is backed by a relational database and
-    /// <see cref="OpinionatedEventing.Options.OutboxOptions.ConcurrentWorkers"/> is greater than <c>1</c>.
+    /// <c>OutboxOptions.ConcurrentWorkers</c> is greater than <c>1</c>.
     /// </remarks>
     Task<IReadOnlyList<OutboxMessage>> GetPendingAsync(
         int batchSize,

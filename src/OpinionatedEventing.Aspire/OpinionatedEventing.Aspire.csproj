@@ -14,7 +14,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
-    <ProjectReference Include="..\OpinionatedEventing.Core\OpinionatedEventing.Core.csproj" />
+    <ProjectReference Include="..\OpinionatedEventing\OpinionatedEventing.csproj" />
     <ProjectReference Include="..\OpinionatedEventing.Outbox\OpinionatedEventing.Outbox.csproj" />
     <ProjectReference Include="..\OpinionatedEventing.AzureServiceBus\OpinionatedEventing.AzureServiceBus.csproj" />
     <ProjectReference Include="..\OpinionatedEventing.RabbitMQ\OpinionatedEventing.RabbitMQ.csproj" />

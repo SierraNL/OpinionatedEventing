@@ -54,7 +54,8 @@
 
 | NuGet Package | Purpose |
 |---|---|
-| `OpinionatedEventing.Core` | All shared abstractions and base types. No infrastructure dependencies. |
+| `OpinionatedEventing.Abstractions` | Pure contracts — `IEvent`, `ICommand`, `IPublisher`, `AggregateRoot`, handler interfaces. No infrastructure dependencies. |
+| `OpinionatedEventing` | Runtime hosting — `MessageHandlerRunner`, `MessagingContext`, DI extensions, diagnostics, options. |
 | `OpinionatedEventing.Outbox` | Outbox dispatcher background service and `IOutboxStore` contract. |
 | `OpinionatedEventing.EntityFramework` | EF Core implementation of `IOutboxStore`, the domain-event interceptor, and saga state persistence. |
 | `OpinionatedEventing.Sagas` | Saga orchestration and choreography engine. |
@@ -65,20 +66,21 @@
 ### Dependency rules
 
 ```
-Core  ←  Outbox  ←  EntityFramework
-Core  ←  Sagas   ←  EntityFramework
-Core  ←  AzureServiceBus
-Core  ←  RabbitMQ
-Core, Outbox, AzureServiceBus, RabbitMQ  ←  Aspire
+Abstractions  ←  OpinionatedEventing  ←  Outbox  ←  EntityFramework
+Abstractions  ←  OpinionatedEventing  ←  Sagas   ←  EntityFramework
+Abstractions  ←  OpinionatedEventing  ←  AzureServiceBus
+Abstractions  ←  OpinionatedEventing  ←  RabbitMQ
+OpinionatedEventing, Outbox, AzureServiceBus, RabbitMQ  ←  Aspire
 ```
 
-- `Core` has **no** infrastructure NuGet dependencies beyond `Microsoft.Extensions.DependencyInjection.Abstractions` and `Microsoft.Extensions.Logging.Abstractions`.
+- `Abstractions` has **no** NuGet dependencies — pure .NET types only.
+- `OpinionatedEventing` (root) depends only on `Abstractions` and `Microsoft.Extensions.DependencyInjection.Abstractions`, `Microsoft.Extensions.Logging.Abstractions`, and `Microsoft.Extensions.Options`.
 - Transport packages depend only on their respective broker client (`Azure.Messaging.ServiceBus`, `RabbitMQ.Client`).
 - No library takes a hard dependency on a specific logging framework, serialisation library, or ORM other than EF Core in `EntityFramework`.
 
 ---
 
-## 3. Core Abstractions (`OpinionatedEventing.Core`)
+## 3. Core Abstractions (`OpinionatedEventing.Abstractions`)
 
 ### 3.1 Message Marker Interfaces
 
@@ -415,7 +417,7 @@ services.AddSagaParticipant<FulfillmentParticipant>();
 
 ### 8.1 AggregateRoot
 
-- Defined in `OpinionatedEventing.Core` (no EF dependency in the base class).
+- Defined in `OpinionatedEventing.Abstractions` (no EF dependency in the base class).
 - Provides `RaiseDomainEvent(IEvent)` to collect events during a business operation.
 - Provides `DomainEvents` (read-only) for the interceptor to harvest.
 - `ClearDomainEvents()` is internal — only the interceptor calls it.

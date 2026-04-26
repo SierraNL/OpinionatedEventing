@@ -8,7 +8,8 @@ Full requirements are in [REQUIREMENTS.md](REQUIREMENTS.md). GitHub issues map o
 
 ```
 src/
-  OpinionatedEventing.Core/            # Abstractions only — no infra deps
+  OpinionatedEventing.Abstractions/    # Pure contracts — IEvent, ICommand, IPublisher, IOutboxStore, AggregateRoot, handler interfaces; no infra deps
+  OpinionatedEventing/                 # Runtime hosting — MessageHandlerRunner, MessagingContext, DI extensions, diagnostics, options
   OpinionatedEventing.Outbox/          # Background dispatcher + IOutboxStore contract
   OpinionatedEventing.EntityFramework/ # EF Core outbox store + domain event interceptor + saga state
   OpinionatedEventing.Sagas/           # Orchestration + choreography engine
