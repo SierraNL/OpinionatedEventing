@@ -480,7 +480,10 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
-.claude/
+.claude/*
+!.claude/commands/
+!.claude/commands/**
+!.claude/settings.json
 
 # Reqnroll generated files
 *.feature.cs

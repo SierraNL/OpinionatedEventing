@@ -2,7 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Samples.Contracts\Samples.Contracts.csproj" />
-    <ProjectReference Include="..\..\src\OpinionatedEventing.Core\OpinionatedEventing.Core.csproj" />
+    <ProjectReference Include="..\..\src\OpinionatedEventing.Abstractions\OpinionatedEventing.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

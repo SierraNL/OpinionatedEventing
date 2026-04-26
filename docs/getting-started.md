@@ -12,10 +12,16 @@ This guide walks you through installing OpinionatedEventing, picking a transport
 
 The packages you need depend on what the service does.
 
-**Receive-only service** (handles events or commands, never publishes):
+**Domain / contracts assembly** (only needs marker interfaces and base types):
 
 ```
-dotnet add package OpinionatedEventing.Core
+dotnet add package OpinionatedEventing.Abstractions
+```
+
+**Service host** (handles or publishes messages — needs DI registration and runtime):
+
+```
+dotnet add package OpinionatedEventing
 
 # Pick one transport:
 dotnet add package OpinionatedEventing.AzureServiceBus
@@ -25,7 +31,7 @@ dotnet add package OpinionatedEventing.RabbitMQ
 **Service that publishes** (also sends events or commands):
 
 ```
-dotnet add package OpinionatedEventing.Core
+dotnet add package OpinionatedEventing
 dotnet add package OpinionatedEventing.Outbox
 dotnet add package OpinionatedEventing.EntityFramework
 

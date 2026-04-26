@@ -2,9 +2,10 @@
   "solution": {
     "path": "OpinionatedEventing.slnx",
     "projects": [
+      "src/OpinionatedEventing.Abstractions/OpinionatedEventing.Abstractions.csproj",
       "src/OpinionatedEventing.Aspire/OpinionatedEventing.Aspire.csproj",
       "src/OpinionatedEventing.AzureServiceBus/OpinionatedEventing.AzureServiceBus.csproj",
-      "src/OpinionatedEventing.Core/OpinionatedEventing.Core.csproj",
+      "src/OpinionatedEventing/OpinionatedEventing.csproj",
       "src/OpinionatedEventing.EntityFramework/OpinionatedEventing.EntityFramework.csproj",
       "src/OpinionatedEventing.OpenTelemetry/OpinionatedEventing.OpenTelemetry.csproj",
       "src/OpinionatedEventing.Outbox/OpinionatedEventing.Outbox.csproj",
@@ -15,8 +16,6 @@
       "tests/OpinionatedEventing.Aspire.Tests/OpinionatedEventing.Aspire.Tests.csproj",
       "tests/OpinionatedEventing.AzureServiceBus.Specs/OpinionatedEventing.AzureServiceBus.Specs.csproj",
       "tests/OpinionatedEventing.AzureServiceBus.Tests/OpinionatedEventing.AzureServiceBus.Tests.csproj",
-      "tests/OpinionatedEventing.Core.Specs/OpinionatedEventing.Core.Specs.csproj",
-      "tests/OpinionatedEventing.Core.Tests/OpinionatedEventing.Core.Tests.csproj",
       "tests/OpinionatedEventing.EntityFramework.Specs/OpinionatedEventing.EntityFramework.Specs.csproj",
       "tests/OpinionatedEventing.EntityFramework.Tests/OpinionatedEventing.EntityFramework.Tests.csproj",
       "tests/OpinionatedEventing.OpenTelemetry.Tests/OpinionatedEventing.OpenTelemetry.Tests.csproj",
@@ -26,7 +25,9 @@
       "tests/OpinionatedEventing.RabbitMQ.Tests/OpinionatedEventing.RabbitMQ.Tests.csproj",
       "tests/OpinionatedEventing.Sagas.Specs/OpinionatedEventing.Sagas.Specs.csproj",
       "tests/OpinionatedEventing.Sagas.Tests/OpinionatedEventing.Sagas.Tests.csproj",
-      "tests/OpinionatedEventing.Testing.Tests/OpinionatedEventing.Testing.Tests.csproj"
+      "tests/OpinionatedEventing.Specs/OpinionatedEventing.Specs.csproj",
+      "tests/OpinionatedEventing.Testing.Tests/OpinionatedEventing.Testing.Tests.csproj",
+      "tests/OpinionatedEventing.Tests/OpinionatedEventing.Tests.csproj"
     ]
   }
 }
