@@ -28,11 +28,12 @@ public sealed class OutboxOptions
     /// Defaults to <c>1</c>.
     /// </summary>
     /// <remarks>
-    /// When set above <c>1</c>, the <see cref="OpinionatedEventing.Outbox.IOutboxStore"/> implementation must prevent
-    /// concurrent workers from fetching the same messages. The EF Core implementation uses
-    /// pessimistic locking (<c>SELECT … SKIP LOCKED</c> or equivalent) to satisfy this contract.
-    /// The in-memory test store (<c>InMemoryOutboxStore</c>) does <em>not</em> enforce this and
-    /// must not be used with <c>ConcurrentWorkers &gt; 1</c> in tests that verify ordering.
+    /// When set above <c>1</c>, each worker races to claim a batch via the claim-column mechanism in
+    /// <c>EFCoreOutboxStore.GetPendingAsync</c>: a unique token is written atomically to
+    /// <c>LockedBy</c> / <c>LockedUntil</c> before the batch is returned, so concurrent workers never
+    /// receive the same messages. The in-memory test store (<c>InMemoryOutboxStore</c>) does
+    /// <em>not</em> enforce this and must not be used with <c>ConcurrentWorkers &gt; 1</c> in tests
+    /// that verify dispatch ordering.
     /// </remarks>
     public int ConcurrentWorkers { get; set; } = 1;
 }

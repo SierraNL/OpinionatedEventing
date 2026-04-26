@@ -113,6 +113,43 @@ public sealed class SqliteIntegrationTests : IDisposable
         Assert.Empty(await store.GetPendingAsync(10, ct));
     }
 
+    [Fact]
+    public async Task GetPendingAsync_competing_consumers_receive_disjoint_batches()
+    {
+        // Verifies the claim-column invariant: once worker A has claimed a batch, worker B
+        // receives only the unclaimed remainder — no message appears in both batches.
+        // The test is sequential because the SQLite factory shares a single connection, but
+        // the claim-column approach provides the same safety under true concurrency: the
+        // re-check UPDATE is atomic at the row level regardless of which worker runs first.
+        var ct = TestContext.Current.CancellationToken;
+
+        // Arrange: seed 6 messages so two workers each fetching up to 4 must share the pool.
+        await using (var seedCtx = _factory.CreateContext())
+        {
+            for (int i = 0; i < 6; i++)
+                seedCtx.Set<OutboxMessage>().Add(MakeMessage(DateTimeOffset.UtcNow.AddSeconds(-i)));
+            await seedCtx.SaveChangesAsync(ct);
+        }
+
+        // Act: worker A claims first.
+        await using var ctx1 = _factory.CreateContext();
+        EFCoreOutboxStore<SqliteTestDbContext> store1 = CreateOutboxStore(ctx1);
+        IReadOnlyList<OutboxMessage> batch1 = await store1.GetPendingAsync(4, ct);
+
+        // Worker B claims after — should get at most 4 of the unclaimed remainder.
+        await using var ctx2 = _factory.CreateContext();
+        EFCoreOutboxStore<SqliteTestDbContext> store2 = CreateOutboxStore(ctx2);
+        IReadOnlyList<OutboxMessage> batch2 = await store2.GetPendingAsync(4, ct);
+
+        // Assert: no message appears in both batches.
+        HashSet<Guid> ids1 = batch1.Select(m => m.Id).ToHashSet();
+        HashSet<Guid> ids2 = batch2.Select(m => m.Id).ToHashSet();
+        Assert.Empty(ids1.Intersect(ids2));
+
+        // Together they cover all 6 messages without any duplicates.
+        Assert.Equal(6, ids1.Union(ids2).Count());
+    }
+
     // --- Saga state ---
 
     [Fact]
