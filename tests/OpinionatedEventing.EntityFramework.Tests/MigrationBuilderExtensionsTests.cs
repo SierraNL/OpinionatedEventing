@@ -30,7 +30,7 @@ public sealed class MigrationBuilderExtensionsTests : IClassFixture<MigrationTes
     }
 
     [Fact]
-    public void CreateOutboxTable_creates_table_and_pending_index()
+    public void CreateOutboxTable_creates_table_and_both_indexes()
     {
         using var ctx = BuildContext();
         var generator = ctx.GetInfrastructure().GetRequiredService<IMigrationsSqlGenerator>();
@@ -41,6 +41,7 @@ public sealed class MigrationBuilderExtensionsTests : IClassFixture<MigrationTes
 
         Assert.True(TableExists(ctx, "outbox_messages"));
         Assert.True(IndexExists(ctx, "IX_outbox_messages_pending"));
+        Assert.True(IndexExists(ctx, "IX_outbox_messages_lock"));
 
         // Cleanup so subsequent tests start with a clean slate.
         Drop(ctx, generator, b => b.DropOutboxTable());
@@ -98,8 +99,12 @@ public sealed class MigrationBuilderExtensionsTests : IClassFixture<MigrationTes
 
         var createTable = Assert.Single(builder.Operations.OfType<CreateTableOperation>());
         Assert.Equal("outbox_messages", createTable.Name);
-        Assert.Single(builder.Operations.OfType<CreateIndexOperation>(),
-            i => i.Name == "IX_outbox_messages_pending");
+        Assert.Contains(createTable.Columns, c => c.Name == "LockedUntil");
+        Assert.Contains(createTable.Columns, c => c.Name == "LockedBy");
+
+        var indexes = builder.Operations.OfType<CreateIndexOperation>().ToList();
+        Assert.Contains(indexes, i => i.Name == "IX_outbox_messages_pending");
+        Assert.Contains(indexes, i => i.Name == "IX_outbox_messages_lock");
     }
 
     [Fact]

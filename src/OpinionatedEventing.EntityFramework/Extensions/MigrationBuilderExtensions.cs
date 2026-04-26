@@ -15,8 +15,8 @@ public static class OpinionatedEventingMigrationBuilderExtensions
     /// </summary>
     /// <remarks>
     /// When <see cref="MigrationBuilder.ActiveProvider"/> contains <c>"Sqlite"</c> (case-insensitive),
-    /// <see cref="DateTimeOffset"/> columns (<c>CreatedAt</c>, <c>ProcessedAt</c>, <c>FailedAt</c>) are
-    /// emitted as <c>long</c> (<c>INTEGER</c>) to store UTC ticks, matching the
+    /// <see cref="DateTimeOffset"/> columns (<c>CreatedAt</c>, <c>ProcessedAt</c>, <c>FailedAt</c>,
+    /// <c>LockedUntil</c>) are emitted as <c>long</c> (<c>INTEGER</c>) to store UTC ticks, matching the
     /// <see cref="Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter{TModel,TProvider}"/>
     /// applied by <c>modelBuilder.ApplyOutboxConfiguration(Database.ProviderName)</c>.
     /// </remarks>
@@ -43,6 +43,8 @@ public static class OpinionatedEventingMigrationBuilderExtensions
                 FailedAt = sqlite ? table.Column<long>(nullable: true) : table.Column<DateTimeOffset>(nullable: true),
                 AttemptCount = table.Column<int>(nullable: false, defaultValue: 0),
                 Error = table.Column<string>(nullable: true),
+                LockedUntil = sqlite ? table.Column<long>(nullable: true) : table.Column<DateTimeOffset>(nullable: true),
+                LockedBy = table.Column<string>(maxLength: 36, nullable: true),
             },
             constraints: table =>
                 table.PrimaryKey("PK_outbox_messages", x => x.Id));
@@ -51,6 +53,11 @@ public static class OpinionatedEventingMigrationBuilderExtensions
             name: "IX_outbox_messages_pending",
             table: "outbox_messages",
             columns: ["ProcessedAt", "FailedAt", "CreatedAt"]);
+
+        migrationBuilder.CreateIndex(
+            name: "IX_outbox_messages_lock",
+            table: "outbox_messages",
+            columns: ["LockedUntil", "ProcessedAt", "FailedAt"]);
 
         return migrationBuilder;
     }

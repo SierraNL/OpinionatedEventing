@@ -1,5 +1,6 @@
 #nullable enable
 
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +18,10 @@ namespace OpinionatedEventing.EntityFramework.Specs.StepDefinitions;
 public sealed class EntityFrameworkSteps : IAsyncDisposable
 {
     private readonly string _databaseName = Guid.NewGuid().ToString();
+
+    // Persistent in-memory SQLite connection for outbox-store scenarios.
+    // EFCoreOutboxStore.GetPendingAsync uses ExecuteUpdateAsync, which requires a relational provider.
+    private readonly SqliteConnection _sqliteConnection = OpenSqliteConnection();
     private SpecsDbContext? _context;
     private EFCoreOutboxStore<SpecsDbContext>? _store;
     private OutboxMessage? _savedMessage;
@@ -286,6 +291,7 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
         if (_context is not null) await _context.DisposeAsync();
         _sagaScope?.Dispose();
         if (_sagaServiceProvider is not null) await _sagaServiceProvider.DisposeAsync();
+        _sqliteConnection.Dispose();
     }
 
     // --- private helpers ---
@@ -304,11 +310,18 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
     private SpecsDbContext GetOrCreateContext()
     {
         if (_context is not null) return _context;
-        var options = new DbContextOptionsBuilder<SpecsDbContext>()
-            .UseInMemoryDatabase(_databaseName)
-            .Options;
-        _context = new SpecsDbContext(options);
+        _context = new SpecsDbContext(new DbContextOptionsBuilder<SpecsDbContext>()
+            .UseSqlite(_sqliteConnection)
+            .Options);
+        _context.Database.EnsureCreated();
         return _context;
+    }
+
+    private static SqliteConnection OpenSqliteConnection()
+    {
+        var conn = new SqliteConnection("Data Source=:memory:");
+        conn.Open();
+        return conn;
     }
 
     private static OutboxMessage MakeMessage() => new()
@@ -352,7 +365,7 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.ApplyOutboxConfiguration();
+            modelBuilder.ApplyOutboxConfiguration(Database.ProviderName);
             modelBuilder.Entity<SpecsTestOrder>(b =>
             {
                 b.ToTable("specs_test_orders");
