@@ -2,6 +2,8 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using OpinionatedEventing.Outbox;
+using OpinionatedEventing.Testing;
 using Xunit;
 
 namespace OpinionatedEventing.Tests;
@@ -349,5 +351,57 @@ public sealed class MessageHandlerRunnerTests
 
         Assert.Equal(2, capturedContexts.Count);
         Assert.NotSame(capturedContexts[0], capturedContexts[1]);
+    }
+
+    // ---- causation chain test ----
+
+    private sealed record ChainEvent : IEvent;
+
+    private sealed class PublishingChainHandler(IPublisher publisher) : IEventHandler<ChainEvent>
+    {
+        public Task HandleAsync(ChainEvent @event, CancellationToken ct) =>
+            publisher.PublishEventAsync(new ChainEvent(), ct);
+    }
+
+    [Fact]
+    public async Task RunAsync_causation_chain_threads_inbound_message_id_as_causation_id()
+    {
+        // Verifies the A → B → C causation chain promised by the docs.
+        // The transport passes the inbound message's own Id as causationId to RunAsync;
+        // any message published inside the handler must carry that value as its CausationId.
+        var ct = TestContext.Current.CancellationToken;
+        var store = new InMemoryOutboxStore();
+        var correlationId = Guid.NewGuid();
+
+        var services = new ServiceCollection();
+        services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+        services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+        services.AddOpinionatedEventing().AddOutbox();
+        services.AddSingleton<IOutboxStore>(store);
+        services.AddScoped<IEventHandler<ChainEvent>>(sp =>
+            new PublishingChainHandler(sp.GetRequiredService<IPublisher>()));
+        await using var provider = services.BuildServiceProvider();
+
+        var runner = provider.GetRequiredService<IMessageHandlerRunner>();
+        var messageAId = Guid.NewGuid();
+
+        // Process A — transport passes A's own MessageId as causationId
+        await runner.RunAsync(
+            typeof(ChainEvent).AssemblyQualifiedName!, "Event",
+            JsonSerializer.Serialize(new ChainEvent()),
+            correlationId, messageAId, ct);
+
+        var messageB = Assert.Single(store.Messages);
+        Assert.Equal(messageAId, messageB.CausationId);
+
+        // Process B — transport passes B.Id (its MessageId on the wire) as causationId
+        await runner.RunAsync(
+            typeof(ChainEvent).AssemblyQualifiedName!, "Event",
+            JsonSerializer.Serialize(new ChainEvent()),
+            correlationId, messageB.Id, ct);
+
+        Assert.Equal(2, store.Messages.Count);
+        var messageC = store.Messages.Single(m => m.Id != messageB.Id);
+        Assert.Equal(messageB.Id, messageC.CausationId);
     }
 }

@@ -24,8 +24,10 @@ public interface IMessageHandlerRunner
     /// <param name="payload">JSON-serialised message body.</param>
     /// <param name="correlationId">Correlation identifier propagated from the inbound envelope.</param>
     /// <param name="causationId">
-    /// Identifier of the outbox message that caused this one, or <see langword="null"/> for
-    /// originating messages.
+    /// The inbound message's own identifier (its <c>MessageId</c> on the wire). Any message
+    /// published during handling will carry this value as its <c>CausationId</c>, establishing the
+    /// direct parent–child link. Pass <see langword="null"/> for originating messages that have no
+    /// parseable <c>MessageId</c>.
     /// </param>
     /// <param name="ct">Cancellation token.</param>
     Task RunAsync(

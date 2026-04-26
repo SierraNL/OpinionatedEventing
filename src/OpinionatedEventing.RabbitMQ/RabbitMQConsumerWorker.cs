@@ -216,7 +216,6 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
             var messageType = GetHeader(ea.BasicProperties, "MessageType");
             var messageKind = GetHeader(ea.BasicProperties, "MessageKind");
             var correlationIdStr = GetHeader(ea.BasicProperties, "CorrelationId");
-            var causationIdStr = GetHeader(ea.BasicProperties, "CausationId");
 
             if (messageType is null || messageKind is null || correlationIdStr is null)
             {
@@ -237,7 +236,7 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
                 return;
             }
 
-            Guid? causationId = Guid.TryParse(causationIdStr, out var c) ? c : null;
+            Guid? causationId = Guid.TryParse(ea.BasicProperties.MessageId, out var c) ? c : null;
             var payload = Encoding.UTF8.GetString(ea.Body.Span);
 
             await _handlerRunner
