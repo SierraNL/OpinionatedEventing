@@ -1,8 +1,8 @@
 # OpinionatedEventing — Requirements
 
-> Version: 0.1 · Status: Draft  
+> Version: 1.0 · Status: Released  
 > This document is the canonical source of requirements for the `OpinionatedEventing` library suite.  
-> Each section is intended to become one or more GitHub issues / epics.
+> It reflects the as-built state of the v1.0 release.
 
 ---
 
@@ -10,7 +10,7 @@
 
 1. [Goals & Non-Goals](#1-goals--non-goals)
 2. [Library Structure](#2-library-structure)
-3. [Core Abstractions](#3-core-abstractions-opinionatedeventingcore)
+3. [Core Abstractions](#3-core-abstractions-opinionatedeventingabstractions)
 4. [Publishing & Consuming Rules](#4-publishing--consuming-rules)
 5. [Outbox Pattern](#5-outbox-pattern-opinionatedeventingoutbox)
 6. [EF Core Integration](#6-ef-core-integration-opinionatedeventingentityframework)
@@ -62,6 +62,8 @@
 | `OpinionatedEventing.AzureServiceBus` | Azure Service Bus transport implementation. |
 | `OpinionatedEventing.RabbitMQ` | RabbitMQ transport implementation. |
 | `OpinionatedEventing.Aspire` | .NET Aspire AppHost extensions for local development. |
+| `OpinionatedEventing.OpenTelemetry` | OpenTelemetry SDK integration — `TracerProviderBuilder` and `MeterProviderBuilder` extension methods. |
+| `OpinionatedEventing.Testing` | Test helpers — in-memory fakes and builders for unit and integration tests. Not for production use. |
 
 ### Dependency rules
 
@@ -71,6 +73,7 @@ Abstractions  ←  OpinionatedEventing  ←  Sagas   ←  EntityFramework
 Abstractions  ←  OpinionatedEventing  ←  AzureServiceBus
 Abstractions  ←  OpinionatedEventing  ←  RabbitMQ
 OpinionatedEventing, Outbox, AzureServiceBus, RabbitMQ  ←  Aspire
+OpinionatedEventing  ←  OpenTelemetry
 ```
 
 - `Abstractions` has **no** NuGet dependencies — pure .NET types only.
@@ -173,6 +176,13 @@ public interface IOutboxStore
     Task MarkProcessedAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task MarkFailedAsync(Guid id, string error, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Records a transient dispatch failure without dead-lettering the message.
+    /// Increments AttemptCount by one and stores the last error description.
+    /// The message remains eligible for future dispatch attempts.
+    /// </summary>
+    Task IncrementAttemptAsync(Guid id, string error, CancellationToken cancellationToken = default);
 }
 ```
 
@@ -195,6 +205,74 @@ public abstract class AggregateRoot
 
 - Aggregates never call `IPublisher` directly.
 - The EF Core interceptor (see §6) is responsible for harvesting `DomainEvents` and writing them to the outbox.
+
+### 3.7 Additional Abstractions (`OpinionatedEventing.Abstractions`)
+
+#### `IAggregateRoot`
+
+```csharp
+/// <summary>
+/// Marks a class as a DDD aggregate root that collects domain events.
+/// The EF Core interceptor detects this interface during SaveChanges to harvest
+/// and outbox the accumulated events.
+/// </summary>
+/// <remarks>
+/// Implement this interface directly when your aggregate already inherits from another
+/// base class. For the common case with no existing base class, inherit from
+/// AggregateRoot instead — it provides the standard implementation for free.
+/// </remarks>
+public interface IAggregateRoot
+{
+    IReadOnlyList<IEvent> DomainEvents { get; }
+
+    /// <summary>Framework use only. Called by DomainEventInterceptor after harvest.</summary>
+    void ClearDomainEvents();
+}
+```
+
+#### `IConsumerPauseController`
+
+```csharp
+/// <summary>
+/// Controls whether broker consumer workers should pause accepting new messages.
+/// </summary>
+/// <remarks>
+/// The default implementation (NullConsumerPauseController) never pauses.
+/// Register HealthCheckConsumerPauseController via
+/// AddOpinionatedEventingHealthChecks().WithConsumerPause() to pause consumers
+/// automatically when readiness probes become unhealthy.
+/// </remarks>
+public interface IConsumerPauseController
+{
+    bool IsPaused { get; }
+
+    Task WhenStateChangedAsync(CancellationToken cancellationToken);
+}
+```
+
+#### `IMessageHandlerRunner`
+
+```csharp
+/// <summary>
+/// Dispatches a deserialized inbound message to its registered handler(s), initialising
+/// IMessagingContext from the message envelope before any handler runs.
+/// </summary>
+/// <remarks>
+/// Transport implementations resolve this service when a message is received from the broker.
+/// A new DI scope is created per dispatch so that handler dependencies are scoped
+/// to the lifetime of a single message. Part of the public API to allow custom transports.
+/// </remarks>
+public interface IMessageHandlerRunner
+{
+    Task RunAsync(
+        string messageType,
+        string messageKind,
+        string payload,
+        Guid correlationId,
+        Guid? causationId,
+        CancellationToken ct);
+}
+```
 
 ---
 
@@ -266,6 +344,8 @@ public abstract class AggregateRoot
 
 ### 5.4 Configuration
 
+`AddOpinionatedEventing` returns an `OpinionatedEventingBuilder`; outbox registration is a separate call on that builder:
+
 ```csharp
 services.AddOpinionatedEventing(options =>
 {
@@ -273,8 +353,28 @@ services.AddOpinionatedEventing(options =>
     options.Outbox.BatchSize = 50;
     options.Outbox.MaxAttempts = 5;
     options.Outbox.ConcurrentWorkers = 1;
-});
+})
+.AddOutbox();
 ```
+
+### 5.5 `ITransport` Contract (`OpinionatedEventing.Outbox`)
+
+`ITransport` is the extension point through which transport packages plug into the outbox dispatcher. Transport packages (`AzureServiceBus`, `RabbitMQ`) register their implementation; application code must not call it directly.
+
+```csharp
+/// <summary>
+/// Abstraction over the message broker transport layer.
+/// Implemented by transport packages such as OpinionatedEventing.AzureServiceBus
+/// and OpinionatedEventing.RabbitMQ.
+/// Application code must not call this interface directly — use IPublisher instead.
+/// </summary>
+public interface ITransport
+{
+    Task SendAsync(OutboxMessage message, CancellationToken cancellationToken = default);
+}
+```
+
+Custom transports must implement `ITransport` and register the implementation in DI.
 
 ---
 
@@ -282,8 +382,15 @@ services.AddOpinionatedEventing(options =>
 
 ### 6.1 Registration
 
+The interceptor must be wired explicitly inside `AddDbContext`; `AddOpinionatedEventingEntityFramework` then registers the store and saga state implementations:
+
 ```csharp
-services.AddOpinionatedEventingEntityFramework<MyDbContext>();
+services.AddDbContext<AppDbContext>((sp, options) =>
+{
+    options.UseSqlServer(connectionString);
+    options.AddInterceptors(sp.GetRequiredService<DomainEventInterceptor>());
+});
+services.AddOpinionatedEventingEntityFramework<AppDbContext>();
 ```
 
 This registration:
@@ -322,7 +429,9 @@ This registration:
 
 ### 7.1 Overview
 
-Two coordination styles are supported. Both use the same `CorrelationId` propagation mechanism and share the EF Core state store.
+Two coordination styles are supported. Both use the same `CorrelationId` propagation mechanism and share the state store.
+
+`ISagaStateStore` is defined in `OpinionatedEventing.Sagas` (the abstraction); the EF Core implementation (`EFCoreSagaStateStore`) is provided by `OpinionatedEventing.EntityFramework`. This mirrors the `IOutboxStore` / `EFCoreOutboxStore` split.
 
 ### 7.2 Orchestration
 
@@ -607,18 +716,25 @@ No handler, saga, aggregate, or outbox code changes.
 
 ### 12.2 Distributed Tracing (OpenTelemetry)
 
-- Traces use `System.Diagnostics.ActivitySource` — no direct dependency on `OpenTelemetry.*` packages.
+- Traces use `System.Diagnostics.ActivitySource` internally — the library packages have **no** direct dependency on `OpenTelemetry.*`.
 - Each transport creates spans for:
   - Message publish (outbox write)
   - Message dispatch (outbox → broker)
   - Message consume (broker → handler)
 - `CorrelationId` and `CausationId` are propagated as baggage items.
-- Consumers add `AddOpinionatedEventingInstrumentation()` to their OTel builder to receive traces.
+- The `OpinionatedEventing.OpenTelemetry` package provides the OTel SDK integration. Consumers install it and wire it up:
+
+```csharp
+// dotnet add package OpinionatedEventing.OpenTelemetry
+builder.Services.AddOpenTelemetry()
+    .WithTracing(t => t.AddOpinionatedEventingInstrumentation())
+    .WithMetrics(m => m.AddOpinionatedEventingMetrics());
+```
 
 ### 12.3 Metrics
 
-- Metrics use `System.Diagnostics.Metrics.Meter` — no direct OTel dependency.
-- Exposed meters:
+- Metrics use `System.Diagnostics.Metrics.Meter` internally — the library packages have **no** direct OTel dependency.
+- Exposed meters (consumed via `AddOpinionatedEventingMetrics()` in `OpinionatedEventing.OpenTelemetry`):
   - `opinionatedeventing.outbox.pending` — gauge, current pending outbox message count
   - `opinionatedeventing.outbox.processed` — counter, total messages successfully dispatched
   - `opinionatedeventing.outbox.failed` — counter, total messages dead-lettered
@@ -627,7 +743,6 @@ No handler, saga, aggregate, or outbox code changes.
   - `opinionatedeventing.consume.duration` — histogram, handler execution time
   - `opinionatedeventing.saga.active` — gauge, currently active saga instances
   - `opinionatedeventing.saga.timed_out` — counter, total sagas that timed out
-- Consumers add `AddOpinionatedEventingMetrics()` to their OTel builder.
 
 ---
 
@@ -686,7 +801,7 @@ dotnet run
 
 | Requirement | Specification |
 |---|---|
-| Target framework | .NET 8 (minimum); .NET 9 also targeted |
+| Target framework | .NET 8 (minimum); .NET 9 and .NET 10 also targeted |
 | Async | All public APIs are `async Task`; `CancellationToken` on every async method |
 | Thread safety | No shared mutable static state; all state is DI-scoped |
 | Nullable | `#nullable enable` in all projects; no `null!` suppressions without comment |
@@ -717,8 +832,14 @@ dotnet run
 
 ### 15.3 Test Helpers (shipped as a separate `OpinionatedEventing.Testing` package)
 
-- `InMemoryOutboxStore` — for unit testing application code without EF Core.
-- `FakePublisher` — records sent messages for assertion.
+- `InMemoryOutboxStore` — in-memory `IOutboxStore` for unit testing application code without EF Core.
+- `InMemorySagaStateStore` — in-memory `ISagaStateStore` for testing saga state without EF Core.
+- `FakePublisher` — records published events and sent commands for assertion.
+- `FakeMessagingContext` — controllable `IMessagingContext` for unit tests.
+- `FakeSagaContext` — controllable `ISagaContext` for saga unit tests.
+- `FakeTimeProvider` — wraps `TimeProvider` with manual clock advance for timeout tests.
+- `FakeConsumerPauseController` — controllable `IConsumerPauseController` for consumer pause tests.
+- `FakeOutboxMonitor` — controllable `IOutboxMonitor` for backlog/health-check tests.
 - `TestMessagingBuilder` — sets up a minimal DI container with fake transport for handler tests.
 
 ---
