@@ -56,4 +56,18 @@ public sealed class OutboxMessage
     /// or <see langword="null"/> if no failure has occurred.
     /// </summary>
     public string? Error { get; set; }
+
+    /// <summary>
+    /// Gets or sets the UTC time until which this message is claimed by a dispatcher instance,
+    /// or <see langword="null"/> if the message is not currently claimed.
+    /// Expired claims (where <c>LockedUntil &lt; UtcNow</c>) are treated as unclaimed and
+    /// become eligible for re-dispatch automatically.
+    /// </summary>
+    public DateTimeOffset? LockedUntil { get; set; }
+
+    /// <summary>
+    /// Gets or sets the unique identifier of the dispatcher instance that has claimed this message,
+    /// or <see langword="null"/> if the message is not currently claimed.
+    /// </summary>
+    public string? LockedBy { get; set; }
 }

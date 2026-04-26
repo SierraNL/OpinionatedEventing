@@ -39,9 +39,15 @@ public sealed class OutboxMessageEntityTypeConfiguration : IEntityTypeConfigurat
         builder.Property(m => m.FailedAt);
         builder.Property(m => m.AttemptCount).IsRequired().HasDefaultValue(0);
         builder.Property(m => m.Error);
+        builder.Property(m => m.LockedUntil);
+        builder.Property(m => m.LockedBy).HasMaxLength(36);
 
         // Supports efficient pending-message polling: WHERE ProcessedAt IS NULL AND FailedAt IS NULL ORDER BY CreatedAt
         builder.HasIndex(m => new { m.ProcessedAt, m.FailedAt, m.CreatedAt })
             .HasDatabaseName("IX_outbox_messages_pending");
+
+        // Supports lock-expiry re-dispatch: WHERE LockedUntil IS NULL OR LockedUntil < @now
+        builder.HasIndex(m => new { m.LockedUntil, m.ProcessedAt, m.FailedAt })
+            .HasDatabaseName("IX_outbox_messages_lock");
     }
 }
