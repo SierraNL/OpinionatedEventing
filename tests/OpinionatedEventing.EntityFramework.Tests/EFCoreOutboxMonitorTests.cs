@@ -9,7 +9,6 @@ namespace OpinionatedEventing.EntityFramework.Tests;
 /// Tests for <see cref="EFCoreOutboxMonitor{TDbContext}"/> covering pending and dead-letter counts.
 /// Uses an in-process SQLite database.
 /// </summary>
-[Trait("Category", "Integration")]
 public sealed class EFCoreOutboxMonitorTests : IDisposable
 {
     private readonly SqliteDbContextFactory _factory = new();

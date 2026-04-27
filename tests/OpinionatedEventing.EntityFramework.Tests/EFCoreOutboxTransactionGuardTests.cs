@@ -11,7 +11,6 @@ namespace OpinionatedEventing.EntityFramework.Tests;
 /// Tests for <see cref="EFCoreOutboxTransactionGuard{TDbContext}"/>.
 /// Uses SQLite because <c>Database.CurrentTransaction</c> requires a relational provider.
 /// </summary>
-[Trait("Category", "Integration")]
 public sealed class EFCoreOutboxTransactionGuardTests : IDisposable
 {
     private readonly SqliteDbContextFactory _factory = new();
