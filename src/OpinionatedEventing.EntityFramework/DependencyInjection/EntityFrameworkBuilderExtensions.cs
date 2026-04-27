@@ -52,6 +52,8 @@ public static class EntityFrameworkBuilderExtensions
     {
         services.TryAddScoped<IOutboxStore, EFCoreOutboxStore<TDbContext>>();
         services.TryAddScoped<ISagaStateStore, EFCoreSagaStateStore<TDbContext>>();
+        services.TryAddScoped<IOutboxTransactionGuard, EFCoreOutboxTransactionGuard<TDbContext>>();
+        services.TryAddScoped<IOutboxMonitor, EFCoreOutboxMonitor<TDbContext>>();
         services.TryAddScoped<DomainEventInterceptor>();
 
         return services;
