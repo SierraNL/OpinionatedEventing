@@ -3,11 +3,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using MSOptions = Microsoft.Extensions.Options.Options;
 using OpinionatedEventing;
+using OpinionatedEventing.DependencyInjection;
 using OpinionatedEventing.RabbitMQ;
-using OpinionatedEventing.RabbitMQ.DependencyInjection;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Xunit;
@@ -23,16 +22,14 @@ public sealed class ConsumerWorkerPauseTests
 {
     private static RabbitMQConsumerWorker CreateWorker(IConsumerPauseController pauseController)
     {
-        // Empty service collection → ScanHandlerTypes returns nothing → no channels created
-        var emptyServices = new ServiceCollection();
-        var accessor = new ServiceCollectionAccessor(emptyServices);
+        // Empty registry → no handlers registered → no channels created
         var options = MSOptions.Create(new RabbitMQOptions { ConnectionString = "amqp://localhost" });
 
         return new RabbitMQConsumerWorker(
             connection: new NeverCalledConnection(),
             handlerRunner: new NeverCalledHandlerRunner(),
             scopeFactory: new NeverCalledScopeFactory(),
-            accessor: accessor,
+            registry: new MessageHandlerRegistry(),
             options: options,
             pauseController: pauseController,
             timeProvider: TimeProvider.System,

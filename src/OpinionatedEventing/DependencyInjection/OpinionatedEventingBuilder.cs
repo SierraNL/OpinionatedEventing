@@ -10,13 +10,15 @@ namespace OpinionatedEventing.DependencyInjection;
 public sealed class OpinionatedEventingBuilder
 {
     private readonly IServiceCollection _services;
+    private readonly MessageHandlerRegistry _registry;
 
     /// <summary>Gets the underlying <see cref="IServiceCollection"/>.</summary>
     public IServiceCollection Services => _services;
 
-    internal OpinionatedEventingBuilder(IServiceCollection services)
+    internal OpinionatedEventingBuilder(IServiceCollection services, MessageHandlerRegistry registry)
     {
         _services = services;
+        _registry = registry;
     }
 
     /// <summary>
@@ -49,6 +51,8 @@ public sealed class OpinionatedEventingBuilder
                             d => d.ServiceType == iface && d.ImplementationType == type);
                         if (!alreadyRegistered)
                             _services.AddScoped(iface, type);
+
+                        _registry.RegisterEventType(iface.GetGenericArguments()[0]);
                     }
                     else if (definition == typeof(ICommandHandler<>))
                     {
@@ -68,6 +72,7 @@ public sealed class OpinionatedEventingBuilder
                         }
 
                         _services.AddScoped(iface, type);
+                        _registry.RegisterCommandType(iface.GetGenericArguments()[0]);
                     }
                 }
             }

@@ -5,8 +5,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpinionatedEventing.AzureServiceBus.Attributes;
-using OpinionatedEventing.AzureServiceBus.DependencyInjection;
 using OpinionatedEventing.AzureServiceBus.Routing;
+using OpinionatedEventing.DependencyInjection;
 
 namespace OpinionatedEventing.AzureServiceBus;
 
@@ -18,19 +18,19 @@ namespace OpinionatedEventing.AzureServiceBus;
 internal sealed class TopologyInitializer : IHostedService
 {
     private readonly ServiceBusAdministrationClient _adminClient;
-    private readonly ServiceCollectionAccessor _accessor;
+    private readonly MessageHandlerRegistry _registry;
     private readonly IOptions<AzureServiceBusOptions> _options;
     private readonly ILogger<TopologyInitializer> _logger;
 
     /// <summary>Initialises a new <see cref="TopologyInitializer"/>.</summary>
     public TopologyInitializer(
         ServiceBusAdministrationClient adminClient,
-        ServiceCollectionAccessor accessor,
+        MessageHandlerRegistry registry,
         IOptions<AzureServiceBusOptions> options,
         ILogger<TopologyInitializer> logger)
     {
         _adminClient = adminClient;
-        _accessor = accessor;
+        _registry = registry;
         _options = options;
         _logger = logger;
     }
@@ -42,8 +42,8 @@ internal sealed class TopologyInitializer : IHostedService
         if (!opts.AutoCreateResources)
             return;
 
-        var eventTypes = ScanHandlerTypes(typeof(IEventHandler<>));
-        var commandTypes = ScanHandlerTypes(typeof(ICommandHandler<>));
+        var eventTypes = _registry.EventTypes;
+        var commandTypes = _registry.CommandTypes;
 
         foreach (var eventType in eventTypes)
         {
@@ -148,11 +148,4 @@ internal sealed class TopologyInitializer : IHostedService
         }
     }
 
-    private List<Type> ScanHandlerTypes(Type openGenericInterface)
-        => _accessor.Services
-            .Where(d => d.ServiceType.IsGenericType
-                && d.ServiceType.GetGenericTypeDefinition() == openGenericInterface)
-            .Select(d => d.ServiceType.GetGenericArguments()[0])
-            .Distinct()
-            .ToList();
 }
