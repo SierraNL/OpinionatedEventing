@@ -67,7 +67,12 @@ public sealed class RegistrationTests
 
         builder.AddHandlersFromAssemblies(typeof(RegistrationTests).Assembly);
 
-        var registry = services.BuildServiceProvider().GetRequiredService<MessageHandlerRegistry>();
+        // Read the registry directly from the descriptor — avoids building the provider,
+        // which would reject the open-generic CapturingEventHandler<T> in the integration tests.
+        var registry = services
+            .FirstOrDefault(d => d.ImplementationInstance is MessageHandlerRegistry)
+            ?.ImplementationInstance as MessageHandlerRegistry;
+        Assert.NotNull(registry);
         Assert.Contains(typeof(AsbTestEvent), registry.EventTypes);
         Assert.Contains(typeof(AsbTestCommand), registry.CommandTypes);
     }
