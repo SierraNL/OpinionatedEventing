@@ -206,7 +206,7 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
         entry.ConsumerTag = tag;
     }
 
-    private async Task ProcessDeliveryAsync(
+    internal async Task ProcessDeliveryAsync(
         IChannel channel,
         BasicDeliverEventArgs ea,
         CancellationToken ct)

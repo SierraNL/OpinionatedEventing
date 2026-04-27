@@ -233,7 +233,7 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
     }
 
 
-    private async Task ProcessReceivedMessageAsync(
+    internal async Task ProcessReceivedMessageAsync(
         ServiceBusReceivedMessage message,
         Func<CancellationToken, Task> complete,
         Func<CancellationToken, Task> abandon,
