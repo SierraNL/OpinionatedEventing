@@ -2,11 +2,13 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using OpinionatedEventing.Sagas;
+using OpinionatedEventing.Sagas.HealthChecks;
 using OpinionatedEventing.Testing;
 using Xunit;
 
-namespace OpinionatedEventing.Aspire.Tests.HealthChecks;
+namespace OpinionatedEventing.Sagas.Tests.HealthChecks;
 
 public sealed class SagaTimeoutBacklogHealthCheckTests
 {
@@ -36,17 +38,52 @@ public sealed class SagaTimeoutBacklogHealthCheckTests
     }
 
     [Fact]
+    public void AddSagaTimeoutBacklogHealthCheck_registers_check()
+    {
+        var services = new ServiceCollection();
+        services.AddHealthChecks().AddSagaTimeoutBacklogHealthCheck();
+
+        var sp = services.BuildServiceProvider();
+        var registrations = sp.GetRequiredService<IOptions<HealthCheckServiceOptions>>().Value.Registrations;
+
+        Assert.Contains(registrations, r => r.Name == "opinionatedeventing-saga-timeout-backlog");
+    }
+
+    [Fact]
+    public void AddSagaTimeoutBacklogHealthCheck_uses_default_options()
+    {
+        var services = new ServiceCollection();
+        services.AddHealthChecks().AddSagaTimeoutBacklogHealthCheck();
+
+        var sp = services.BuildServiceProvider();
+        var opts = sp.GetRequiredService<IOptions<SagaHealthCheckOptions>>().Value;
+
+        Assert.Equal(10, opts.TimeoutBacklogThreshold);
+    }
+
+    [Fact]
+    public void AddSagaTimeoutBacklogHealthCheck_applies_custom_options()
+    {
+        var services = new ServiceCollection();
+        services.AddHealthChecks().AddSagaTimeoutBacklogHealthCheck(o => o.TimeoutBacklogThreshold = 5);
+
+        var sp = services.BuildServiceProvider();
+        var opts = sp.GetRequiredService<IOptions<SagaHealthCheckOptions>>().Value;
+
+        Assert.Equal(5, opts.TimeoutBacklogThreshold);
+    }
+
+    [Fact]
     public async Task Returns_Healthy_when_expired_sagas_below_threshold()
     {
         var ct = TestContext.Current.CancellationToken;
         var now = DateTimeOffset.UtcNow;
-        var fakeTime = new FakeTimeProvider(now);
 
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<ISagaStateStore>(StoreWithExpiredSagas(5, now));
-        services.AddSingleton<TimeProvider>(fakeTime);
-        services.AddHealthChecks().AddOpinionatedEventingHealthChecks(o => o.SagaTimeoutBacklogThreshold = 10);
+        services.AddSingleton<TimeProvider>(new FakeTimeProvider(now));
+        services.AddHealthChecks().AddSagaTimeoutBacklogHealthCheck(o => o.TimeoutBacklogThreshold = 10);
         var sp = services.BuildServiceProvider();
 
         var entry = await RunSagaCheckAsync(sp, ct);
@@ -59,13 +96,12 @@ public sealed class SagaTimeoutBacklogHealthCheckTests
     {
         var ct = TestContext.Current.CancellationToken;
         var now = DateTimeOffset.UtcNow;
-        var fakeTime = new FakeTimeProvider(now);
 
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<ISagaStateStore>(StoreWithExpiredSagas(15, now));
-        services.AddSingleton<TimeProvider>(fakeTime);
-        services.AddHealthChecks().AddOpinionatedEventingHealthChecks(o => o.SagaTimeoutBacklogThreshold = 10);
+        services.AddSingleton<TimeProvider>(new FakeTimeProvider(now));
+        services.AddHealthChecks().AddSagaTimeoutBacklogHealthCheck(o => o.TimeoutBacklogThreshold = 10);
         var sp = services.BuildServiceProvider();
 
         var entry = await RunSagaCheckAsync(sp, ct);
@@ -79,7 +115,7 @@ public sealed class SagaTimeoutBacklogHealthCheckTests
         var ct = TestContext.Current.CancellationToken;
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddHealthChecks().AddOpinionatedEventingHealthChecks();
+        services.AddHealthChecks().AddSagaTimeoutBacklogHealthCheck();
         var sp = services.BuildServiceProvider();
 
         var entry = await RunSagaCheckAsync(sp, ct);

@@ -41,7 +41,9 @@ builder.Services.AddScoped<PlaceOrderUseCase>();
 
 // ── Health checks ─────────────────────────────────────────────────────────────
 builder.Services.AddHealthChecks()
-    .AddOpinionatedEventingHealthChecks();
+    .AddRabbitMqConnectivityHealthCheck()
+    .AddOutboxBacklogHealthCheck()
+    .AddSagaTimeoutBacklogHealthCheck();
 
 var app = builder.Build();
 

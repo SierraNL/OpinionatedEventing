@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Aspire AppHost extension for OpinionatedEventing — adds an Azure Service Bus emulator resource. Reference this package from your AppHost project only.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.Azure.ServiceBus" />
+  </ItemGroup>
+
+</Project>

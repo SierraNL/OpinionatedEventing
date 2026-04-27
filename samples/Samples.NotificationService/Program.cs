@@ -13,7 +13,7 @@ builder.Services.AddRabbitMQTransport(options =>
 });
 
 builder.Services.AddHealthChecks()
-    .AddOpinionatedEventingHealthChecks();
+    .AddRabbitMqConnectivityHealthCheck();
 
 var app = builder.Build();
 

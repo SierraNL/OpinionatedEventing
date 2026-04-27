@@ -5,7 +5,6 @@
     <ProjectReference Include="..\..\src\OpinionatedEventing.EntityFramework\OpinionatedEventing.EntityFramework.csproj" />
     <ProjectReference Include="..\..\src\OpinionatedEventing.Sagas\OpinionatedEventing.Sagas.csproj" />
     <ProjectReference Include="..\..\src\OpinionatedEventing.RabbitMQ\OpinionatedEventing.RabbitMQ.csproj" />
-    <ProjectReference Include="..\..\src\OpinionatedEventing.Aspire\OpinionatedEventing.Aspire.csproj" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
 

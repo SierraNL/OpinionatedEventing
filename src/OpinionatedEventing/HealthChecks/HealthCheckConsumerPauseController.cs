@@ -2,9 +2,8 @@
 
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
-using OpinionatedEventing;
 
-namespace OpinionatedEventing.Aspire.HealthChecks;
+namespace OpinionatedEventing.HealthChecks;
 
 /// <summary>
 /// Pauses broker consumer workers when any health check tagged <c>"pause"</c> reports
@@ -12,7 +11,7 @@ namespace OpinionatedEventing.Aspire.HealthChecks;
 /// and resumes them when all such checks recover to <see cref="HealthStatus.Healthy"/>.
 /// </summary>
 /// <remarks>
-/// Register via <c>AddOpinionatedEventingHealthChecks().WithConsumerPause()</c>.
+/// Register via <c>builder.Services.AddHealthChecks().WithConsumerPause()</c>.
 /// Only checks explicitly tagged <c>"pause"</c> influence the pause decision — backlog
 /// checks (tagged <c>"ready"</c>) are intentionally excluded because pausing consumers
 /// does not help drain internal backlogs.

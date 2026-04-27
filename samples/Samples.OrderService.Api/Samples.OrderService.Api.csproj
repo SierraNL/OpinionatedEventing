@@ -4,7 +4,6 @@
     <ProjectReference Include="..\Samples.OrderService.Application\Samples.OrderService.Application.csproj" />
     <ProjectReference Include="..\Samples.OrderService.Infrastructure\Samples.OrderService.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\OpinionatedEventing.RabbitMQ\OpinionatedEventing.RabbitMQ.csproj" />
-    <ProjectReference Include="..\..\src\OpinionatedEventing.Aspire\OpinionatedEventing.Aspire.csproj" />
   </ItemGroup>
 
 </Project>
