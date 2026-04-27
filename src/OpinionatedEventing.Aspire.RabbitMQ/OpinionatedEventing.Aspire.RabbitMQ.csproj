@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Aspire AppHost extension for OpinionatedEventing — adds a RabbitMQ container resource with the management plugin enabled. Reference this package from your AppHost project only.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.RabbitMQ" />
+  </ItemGroup>
+
+</Project>

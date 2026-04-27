@@ -32,7 +32,9 @@ builder.Services.AddRabbitMQTransport(options =>
 });
 
 builder.Services.AddHealthChecks()
-    .AddOpinionatedEventingHealthChecks();
+    .AddRabbitMqConnectivityHealthCheck()
+    .AddOutboxBacklogHealthCheck()
+    .AddSagaTimeoutBacklogHealthCheck();
 
 var app = builder.Build();
 

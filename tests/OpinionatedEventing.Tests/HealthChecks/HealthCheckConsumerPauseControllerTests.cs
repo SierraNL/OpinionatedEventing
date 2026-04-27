@@ -4,10 +4,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpinionatedEventing;
-using OpinionatedEventing.Aspire.HealthChecks;
+using OpinionatedEventing.HealthChecks;
 using Xunit;
 
-namespace OpinionatedEventing.Aspire.Tests.HealthChecks;
+namespace OpinionatedEventing.Tests.HealthChecks;
 
 public sealed class HealthCheckConsumerPauseControllerTests
 {
@@ -127,13 +127,11 @@ public sealed class HealthCheckConsumerPauseControllerTests
         var ct = TestContext.Current.CancellationToken;
         var controller = CreateController();
 
-        // First, pause
         await controller.PublishAsync(BuildReport(("check1", HealthStatus.Degraded, ["pause"])), ct);
 
         var waitTask = controller.WhenStateChangedAsync(ct);
         Assert.False(waitTask.IsCompleted);
 
-        // Now resume
         await controller.PublishAsync(BuildReport(("check1", HealthStatus.Healthy, ["pause"])), ct);
 
         await waitTask.WaitAsync(TimeSpan.FromSeconds(1), ct);
@@ -160,13 +158,10 @@ public sealed class HealthCheckConsumerPauseControllerTests
         var ct = TestContext.Current.CancellationToken;
         var controller = CreateController();
 
-        // Pause first
         await controller.PublishAsync(BuildReport(("check1", HealthStatus.Degraded, ["pause"])), ct);
 
-        // Capture the next state-changed task
         var waitTask = controller.WhenStateChangedAsync(ct);
 
-        // Publish degraded again — state doesn't change, so no signal
         await controller.PublishAsync(BuildReport(("check1", HealthStatus.Unhealthy, ["pause"])), ct);
 
         Assert.False(waitTask.IsCompleted);
@@ -177,9 +172,7 @@ public sealed class HealthCheckConsumerPauseControllerTests
     {
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddHealthChecks()
-            .AddOpinionatedEventingHealthChecks()
-            .WithConsumerPause();
+        services.AddHealthChecks().WithConsumerPause();
         var sp = services.BuildServiceProvider();
 
         var pauseController = sp.GetRequiredService<IConsumerPauseController>();

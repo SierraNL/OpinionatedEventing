@@ -59,9 +59,10 @@
 | `OpinionatedEventing.Outbox` | Outbox dispatcher background service and `IOutboxStore` contract. |
 | `OpinionatedEventing.EntityFramework` | EF Core implementation of `IOutboxStore`, the domain-event interceptor, and saga state persistence. |
 | `OpinionatedEventing.Sagas` | Saga orchestration and choreography engine. |
-| `OpinionatedEventing.AzureServiceBus` | Azure Service Bus transport implementation. |
-| `OpinionatedEventing.RabbitMQ` | RabbitMQ transport implementation. |
-| `OpinionatedEventing.Aspire` | .NET Aspire AppHost extensions for local development. |
+| `OpinionatedEventing.AzureServiceBus` | Azure Service Bus transport implementation. Health checks included. |
+| `OpinionatedEventing.RabbitMQ` | RabbitMQ transport implementation. Health checks included. |
+| `OpinionatedEventing.Aspire.RabbitMQ` | Aspire AppHost extension — RabbitMQ container resource. Reference from AppHost projects only. |
+| `OpinionatedEventing.Aspire.AzureServiceBus` | Aspire AppHost extension — Azure Service Bus emulator resource. Reference from AppHost projects only. |
 | `OpinionatedEventing.OpenTelemetry` | OpenTelemetry SDK integration — `TracerProviderBuilder` and `MeterProviderBuilder` extension methods. |
 | `OpinionatedEventing.Testing` | Test helpers — in-memory fakes and builders for unit and integration tests. Not for production use. |
 
@@ -72,13 +73,15 @@ Abstractions  ←  OpinionatedEventing  ←  Outbox  ←  EntityFramework
 Abstractions  ←  OpinionatedEventing  ←  Sagas   ←  EntityFramework
 Abstractions  ←  OpinionatedEventing  ←  AzureServiceBus
 Abstractions  ←  OpinionatedEventing  ←  RabbitMQ
-OpinionatedEventing, Outbox, AzureServiceBus, RabbitMQ  ←  Aspire
+Aspire.Hosting.RabbitMQ         ←  Aspire.RabbitMQ          (AppHost only)
+Aspire.Hosting.Azure.ServiceBus ←  Aspire.AzureServiceBus   (AppHost only)
 OpinionatedEventing  ←  OpenTelemetry
 ```
 
 - `Abstractions` has **no** NuGet dependencies — pure .NET types only.
-- `OpinionatedEventing` (root) depends only on `Abstractions` and `Microsoft.Extensions.DependencyInjection.Abstractions`, `Microsoft.Extensions.Logging.Abstractions`, and `Microsoft.Extensions.Options`.
-- Transport packages depend only on their respective broker client (`Azure.Messaging.ServiceBus`, `RabbitMQ.Client`).
+- `OpinionatedEventing` (root) depends on `Abstractions`, `Microsoft.Extensions.DependencyInjection.Abstractions`, `Microsoft.Extensions.Diagnostics.HealthChecks`, `Microsoft.Extensions.Logging.Abstractions`, and `Microsoft.Extensions.Options`.
+- Transport packages depend on their respective broker client (`Azure.Messaging.ServiceBus`, `RabbitMQ.Client`) and `Microsoft.Extensions.Diagnostics.HealthChecks`.
+- `Aspire.*` packages depend only on the matching `Aspire.Hosting.*` package and must not be referenced from application services.
 - No library takes a hard dependency on a specific logging framework, serialisation library, or ORM other than EF Core in `EntityFramework`.
 
 ---
@@ -644,16 +647,22 @@ services.AddRabbitMqTransport(options =>
 
 ---
 
-## 11. Aspire / Local Development (`OpinionatedEventing.Aspire`)
+## 11. Aspire / Local Development
 
 ### 11.1 Overview
 
-`OpinionatedEventing.Aspire` is an **AppHost** extension package. It adds Aspire resource definitions for both supported local transports, letting developers run the full message-passing stack locally with a single `dotnet run` on the AppHost.
+Two separate AppHost-only packages add Aspire resource definitions for each supported local transport. Application services reference only the transport package — never an Aspire package.
+
+| Package | Reference from |
+|---|---|
+| `OpinionatedEventing.Aspire.RabbitMQ` | AppHost project only |
+| `OpinionatedEventing.Aspire.AzureServiceBus` | AppHost project only |
 
 ### 11.2 RabbitMQ Resource
 
 ```csharp
 // In AppHost Program.cs
+// dotnet add package OpinionatedEventing.Aspire.RabbitMQ
 var rabbitmq = builder.AddRabbitMqMessaging("rabbitmq");
 
 var orderService = builder.AddProject<Projects.OrderService>()
@@ -668,6 +677,7 @@ var orderService = builder.AddProject<Projects.OrderService>()
 
 ```csharp
 // In AppHost Program.cs
+// dotnet add package OpinionatedEventing.Aspire.AzureServiceBus
 var asb = builder.AddAzureServiceBusEmulator("servicebus");
 
 var orderService = builder.AddProject<Projects.OrderService>()
@@ -685,7 +695,7 @@ Switching between RabbitMQ and Azure Service Bus requires changing only the DI r
 
 ```csharp
 // Development (RabbitMQ or ASB emulator)
-services.AddRabbitMqTransport(options => { ... });
+services.AddRabbitMQTransport(options => { ... });
 // or
 services.AddAzureServiceBusTransport(options => { ... });
 
@@ -697,10 +707,18 @@ No handler, saga, aggregate, or outbox code changes.
 
 ### 11.5 Health Checks
 
-- `AddOpinionatedEventingHealthChecks()` registers:
-  - Broker connectivity check (liveness).
-  - Outbox backlog check — reports `Degraded` if pending outbox message count exceeds a configurable threshold (default: 100).
-  - Saga timeout backlog check — reports `Degraded` if expired-but-unprocessed sagas exceed a configurable threshold.
+Health checks are co-located with the package they check — each is an optional call on `IHealthChecksBuilder`:
+
+| Extension | Package | Tags |
+|---|---|---|
+| `AddRabbitMqConnectivityHealthCheck()` | `OpinionatedEventing.RabbitMQ` | `live`, `broker` |
+| `AddAzureServiceBusConnectivityHealthCheck()` | `OpinionatedEventing.AzureServiceBus` | `live`, `broker` |
+| `AddOutboxBacklogHealthCheck()` | `OpinionatedEventing.Outbox` | `ready`, `outbox` |
+| `AddSagaTimeoutBacklogHealthCheck()` | `OpinionatedEventing.Sagas` | `ready`, `saga` |
+| `WithConsumerPause()` | `OpinionatedEventing` | — |
+
+- Backlog checks report `Degraded` if their respective count exceeds a configurable threshold; they skip gracefully if the required service (`IOutboxMonitor`, `ISagaStateStore`) is not registered.
+- `WithConsumerPause()` registers `HealthCheckConsumerPauseController` as `IConsumerPauseController` and `IHealthCheckPublisher`. Checks tagged `"pause"` trigger consumer suspension; `"ready"`-tagged backlog checks are intentionally excluded.
 - Health checks integrate with `IHealthChecksBuilder` (standard ASP.NET Core health checks).
 
 ---

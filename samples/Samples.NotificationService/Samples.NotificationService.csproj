@@ -3,7 +3,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Samples.Contracts\Samples.Contracts.csproj" />
     <ProjectReference Include="..\..\src\OpinionatedEventing.RabbitMQ\OpinionatedEventing.RabbitMQ.csproj" />
-    <ProjectReference Include="..\..\src\OpinionatedEventing.Aspire\OpinionatedEventing.Aspire.csproj" />
   </ItemGroup>
 
 </Project>

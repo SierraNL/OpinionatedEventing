@@ -13,9 +13,10 @@ src/
   OpinionatedEventing.Outbox/          # Background dispatcher + IOutboxStore contract
   OpinionatedEventing.EntityFramework/ # EF Core outbox store + domain event interceptor + saga state
   OpinionatedEventing.Sagas/           # Orchestration + choreography engine
-  OpinionatedEventing.AzureServiceBus/ # ASB transport
-  OpinionatedEventing.RabbitMQ/        # RabbitMQ transport
-  OpinionatedEventing.Aspire/          # Aspire AppHost extensions (local dev)
+  OpinionatedEventing.AzureServiceBus/ # ASB transport + connectivity health check
+  OpinionatedEventing.RabbitMQ/        # RabbitMQ transport + connectivity health check
+  OpinionatedEventing.Aspire.RabbitMQ/       # Aspire AppHost extension — RabbitMQ container (AppHost only)
+  OpinionatedEventing.Aspire.AzureServiceBus/ # Aspire AppHost extension — ASB emulator (AppHost only)
   OpinionatedEventing.Testing/         # Test helpers — not for production use
 tests/
   *.Tests/   # xUnit unit / integration tests (no containers unless Category=Integration)
