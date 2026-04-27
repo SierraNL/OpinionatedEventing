@@ -3,7 +3,8 @@
     "path": "OpinionatedEventing.slnx",
     "projects": [
       "src/OpinionatedEventing.Abstractions/OpinionatedEventing.Abstractions.csproj",
-      "src/OpinionatedEventing.Aspire/OpinionatedEventing.Aspire.csproj",
+      "src/OpinionatedEventing.Aspire.AzureServiceBus/OpinionatedEventing.Aspire.AzureServiceBus.csproj",
+      "src/OpinionatedEventing.Aspire.RabbitMQ/OpinionatedEventing.Aspire.RabbitMQ.csproj",  
       "src/OpinionatedEventing.AzureServiceBus/OpinionatedEventing.AzureServiceBus.csproj",
       "src/OpinionatedEventing/OpinionatedEventing.csproj",
       "src/OpinionatedEventing.EntityFramework/OpinionatedEventing.EntityFramework.csproj",
