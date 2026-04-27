@@ -233,7 +233,7 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
     }
 
 
-    private async Task ProcessReceivedMessageAsync(
+    internal async Task ProcessReceivedMessageAsync(
         ServiceBusReceivedMessage message,
         Func<CancellationToken, Task> complete,
         Func<CancellationToken, Task> abandon,
@@ -248,9 +248,6 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
                 ? mk as string : null;
             var correlationIdStr = message.ApplicationProperties.TryGetValue("CorrelationId", out var cid)
                 ? cid as string : null;
-            var causationIdStr = message.ApplicationProperties.TryGetValue("CausationId", out var caus)
-                ? caus as string : null;
-
             if (messageType is null || messageKind is null || correlationIdStr is null)
             {
                 _logger.LogWarning(
@@ -268,7 +265,7 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
                 return;
             }
 
-            Guid? causationId = Guid.TryParse(causationIdStr, out var c) ? c : null;
+            Guid? causationId = Guid.TryParse(message.MessageId, out var c) ? c : null;
             var payload = message.Body.ToString();
 
             await _handlerRunner.RunAsync(messageType, messageKind, payload, correlationId, causationId, ct)

@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\OpinionatedEventing\OpinionatedEventing.csproj" />
+    <ProjectReference Include="..\..\src\OpinionatedEventing.Outbox\OpinionatedEventing.Outbox.csproj" />
     <ProjectReference Include="..\..\src\OpinionatedEventing.Testing\OpinionatedEventing.Testing.csproj" />
   </ItemGroup>
 
