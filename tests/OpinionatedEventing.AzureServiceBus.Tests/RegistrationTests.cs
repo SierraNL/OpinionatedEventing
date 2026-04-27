@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using OpinionatedEventing;
 using OpinionatedEventing.AzureServiceBus;
+using OpinionatedEventing.DependencyInjection;
 using OpinionatedEventing.Outbox;
 using Xunit;
 
@@ -55,6 +56,23 @@ public sealed class RegistrationTests
     }
 
     [Fact]
+    public void Handler_registered_after_AddAzureServiceBusTransport_appears_in_registry()
+    {
+        var services = new ServiceCollection();
+        var builder = services.AddOpinionatedEventing();
+
+        // Transport is called first — registry must still capture handlers registered after this.
+        services.AddAzureServiceBusTransport(o =>
+            o.ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
+
+        builder.AddHandlersFromAssemblies(typeof(RegistrationTests).Assembly);
+
+        var registry = services.BuildServiceProvider().GetRequiredService<MessageHandlerRegistry>();
+        Assert.Contains(typeof(AsbTestEvent), registry.EventTypes);
+        Assert.Contains(typeof(AsbTestCommand), registry.CommandTypes);
+    }
+
+    [Fact]
     public void AddAzureServiceBusTransport_configures_options()
     {
         var services = new ServiceCollection();
@@ -74,5 +92,22 @@ public sealed class RegistrationTests
         Assert.Equal("order-service", opts.ServiceName);
         Assert.True(opts.AutoCreateResources);
         Assert.Equal(3, opts.MaxDeliveryCount);
+    }
+
+    // ---- test fakes ----
+
+    public sealed record AsbTestEvent(Guid Id) : IEvent;
+    public sealed record AsbTestCommand(Guid Id) : ICommand;
+
+    public sealed class AsbTestEventHandler : IEventHandler<AsbTestEvent>
+    {
+        public Task HandleAsync(AsbTestEvent @event, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+    }
+
+    public sealed class AsbTestCommandHandler : ICommandHandler<AsbTestCommand>
+    {
+        public Task HandleAsync(AsbTestCommand command, CancellationToken cancellationToken)
+            => Task.CompletedTask;
     }
 }

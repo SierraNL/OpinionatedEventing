@@ -8,7 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using OpinionatedEventing;
 using OpinionatedEventing.AzureServiceBus;
-using OpinionatedEventing.AzureServiceBus.DependencyInjection;
+using OpinionatedEventing.DependencyInjection;
 using OpinionatedEventing.Outbox;
 
 // Placed in this namespace so the extension is available without an extra using directive.
@@ -35,9 +35,6 @@ public static class AzureServiceBusServiceCollectionExtensions
         services.Configure(configure);
 
         services.TryAddSingleton(TimeProvider.System);
-
-        // Capture the service collection for handler-type scanning at host startup.
-        services.TryAddSingleton(new ServiceCollectionAccessor(services));
 
         services.TryAddSingleton(sp =>
         {

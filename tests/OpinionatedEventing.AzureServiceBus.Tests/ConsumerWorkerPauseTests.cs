@@ -4,11 +4,10 @@ using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using MSOptions = Microsoft.Extensions.Options.Options;
 using OpinionatedEventing;
 using OpinionatedEventing.AzureServiceBus;
-using OpinionatedEventing.AzureServiceBus.DependencyInjection;
+using OpinionatedEventing.DependencyInjection;
 using Xunit;
 
 namespace OpinionatedEventing.AzureServiceBus.Tests;
@@ -22,9 +21,7 @@ public sealed class ConsumerWorkerPauseTests
 {
     private static AzureServiceBusConsumerWorker CreateWorker(IConsumerPauseController pauseController)
     {
-        // Empty service collection → ScanHandlerTypes returns nothing → no processors created
-        var emptyServices = new ServiceCollection();
-        var accessor = new ServiceCollectionAccessor(emptyServices);
+        // Empty registry → no handlers registered → no processors created
         var options = MSOptions.Create(new AzureServiceBusOptions
         {
             ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;" +
@@ -36,7 +33,7 @@ public sealed class ConsumerWorkerPauseTests
             client: new NoOpServiceBusClient(),
             handlerRunner: new NeverCalledHandlerRunner(),
             scopeFactory: new NeverCalledScopeFactory(),
-            accessor: accessor,
+            registry: new MessageHandlerRegistry(),
             options: options,
             pauseController: pauseController,
             timeProvider: TimeProvider.System,
