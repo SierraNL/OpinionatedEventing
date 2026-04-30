@@ -236,11 +236,12 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
                 return;
             }
 
-            Guid? causationId = Guid.TryParse(ea.BasicProperties.MessageId, out var c) ? c : null;
+            Guid? messageId = Guid.TryParse(ea.BasicProperties.MessageId, out var mid) ? mid : null;
+            Guid? causationId = messageId;
             var payload = Encoding.UTF8.GetString(ea.Body.Span);
 
             await _handlerRunner
-                .RunAsync(messageType, messageKind, payload, correlationId, causationId, ct)
+                .RunAsync(messageType, messageKind, payload, messageId, correlationId, causationId, ct)
                 .ConfigureAwait(false);
 
             await channel.BasicAckAsync(ea.DeliveryTag, multiple: false, CancellationToken.None).ConfigureAwait(false);

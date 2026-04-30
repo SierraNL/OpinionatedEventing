@@ -6,6 +6,21 @@ namespace OpinionatedEventing.Tests;
 public sealed class FakeMessagingContextTests
 {
     [Fact]
+    public void FakeMessagingContext_HasDefaultMessageId()
+    {
+        var ctx = new FakeMessagingContext();
+        Assert.NotEqual(Guid.Empty, ctx.MessageId);
+    }
+
+    [Fact]
+    public void FakeMessagingContext_AllowsFixedMessageId()
+    {
+        var id = Guid.NewGuid();
+        var ctx = new FakeMessagingContext { MessageId = id };
+        Assert.Equal(id, ctx.MessageId);
+    }
+
+    [Fact]
     public void FakeMessagingContext_HasDefaultCorrelationId()
     {
         var ctx = new FakeMessagingContext();

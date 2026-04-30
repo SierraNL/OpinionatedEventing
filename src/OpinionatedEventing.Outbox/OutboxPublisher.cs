@@ -17,6 +17,7 @@ internal sealed class OutboxPublisher : IPublisher
 {
     private readonly IOutboxStore _store;
     private readonly IMessagingContext _messagingContext;
+    private readonly IMessageTypeRegistry _registry;
     private readonly IOutboxTransactionGuard? _transactionGuard;
     private readonly IOptions<OpinionatedEventingOptions> _options;
     private readonly TimeProvider _timeProvider;
@@ -25,12 +26,14 @@ internal sealed class OutboxPublisher : IPublisher
     public OutboxPublisher(
         IOutboxStore store,
         IMessagingContext messagingContext,
+        IMessageTypeRegistry registry,
         IOptions<OpinionatedEventingOptions> options,
         TimeProvider timeProvider,
         IEnumerable<IOutboxTransactionGuard> transactionGuards)
     {
         _store = store;
         _messagingContext = messagingContext;
+        _registry = registry;
         _options = options;
         _timeProvider = timeProvider;
         _transactionGuard = transactionGuards.FirstOrDefault();
@@ -90,9 +93,7 @@ internal sealed class OutboxPublisher : IPublisher
         return new OutboxMessage
         {
             Id = Guid.NewGuid(),
-            // AssemblyQualifiedName is null only for array types, pointer types, and open
-            // generics — none of which can satisfy the IEvent / ICommand constraints here.
-            MessageType = typeof(T).AssemblyQualifiedName!,
+            MessageType = _registry.GetIdentifier(typeof(T)),
             Payload = JsonSerializer.Serialize(payload, serializerOptions),
             MessageKind = kind,
             CorrelationId = _messagingContext.CorrelationId,

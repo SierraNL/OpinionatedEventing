@@ -103,7 +103,8 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
         var corrId = _correlationId == Guid.Empty ? Guid.NewGuid() : _correlationId;
         var messagingContext = new FakeMessagingContext(corrId);
         var opts = Microsoft.Extensions.Options.Options.Create(new OpinionatedEventingOptions());
-        var interceptor = new DomainEventInterceptor(messagingContext, opts, TimeProvider.System);
+        var registry = new MessageTypeRegistry();
+        var interceptor = new DomainEventInterceptor(messagingContext, registry, opts, TimeProvider.System);
 
         var options = new DbContextOptionsBuilder<SpecsDbContext>()
             .UseInMemoryDatabase(_databaseName)
@@ -121,7 +122,8 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
     {
         var messagingContext = new FakeMessagingContext(Guid.NewGuid());
         var opts = Microsoft.Extensions.Options.Options.Create(new OpinionatedEventingOptions());
-        var interceptor = new DomainEventInterceptor(messagingContext, opts, TimeProvider.System);
+        var registry = new MessageTypeRegistry();
+        var interceptor = new DomainEventInterceptor(messagingContext, registry, opts, TimeProvider.System);
 
         var options = new DbContextOptionsBuilder<SpecsDbContext>()
             .UseInMemoryDatabase(_databaseName + "-sync")
@@ -338,6 +340,7 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
 
     private sealed class FakeMessagingContext(Guid correlationId) : IMessagingContext
     {
+        public Guid MessageId { get; } = Guid.NewGuid();
         public Guid CorrelationId { get; } = correlationId;
         public Guid? CausationId => null;
     }

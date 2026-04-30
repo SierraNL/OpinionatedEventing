@@ -34,9 +34,9 @@ internal sealed class SagaDescriptor<TOrchestrator, TSagaState> : SagaDescriptor
     where TOrchestrator : SagaOrchestrator<TSagaState>
     where TSagaState : class, new()
 {
-    // AssemblyQualifiedName is null only for generic type parameters and array element types;
+    // FullName is null only for generic type parameters and array element types;
     // TOrchestrator is always a concrete named class so the value is guaranteed non-null.
-    public override string SagaTypeName { get; } = typeof(TOrchestrator).AssemblyQualifiedName!;
+    public override string SagaTypeName { get; } = typeof(TOrchestrator).FullName!;
 
     public override async Task HandleEventAsync(
         object @event,

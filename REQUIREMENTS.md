@@ -152,7 +152,7 @@ public interface IPublisher
 public sealed class OutboxMessage
 {
     public Guid Id { get; init; }
-    public string MessageType { get; init; }      // Assembly-qualified type name
+    public string MessageType { get; init; }      // Stable registry identifier (FullName or [MessageType] override)
     public string Payload { get; init; }           // JSON-serialised message body
     public string MessageKind { get; init; }       // "Event" | "Command"
     public Guid CorrelationId { get; init; }

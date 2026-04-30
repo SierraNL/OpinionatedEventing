@@ -156,6 +156,7 @@ public sealed class CoreSteps
             typeof(TestEvent).AssemblyQualifiedName!,
             "Event",
             JsonSerializer.Serialize(new TestEvent(Guid.NewGuid())),
+            null,
             _dispatchedCorrelationId,
             _dispatchedCausationId,
             CancellationToken.None);
@@ -170,6 +171,7 @@ public sealed class CoreSteps
             typeof(TestEvent).AssemblyQualifiedName!,
             "Event",
             JsonSerializer.Serialize(new TestEvent(Guid.NewGuid())),
+            null,
             Guid.NewGuid(),
             null,
             CancellationToken.None);
@@ -185,6 +187,7 @@ public sealed class CoreSteps
             typeof(TestCommand).AssemblyQualifiedName!,
             "Command",
             JsonSerializer.Serialize(new TestCommand(Guid.NewGuid())),
+            null,
             _dispatchedCorrelationId,
             null,
             CancellationToken.None);

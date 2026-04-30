@@ -17,6 +17,7 @@ namespace OpinionatedEventing.AzureServiceBus;
 internal sealed class AzureServiceBusTransport : ITransport, IAsyncDisposable
 {
     private readonly ServiceBusClient _client;
+    private readonly IMessageTypeRegistry _registry;
     private readonly IOptions<AzureServiceBusOptions> _options;
     private readonly ILogger<AzureServiceBusTransport> _logger;
     private readonly ConcurrentDictionary<string, Lazy<ServiceBusSender>> _senders = new();
@@ -24,10 +25,12 @@ internal sealed class AzureServiceBusTransport : ITransport, IAsyncDisposable
     /// <summary>Initialises a new <see cref="AzureServiceBusTransport"/>.</summary>
     public AzureServiceBusTransport(
         ServiceBusClient client,
+        IMessageTypeRegistry registry,
         IOptions<AzureServiceBusOptions> options,
         ILogger<AzureServiceBusTransport> logger)
     {
         _client = client;
+        _registry = registry;
         _options = options;
         _logger = logger;
     }
@@ -35,9 +38,7 @@ internal sealed class AzureServiceBusTransport : ITransport, IAsyncDisposable
     /// <inheritdoc/>
     public async Task SendAsync(OutboxMessage message, CancellationToken cancellationToken = default)
     {
-        var type = Type.GetType(message.MessageType)
-            ?? throw new InvalidOperationException(
-                $"Cannot resolve CLR type '{message.MessageType}' for outbox message {message.Id}.");
+        var type = _registry.Resolve(message.MessageType);
 
         var destination = message.MessageKind == "Event"
             ? MessageNamingConvention.GetTopicName(type)

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using OpinionatedEventing;
 using OpinionatedEventing.EntityFramework.Tests.TestSupport;
 using OpinionatedEventing.Options;
 using OpinionatedEventing.Outbox;
@@ -18,7 +19,8 @@ public sealed class DomainEventInterceptorTests : IDisposable
     {
         var context = new FakeMessagingContext(correlationId ?? Guid.NewGuid(), causationId);
         var options = Microsoft.Extensions.Options.Options.Create(new OpinionatedEventingOptions());
-        return new DomainEventInterceptor(context, options, TimeProvider.System);
+        var registry = new MessageTypeRegistry();
+        return new DomainEventInterceptor(context, registry, options, TimeProvider.System);
     }
 
     private TestDbContext CreateContextWithInterceptor(DomainEventInterceptor interceptor)
@@ -171,6 +173,7 @@ public sealed class DomainEventInterceptorTests : IDisposable
             CausationId = causationId;
         }
 
+        public Guid MessageId { get; } = Guid.NewGuid();
         public Guid CorrelationId { get; }
         public Guid? CausationId { get; }
     }

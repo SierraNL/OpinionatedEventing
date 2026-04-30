@@ -31,6 +31,18 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IMessagingContext>(sp => sp.GetRequiredService<MessagingContext>());
         services.TryAddSingleton<IMessageHandlerRunner, MessageHandlerRunner>();
 
-        return new OpinionatedEventingBuilder(services);
+        // Create the registry eagerly so AddHandlersFromAssemblies can populate it
+        // before the DI container is built. Re-use the existing instance when called
+        // more than once (e.g. from two AddOpinionatedEventing calls) so that both
+        // builders share the same registry that the container will resolve.
+        var existing = services
+            .FirstOrDefault(d => d.ServiceType == typeof(IMessageTypeRegistry)
+                              && d.ImplementationInstance is MessageTypeRegistry)
+            ?.ImplementationInstance as MessageTypeRegistry;
+
+        var registry = existing ?? new MessageTypeRegistry();
+        services.TryAddSingleton<IMessageTypeRegistry>(registry);
+
+        return new OpinionatedEventingBuilder(services, registry);
     }
 }

@@ -10,18 +10,22 @@ namespace OpinionatedEventing.DependencyInjection;
 public sealed class OpinionatedEventingBuilder
 {
     private readonly IServiceCollection _services;
+    private readonly MessageTypeRegistry _registry;
 
     /// <summary>Gets the underlying <see cref="IServiceCollection"/>.</summary>
     public IServiceCollection Services => _services;
 
-    internal OpinionatedEventingBuilder(IServiceCollection services)
+    internal OpinionatedEventingBuilder(IServiceCollection services, MessageTypeRegistry registry)
     {
         _services = services;
+        _registry = registry;
     }
 
     /// <summary>
     /// Scans the given <paramref name="assemblies"/> for <see cref="IEventHandler{TEvent}"/>
     /// and <see cref="ICommandHandler{TCommand}"/> implementations and registers them in DI.
+    /// The corresponding message types are also registered in <see cref="IMessageTypeRegistry"/>
+    /// so their stable identifiers are available at publish and consume time.
     /// Multiple event handlers for the same event type are allowed.
     /// Duplicate command handlers for the same command type throw <see cref="InvalidOperationException"/>.
     /// </summary>
@@ -49,6 +53,9 @@ public sealed class OpinionatedEventingBuilder
                             d => d.ServiceType == iface && d.ImplementationType == type);
                         if (!alreadyRegistered)
                             _services.AddScoped(iface, type);
+
+                        // Register the event type in the message-type registry.
+                        _registry.Register(iface.GetGenericArguments()[0]);
                     }
                     else if (definition == typeof(ICommandHandler<>))
                     {
@@ -68,6 +75,9 @@ public sealed class OpinionatedEventingBuilder
                         }
 
                         _services.AddScoped(iface, type);
+
+                        // Register the command type in the message-type registry.
+                        _registry.Register(iface.GetGenericArguments()[0]);
                     }
                 }
             }

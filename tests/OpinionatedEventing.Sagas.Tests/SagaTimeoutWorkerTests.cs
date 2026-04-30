@@ -19,7 +19,7 @@ public sealed class SagaTimeoutWorkerTests
         await h.Dispatcher.DispatchAsync(new OrderPlaced { CorrelationId = corrId }, ct);
 
         // Verify expiry was calculated relative to the fake clock.
-        var state = await h.Store.FindAsync(typeof(TimedOrderSaga).AssemblyQualifiedName!, corrId.ToString(), ct);
+        var state = await h.Store.FindAsync(typeof(TimedOrderSaga).FullName!, corrId.ToString(), ct);
         Assert.NotNull(state!.ExpiresAt);
 
         // Advance past the 30-minute expiry — GetExpiredAsync should now return it.

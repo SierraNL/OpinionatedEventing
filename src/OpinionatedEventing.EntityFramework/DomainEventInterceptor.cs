@@ -20,16 +20,19 @@ namespace OpinionatedEventing.EntityFramework;
 public sealed class DomainEventInterceptor : SaveChangesInterceptor
 {
     private readonly IMessagingContext _messagingContext;
+    private readonly IMessageTypeRegistry _registry;
     private readonly IOptions<OpinionatedEventingOptions> _options;
     private readonly TimeProvider _timeProvider;
 
     /// <summary>Initialises a new <see cref="DomainEventInterceptor"/>.</summary>
     public DomainEventInterceptor(
         IMessagingContext messagingContext,
+        IMessageTypeRegistry registry,
         IOptions<OpinionatedEventingOptions> options,
         TimeProvider timeProvider)
     {
         _messagingContext = messagingContext;
+        _registry = registry;
         _options = options;
         _timeProvider = timeProvider;
     }
@@ -77,9 +80,7 @@ public sealed class DomainEventInterceptor : SaveChangesInterceptor
                 outboxSet.Add(new OutboxMessage
                 {
                     Id = Guid.NewGuid(),
-                    // AssemblyQualifiedName is null only for array/pointer/open-generic types,
-                    // none of which can implement IEvent.
-                    MessageType = eventType.AssemblyQualifiedName!,
+                    MessageType = _registry.GetIdentifier(eventType),
                     Payload = JsonSerializer.Serialize(domainEvent, eventType, serializerOptions),
                     MessageKind = "Event",
                     CorrelationId = _messagingContext.CorrelationId,

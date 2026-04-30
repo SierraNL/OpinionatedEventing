@@ -20,7 +20,7 @@ public sealed class SagaOrchestratorTests
 
         await h.Dispatcher.DispatchAsync(new OrderPlaced { CorrelationId = corrId, Amount = 99m }, ct);
 
-        var state = await h.Store.FindAsync(typeof(OrderSaga).AssemblyQualifiedName!, corrId.ToString(), ct);
+        var state = await h.Store.FindAsync(typeof(OrderSaga).FullName!, corrId.ToString(), ct);
         Assert.NotNull(state);
         Assert.Equal(SagaStatus.Active, state.Status);
     }
@@ -49,7 +49,7 @@ public sealed class SagaOrchestratorTests
         await h.Dispatcher.DispatchAsync(new OrderPlaced { CorrelationId = corrId }, ct);
         await h.Dispatcher.DispatchAsync(new PaymentReceived { CorrelationId = corrId }, ct);
 
-        var state = await h.Store.FindAsync(typeof(OrderSaga).AssemblyQualifiedName!, corrId.ToString(), ct);
+        var state = await h.Store.FindAsync(typeof(OrderSaga).FullName!, corrId.ToString(), ct);
         Assert.Equal(SagaStatus.Completed, state!.Status);
     }
 
@@ -63,7 +63,7 @@ public sealed class SagaOrchestratorTests
         await h.Dispatcher.DispatchAsync(new OrderPlaced { CorrelationId = corrId }, ct);
         await h.Dispatcher.DispatchAsync(new PaymentReceived { CorrelationId = corrId }, ct);
 
-        var state = await h.Store.FindAsync(typeof(OrderSaga).AssemblyQualifiedName!, corrId.ToString(), ct);
+        var state = await h.Store.FindAsync(typeof(OrderSaga).FullName!, corrId.ToString(), ct);
         Assert.Equal(SagaStatus.Completed, state!.Status);
     }
 
@@ -77,7 +77,7 @@ public sealed class SagaOrchestratorTests
         await h.Dispatcher.DispatchAsync(new OrderPlaced { CorrelationId = corrId, Amount = 75m }, ct);
         await h.Dispatcher.DispatchAsync(new PaymentReceived { CorrelationId = corrId }, ct);
 
-        var state = await h.Store.FindAsync(typeof(OrderSaga).AssemblyQualifiedName!, corrId.ToString(), ct);
+        var state = await h.Store.FindAsync(typeof(OrderSaga).FullName!, corrId.ToString(), ct);
         var sagaState = System.Text.Json.JsonSerializer.Deserialize<OrderSagaState>(state!.State)!;
         Assert.True(sagaState.PaymentProcessed);
         Assert.Equal(75m, sagaState.Amount);
@@ -92,7 +92,7 @@ public sealed class SagaOrchestratorTests
 
         await h.Dispatcher.DispatchAsync(new PaymentReceived { CorrelationId = corrId }, ct);
 
-        var state = await h.Store.FindAsync(typeof(OrderSaga).AssemblyQualifiedName!, corrId.ToString(), ct);
+        var state = await h.Store.FindAsync(typeof(OrderSaga).FullName!, corrId.ToString(), ct);
         Assert.Null(state);
     }
 
@@ -108,7 +108,7 @@ public sealed class SagaOrchestratorTests
         // Dispatch another PaymentReceived to a completed saga
         await h.Dispatcher.DispatchAsync(new PaymentReceived { CorrelationId = corrId }, ct);
 
-        var state = await h.Store.FindAsync(typeof(OrderSaga).AssemblyQualifiedName!, corrId.ToString(), ct);
+        var state = await h.Store.FindAsync(typeof(OrderSaga).FullName!, corrId.ToString(), ct);
         Assert.Equal(SagaStatus.Completed, state!.Status);
     }
 
@@ -122,7 +122,7 @@ public sealed class SagaOrchestratorTests
         await h.Dispatcher.DispatchAsync(new OrderPlaced { CorrelationId = corrId }, ct);
         await h.Dispatcher.DispatchAsync(new PaymentFailed { CorrelationId = corrId }, ct);
 
-        var state = await h.Store.FindAsync(typeof(OrderSaga).AssemblyQualifiedName!, corrId.ToString(), ct);
+        var state = await h.Store.FindAsync(typeof(OrderSaga).FullName!, corrId.ToString(), ct);
         Assert.Equal(SagaStatus.Completed, state!.Status);
     }
 
@@ -135,7 +135,7 @@ public sealed class SagaOrchestratorTests
 
         await h.Dispatcher.DispatchAsync(new OrderPlaced { CorrelationId = corrId }, ct);
 
-        var state = await h.Store.FindAsync(typeof(TimedOrderSaga).AssemblyQualifiedName!, corrId.ToString(), ct);
+        var state = await h.Store.FindAsync(typeof(TimedOrderSaga).FullName!, corrId.ToString(), ct);
         Assert.NotNull(state!.ExpiresAt);
     }
 
@@ -148,7 +148,7 @@ public sealed class SagaOrchestratorTests
 
         await h.Dispatcher.DispatchAsync(new OrderPlaced { CorrelationId = corrId }, ct);
 
-        var state = await h.Store.FindAsync(typeof(TimedOrderSaga).AssemblyQualifiedName!, corrId.ToString(), ct);
+        var state = await h.Store.FindAsync(typeof(TimedOrderSaga).FullName!, corrId.ToString(), ct);
         state!.ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(-1);
         await h.Store.UpdateAsync(state, ct);
 
@@ -176,13 +176,13 @@ public sealed class SagaOrchestratorTests
         await h.Dispatcher.DispatchAsync(new OrderPlaced { CorrelationId = corrId }, ct);
         await h.Dispatcher.DispatchAsync(new PaymentFailed { CorrelationId = corrId }, ct); // → Compensating → Completed
 
-        var stateAfterCompensation = await h.Store.FindAsync(typeof(OrderSaga).AssemblyQualifiedName!, corrId.ToString(), ct);
+        var stateAfterCompensation = await h.Store.FindAsync(typeof(OrderSaga).FullName!, corrId.ToString(), ct);
         Assert.Equal(SagaStatus.Completed, stateAfterCompensation!.Status);
 
         // A late PaymentReceived should be ignored (saga is already Completed)
         await h.Dispatcher.DispatchAsync(new PaymentReceived { CorrelationId = corrId }, ct);
 
-        var stateFinal = await h.Store.FindAsync(typeof(OrderSaga).AssemblyQualifiedName!, corrId.ToString(), ct);
+        var stateFinal = await h.Store.FindAsync(typeof(OrderSaga).FullName!, corrId.ToString(), ct);
         Assert.Equal(SagaStatus.Completed, stateFinal!.Status);
     }
 
@@ -198,7 +198,7 @@ public sealed class SagaOrchestratorTests
         // StockReserved uses OrderId as the correlation key (not CorrelationId)
         await h.Dispatcher.DispatchAsync(new StockReserved { OrderId = corrId, CorrelationId = Guid.NewGuid() }, ct);
 
-        var state = await h.Store.FindAsync(typeof(CustomCorrelationSaga).AssemblyQualifiedName!, corrId.ToString(), ct);
+        var state = await h.Store.FindAsync(typeof(CustomCorrelationSaga).FullName!, corrId.ToString(), ct);
         Assert.Equal(SagaStatus.Completed, state!.Status);
     }
 
@@ -214,8 +214,8 @@ public sealed class SagaOrchestratorTests
         await h.Dispatcher.DispatchAsync(new OrderPlaced { CorrelationId = corrId2 }, ct);
         await h.Dispatcher.DispatchAsync(new PaymentReceived { CorrelationId = corrId1 }, ct);
 
-        var state1 = await h.Store.FindAsync(typeof(OrderSaga).AssemblyQualifiedName!, corrId1.ToString(), ct);
-        var state2 = await h.Store.FindAsync(typeof(OrderSaga).AssemblyQualifiedName!, corrId2.ToString(), ct);
+        var state1 = await h.Store.FindAsync(typeof(OrderSaga).FullName!, corrId1.ToString(), ct);
+        var state2 = await h.Store.FindAsync(typeof(OrderSaga).FullName!, corrId2.ToString(), ct);
         Assert.Equal(SagaStatus.Completed, state1!.Status);
         Assert.Equal(SagaStatus.Active, state2!.Status);
     }

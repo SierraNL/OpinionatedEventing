@@ -143,7 +143,7 @@ public sealed class RabbitMQConsumerWorkerTests
         public List<RunnerCall> Calls { get; } = [];
 
         public Task RunAsync(string messageType, string messageKind, string payload,
-            Guid correlationId, Guid? causationId, CancellationToken ct)
+            Guid? messageId, Guid correlationId, Guid? causationId, CancellationToken ct)
         {
             Calls.Add(new RunnerCall(messageType, messageKind, payload, correlationId, causationId));
             return Task.CompletedTask;
