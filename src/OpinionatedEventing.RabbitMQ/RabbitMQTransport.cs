@@ -15,6 +15,7 @@ namespace OpinionatedEventing.RabbitMQ;
 internal sealed class RabbitMQTransport : ITransport, IAsyncDisposable
 {
     private readonly IConnection _connection;
+    private readonly IMessageTypeRegistry _registry;
     private readonly ILogger<RabbitMQTransport> _logger;
 
     private IChannel? _publishChannel;
@@ -23,18 +24,18 @@ internal sealed class RabbitMQTransport : ITransport, IAsyncDisposable
     /// <summary>Initialises a new <see cref="RabbitMQTransport"/>.</summary>
     public RabbitMQTransport(
         IConnection connection,
+        IMessageTypeRegistry registry,
         ILogger<RabbitMQTransport> logger)
     {
         _connection = connection;
+        _registry = registry;
         _logger = logger;
     }
 
     /// <inheritdoc/>
     public async Task SendAsync(OutboxMessage message, CancellationToken cancellationToken = default)
     {
-        var type = Type.GetType(message.MessageType)
-            ?? throw new InvalidOperationException(
-                $"Cannot resolve CLR type '{message.MessageType}' for outbox message {message.Id}.");
+        var type = _registry.Resolve(message.MessageType);
 
         string exchange;
         string routingKey;

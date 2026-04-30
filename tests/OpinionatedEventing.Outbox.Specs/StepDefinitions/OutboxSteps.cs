@@ -3,6 +3,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using OpinionatedEventing;
 using OpinionatedEventing.Options;
 using OpinionatedEventing.Outbox;
 using OpinionatedEventing.Testing;
@@ -162,7 +163,8 @@ public sealed class OutboxSteps
     {
         var context = new FakeMessagingContext(correlationId, causationId);
         var options = Microsoft.Extensions.Options.Options.Create(new OpinionatedEventingOptions());
-        return new OutboxPublisher(_store, context, options, TimeProvider.System, guards);
+        var registry = new MessageTypeRegistry();
+        return new OutboxPublisher(_store, context, registry, options, TimeProvider.System, guards);
     }
 
     private async Task RunWorkerForOnePassAsync()
@@ -227,6 +229,7 @@ public sealed class OutboxSteps
 
     private sealed class FakeMessagingContext(Guid correlationId, Guid? causationId) : IMessagingContext
     {
+        public Guid MessageId { get; } = Guid.NewGuid();
         public Guid CorrelationId { get; } = correlationId;
         public Guid? CausationId { get; } = causationId;
     }

@@ -17,16 +17,19 @@ namespace OpinionatedEventing;
 public sealed class MessageHandlerRunner : IMessageHandlerRunner
 {
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IMessageTypeRegistry _registry;
     private readonly IOptions<OpinionatedEventingOptions> _options;
     private readonly ILogger<MessageHandlerRunner> _logger;
 
     /// <summary>Initialises a new <see cref="MessageHandlerRunner"/>.</summary>
     public MessageHandlerRunner(
         IServiceScopeFactory scopeFactory,
+        IMessageTypeRegistry registry,
         IOptions<OpinionatedEventingOptions> options,
         ILogger<MessageHandlerRunner> logger)
     {
         _scopeFactory = scopeFactory;
+        _registry = registry;
         _options = options;
         _logger = logger;
     }
@@ -36,6 +39,7 @@ public sealed class MessageHandlerRunner : IMessageHandlerRunner
         string messageType,
         string messageKind,
         string payload,
+        Guid? messageId,
         Guid correlationId,
         Guid? causationId,
         CancellationToken ct)
@@ -47,16 +51,16 @@ public sealed class MessageHandlerRunner : IMessageHandlerRunner
             await using var scope = _scopeFactory.CreateAsyncScope();
 
             var messagingContext = scope.ServiceProvider.GetRequiredService<MessagingContext>();
-            messagingContext.Initialize(correlationId, causationId);
+            messagingContext.Initialize(messageId ?? Guid.NewGuid(), correlationId, causationId);
 
-            var type = Type.GetType(messageType)
-                ?? throw new InvalidOperationException($"Cannot resolve type '{messageType}'.");
+            var type = _registry.Resolve(messageType);
 
             var message = JsonSerializer.Deserialize(payload, type, _options.Value.SerializerOptions)
                 ?? throw new InvalidOperationException($"Deserialised null for type '{messageType}'.");
 
             using var logScope = _logger.BeginScope(new Dictionary<string, object?>
             {
+                ["MessageId"] = messagingContext.MessageId,
                 ["CorrelationId"] = correlationId,
                 ["CausationId"] = causationId,
                 ["MessageType"] = messageType,

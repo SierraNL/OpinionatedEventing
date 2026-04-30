@@ -61,11 +61,11 @@ public sealed class MessageHandlerRunnerTests
     private sealed class RecordingEventHandler : IEventHandler<RunnerEvent>
     {
         private readonly IMessagingContext _ctx;
-        private readonly List<(RunnerEvent Event, Guid CorrelationId, Guid? CausationId)> _log;
+        private readonly List<(RunnerEvent Event, Guid MessageId, Guid CorrelationId, Guid? CausationId)> _log;
 
         public RecordingEventHandler(
             IMessagingContext ctx,
-            List<(RunnerEvent, Guid, Guid?)> log)
+            List<(RunnerEvent, Guid, Guid, Guid?)> log)
         {
             _ctx = ctx;
             _log = log;
@@ -73,7 +73,7 @@ public sealed class MessageHandlerRunnerTests
 
         public Task HandleAsync(RunnerEvent @event, CancellationToken cancellationToken)
         {
-            _log.Add((@event, _ctx.CorrelationId, _ctx.CausationId));
+            _log.Add((@event, _ctx.MessageId, _ctx.CorrelationId, _ctx.CausationId));
             return Task.CompletedTask;
         }
     }
@@ -121,7 +121,7 @@ public sealed class MessageHandlerRunnerTests
     [Fact]
     public async Task RunAsync_event_dispatches_payload_to_handler()
     {
-        var log = new List<(RunnerEvent, Guid, Guid?)>();
+        var log = new List<(RunnerEvent, Guid, Guid, Guid?)>();
         var ct = TestContext.Current.CancellationToken;
 
         await using var provider = BuildProvider(s =>
@@ -135,6 +135,7 @@ public sealed class MessageHandlerRunnerTests
             typeof(RunnerEvent).AssemblyQualifiedName!,
             "Event",
             JsonSerializer.Serialize(ev),
+            null,
             Guid.NewGuid(),
             null,
             ct);
@@ -144,9 +145,9 @@ public sealed class MessageHandlerRunnerTests
     }
 
     [Fact]
-    public async Task RunAsync_event_initialises_correlation_id_on_messaging_context()
+    public async Task RunAsync_event_initialises_messaging_context()
     {
-        var log = new List<(RunnerEvent, Guid, Guid?)>();
+        var log = new List<(RunnerEvent, Guid, Guid, Guid?)>();
         var ct = TestContext.Current.CancellationToken;
 
         await using var provider = BuildProvider(s =>
@@ -154,6 +155,7 @@ public sealed class MessageHandlerRunnerTests
                 new RecordingEventHandler(sp.GetRequiredService<IMessagingContext>(), log)));
 
         var runner = provider.GetRequiredService<IMessageHandlerRunner>();
+        var messageId = Guid.NewGuid();
         var correlationId = Guid.NewGuid();
         var causationId = Guid.NewGuid();
 
@@ -161,18 +163,20 @@ public sealed class MessageHandlerRunnerTests
             typeof(RunnerEvent).AssemblyQualifiedName!,
             "Event",
             JsonSerializer.Serialize(new RunnerEvent(Guid.NewGuid())),
+            messageId,
             correlationId,
             causationId,
             ct);
 
-        Assert.Equal(correlationId, log[0].Item2);
-        Assert.Equal(causationId, log[0].Item3);
+        Assert.Equal(messageId, log[0].Item2);
+        Assert.Equal(correlationId, log[0].Item3);
+        Assert.Equal(causationId, log[0].Item4);
     }
 
     [Fact]
-    public async Task RunAsync_event_causation_id_is_null_for_originating_messages()
+    public async Task RunAsync_null_message_id_generates_a_random_message_id()
     {
-        var log = new List<(RunnerEvent, Guid, Guid?)>();
+        var log = new List<(RunnerEvent, Guid, Guid, Guid?)>();
         var ct = TestContext.Current.CancellationToken;
 
         await using var provider = BuildProvider(s =>
@@ -185,17 +189,42 @@ public sealed class MessageHandlerRunnerTests
             typeof(RunnerEvent).AssemblyQualifiedName!,
             "Event",
             JsonSerializer.Serialize(new RunnerEvent(Guid.NewGuid())),
+            null,
             Guid.NewGuid(),
             null,
             ct);
 
-        Assert.Null(log[0].Item3);
+        Assert.NotEqual(Guid.Empty, log[0].Item2);
+    }
+
+    [Fact]
+    public async Task RunAsync_event_causation_id_is_null_for_originating_messages()
+    {
+        var log = new List<(RunnerEvent, Guid, Guid, Guid?)>();
+        var ct = TestContext.Current.CancellationToken;
+
+        await using var provider = BuildProvider(s =>
+            s.AddScoped<IEventHandler<RunnerEvent>>(sp =>
+                new RecordingEventHandler(sp.GetRequiredService<IMessagingContext>(), log)));
+
+        var runner = provider.GetRequiredService<IMessageHandlerRunner>();
+
+        await runner.RunAsync(
+            typeof(RunnerEvent).AssemblyQualifiedName!,
+            "Event",
+            JsonSerializer.Serialize(new RunnerEvent(Guid.NewGuid())),
+            null,
+            Guid.NewGuid(),
+            null,
+            ct);
+
+        Assert.Null(log[0].Item4);
     }
 
     [Fact]
     public async Task RunAsync_event_dispatches_to_all_registered_handlers()
     {
-        var log = new List<(RunnerEvent, Guid, Guid?)>();
+        var log = new List<(RunnerEvent, Guid, Guid, Guid?)>();
         var ct = TestContext.Current.CancellationToken;
 
         await using var provider = BuildProvider(s =>
@@ -212,6 +241,7 @@ public sealed class MessageHandlerRunnerTests
             typeof(RunnerEvent).AssemblyQualifiedName!,
             "Event",
             JsonSerializer.Serialize(new RunnerEvent(Guid.NewGuid())),
+            null,
             Guid.NewGuid(),
             null,
             ct);
@@ -230,6 +260,7 @@ public sealed class MessageHandlerRunnerTests
             typeof(RunnerEvent).AssemblyQualifiedName!,
             "Event",
             JsonSerializer.Serialize(new RunnerEvent(Guid.NewGuid())),
+            null,
             Guid.NewGuid(),
             null,
             ct);
@@ -254,6 +285,7 @@ public sealed class MessageHandlerRunnerTests
             typeof(RunnerCommand).AssemblyQualifiedName!,
             "Command",
             JsonSerializer.Serialize(cmd),
+            null,
             correlationId,
             causationId,
             ct);
@@ -276,6 +308,7 @@ public sealed class MessageHandlerRunnerTests
                 typeof(RunnerEvent).AssemblyQualifiedName!,
                 "Unknown",
                 JsonSerializer.Serialize(new RunnerEvent(Guid.NewGuid())),
+                null,
                 Guid.NewGuid(),
                 null,
                 ct));
@@ -293,13 +326,14 @@ public sealed class MessageHandlerRunnerTests
                 "NonExistent.Type, NonExistent.Assembly",
                 "Event",
                 "{}",
+                null,
                 Guid.NewGuid(),
                 null,
                 ct));
     }
 
     [Fact]
-    public async Task RunAsync_exposes_correlation_causation_and_message_type_in_logging_scope()
+    public async Task RunAsync_exposes_message_id_correlation_causation_and_message_type_in_logging_scope()
     {
         var ct = TestContext.Current.CancellationToken;
         var capturingProvider = new CapturingLoggerProvider();
@@ -311,6 +345,7 @@ public sealed class MessageHandlerRunnerTests
             loggerFactory);
 
         var runner = provider.GetRequiredService<IMessageHandlerRunner>();
+        var messageId = Guid.NewGuid();
         var correlationId = Guid.NewGuid();
         var causationId = Guid.NewGuid();
         var messageType = typeof(RunnerEvent).AssemblyQualifiedName!;
@@ -318,11 +353,12 @@ public sealed class MessageHandlerRunnerTests
         await runner.RunAsync(
             messageType, "Event",
             JsonSerializer.Serialize(new RunnerEvent(Guid.NewGuid())),
-            correlationId, causationId, ct);
+            messageId, correlationId, causationId, ct);
 
         var handlerEntry = capturingProvider.Entries
             .Single(e => e.Category.Contains(nameof(LoggingEventHandler)));
 
+        Assert.Equal(messageId, handlerEntry.Scopes["MessageId"]);
         Assert.Equal(correlationId, handlerEntry.Scopes["CorrelationId"]);
         Assert.Equal(causationId, handlerEntry.Scopes["CausationId"]);
         Assert.Equal(messageType, handlerEntry.Scopes["MessageType"]);
@@ -339,15 +375,15 @@ public sealed class MessageHandlerRunnerTests
             s.AddScoped<IEventHandler<RunnerEvent>>(sp =>
             {
                 capturedContexts.Add(sp.GetRequiredService<IMessagingContext>());
-                var log = new List<(RunnerEvent, Guid, Guid?)>();
+                var log = new List<(RunnerEvent, Guid, Guid, Guid?)>();
                 return new RecordingEventHandler(sp.GetRequiredService<IMessagingContext>(), log);
             }));
 
         var runner = provider.GetRequiredService<IMessageHandlerRunner>();
         var payload = JsonSerializer.Serialize(new RunnerEvent(Guid.NewGuid()));
 
-        await runner.RunAsync(typeof(RunnerEvent).AssemblyQualifiedName!, "Event", payload, Guid.NewGuid(), null, ct);
-        await runner.RunAsync(typeof(RunnerEvent).AssemblyQualifiedName!, "Event", payload, Guid.NewGuid(), null, ct);
+        await runner.RunAsync(typeof(RunnerEvent).AssemblyQualifiedName!, "Event", payload, null, Guid.NewGuid(), null, ct);
+        await runner.RunAsync(typeof(RunnerEvent).AssemblyQualifiedName!, "Event", payload, null, Guid.NewGuid(), null, ct);
 
         Assert.Equal(2, capturedContexts.Count);
         Assert.NotSame(capturedContexts[0], capturedContexts[1]);
@@ -367,7 +403,7 @@ public sealed class MessageHandlerRunnerTests
     public async Task RunAsync_causation_chain_threads_inbound_message_id_as_causation_id()
     {
         // Verifies the A → B → C causation chain promised by the docs.
-        // The transport passes the inbound message's own Id as causationId to RunAsync;
+        // The transport passes the inbound message's own Id as both messageId and causationId;
         // any message published inside the handler must carry that value as its CausationId.
         var ct = TestContext.Current.CancellationToken;
         var store = new InMemoryOutboxStore();
@@ -385,20 +421,20 @@ public sealed class MessageHandlerRunnerTests
         var runner = provider.GetRequiredService<IMessageHandlerRunner>();
         var messageAId = Guid.NewGuid();
 
-        // Process A — transport passes A's own MessageId as causationId
+        // Process A — transport passes A's own MessageId
         await runner.RunAsync(
             typeof(ChainEvent).AssemblyQualifiedName!, "Event",
             JsonSerializer.Serialize(new ChainEvent()),
-            correlationId, messageAId, ct);
+            messageAId, correlationId, messageAId, ct);
 
         var messageB = Assert.Single(store.Messages);
         Assert.Equal(messageAId, messageB.CausationId);
 
-        // Process B — transport passes B.Id (its MessageId on the wire) as causationId
+        // Process B — transport passes B.Id (its MessageId on the wire)
         await runner.RunAsync(
             typeof(ChainEvent).AssemblyQualifiedName!, "Event",
             JsonSerializer.Serialize(new ChainEvent()),
-            correlationId, messageB.Id, ct);
+            messageB.Id, correlationId, messageB.Id, ct);
 
         Assert.Equal(2, store.Messages.Count);
         var messageC = store.Messages.Single(m => m.Id != messageB.Id);

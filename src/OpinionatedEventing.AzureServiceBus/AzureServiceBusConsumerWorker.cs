@@ -265,10 +265,11 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
                 return;
             }
 
-            Guid? causationId = Guid.TryParse(message.MessageId, out var c) ? c : null;
+            Guid? messageId = Guid.TryParse(message.MessageId, out var mid) ? mid : null;
+            Guid? causationId = messageId;
             var payload = message.Body.ToString();
 
-            await _handlerRunner.RunAsync(messageType, messageKind, payload, correlationId, causationId, ct)
+            await _handlerRunner.RunAsync(messageType, messageKind, payload, messageId, correlationId, causationId, ct)
                 .ConfigureAwait(false);
 
             await complete(ct).ConfigureAwait(false);

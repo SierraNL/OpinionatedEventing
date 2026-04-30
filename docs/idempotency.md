@@ -32,29 +32,24 @@ public class MarkOrderPaidHandler : IEventHandler<OrderPaid>
 
 Track processed message IDs in a database table. Before executing the handler's business logic, check whether the message ID has already been recorded. If it has, skip the work. Record the ID and commit in the same transaction as the business operation.
 
-`IEvent` is a marker interface with no built-in ID. Embed one in your event record:
+`IMessagingContext.MessageId` carries the inbound message's own ID — inject `IMessagingContext` into your handler and use it as the deduplication key:
 
 ```csharp
-public record UserRegistered(Guid MessageId, string Email) : IEvent;
-```
-
-Then use it as the deduplication key:
-
-```csharp
-public class SendWelcomeEmailHandler : IEventHandler<UserRegistered>
+public class SendWelcomeEmailHandler(IMessagingContext messagingContext, AppDbContext db, IEmailClient emailClient)
+    : IEventHandler<UserRegistered>
 {
     public async Task HandleAsync(UserRegistered @event, CancellationToken ct)
     {
-        bool alreadyProcessed = await _db.ProcessedMessages
-            .AnyAsync(m => m.MessageId == @event.MessageId, ct);
+        bool alreadyProcessed = await db.ProcessedMessages
+            .AnyAsync(m => m.MessageId == messagingContext.MessageId, ct);
 
         if (alreadyProcessed)
             return;
 
-        await _emailClient.SendWelcomeEmailAsync(@event.Email, ct);
+        await emailClient.SendWelcomeEmailAsync(@event.Email, ct);
 
-        _db.ProcessedMessages.Add(new ProcessedMessage(@event.MessageId));
-        await _db.SaveChangesAsync(ct);
+        db.ProcessedMessages.Add(new ProcessedMessage(messagingContext.MessageId));
+        await db.SaveChangesAsync(ct);
     }
 }
 ```
@@ -63,7 +58,7 @@ Prune the `ProcessedMessages` table periodically — rows older than your messag
 
 ### 3. Conditional insert / unique constraint
 
-Use a database unique constraint on the message ID column instead of an explicit `SELECT` before `INSERT`. This avoids the read entirely and lets the database enforce uniqueness. As in strategy 2, `MessageId` must be a property you define on the event record.
+Use a database unique constraint on the message ID column instead of an explicit `SELECT` before `INSERT`. This avoids the read entirely and lets the database enforce uniqueness. Use `IMessagingContext.MessageId` as the deduplication key (same as strategy 2).
 
 ```sql
 CREATE UNIQUE INDEX ux_processed_messages_id ON processed_messages (message_id);
@@ -89,12 +84,12 @@ await DoWorkAsync(@event, ct);
 
 ### 4. Idempotent external calls
 
-When the side effect is a call to an external API, pass the message ID as the idempotency key if the API supports it (most payment, email, and notification APIs do):
+When the side effect is a call to an external API, pass the message ID as the idempotency key if the API supports it (most payment, email, and notification APIs do). Inject `IMessagingContext` into your handler to access `MessageId`:
 
 ```csharp
 await _paymentGateway.ChargeAsync(new ChargeRequest
 {
-    IdempotencyKey = @event.MessageId.ToString(),
+    IdempotencyKey = _messagingContext.MessageId.ToString(),
     Amount = @event.Amount,
     Currency = @event.Currency,
 });

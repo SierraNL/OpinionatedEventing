@@ -143,7 +143,7 @@ public sealed class ConsumerWorkerPauseTests
     private sealed class NeverCalledHandlerRunner : IMessageHandlerRunner
     {
         public Task RunAsync(string messageType, string messageKind, string payload,
-            Guid correlationId, Guid? causationId, CancellationToken ct)
+            Guid? messageId, Guid correlationId, Guid? causationId, CancellationToken ct)
             => throw new InvalidOperationException("Should not be called in no-handler tests.");
     }
 

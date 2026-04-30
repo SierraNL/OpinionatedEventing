@@ -2,6 +2,7 @@
 
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using OpinionatedEventing;
 using OpinionatedEventing.Options;
 using OpinionatedEventing.Outbox;
 using OpinionatedEventing.Testing;
@@ -24,9 +25,10 @@ public sealed class OutboxPublisherTests
         var optionsValue = new OpinionatedEventingOptions();
         configure?.Invoke(optionsValue);
         var options = Microsoft.Extensions.Options.Options.Create(optionsValue);
+        var registry = new MessageTypeRegistry();
 
         IEnumerable<IOutboxTransactionGuard> guards = guard is not null ? [guard] : [];
-        var publisher = new OutboxPublisher(store, context, options, TimeProvider.System, guards);
+        var publisher = new OutboxPublisher(store, context, registry, options, TimeProvider.System, guards);
         return (publisher, store);
     }
 
@@ -44,13 +46,13 @@ public sealed class OutboxPublisherTests
     }
 
     [Fact]
-    public async Task PublishEventAsync_SetsMessageTypeToAssemblyQualifiedName()
+    public async Task PublishEventAsync_SetsMessageTypeToStableIdentifier()
     {
         var (publisher, store) = BuildPublisher();
 
         await publisher.PublishEventAsync(new TestEvent(Guid.NewGuid()), TestContext.Current.CancellationToken);
 
-        Assert.Equal(typeof(TestEvent).AssemblyQualifiedName, store.Messages[0].MessageType);
+        Assert.Equal(typeof(TestEvent).FullName, store.Messages[0].MessageType);
     }
 
     [Fact]
@@ -116,13 +118,13 @@ public sealed class OutboxPublisherTests
     }
 
     [Fact]
-    public async Task SendCommandAsync_SetsMessageTypeToAssemblyQualifiedName()
+    public async Task SendCommandAsync_SetsMessageTypeToStableIdentifier()
     {
         var (publisher, store) = BuildPublisher();
 
         await publisher.SendCommandAsync(new TestCommand(Guid.NewGuid()), TestContext.Current.CancellationToken);
 
-        Assert.Equal(typeof(TestCommand).AssemblyQualifiedName, store.Messages[0].MessageType);
+        Assert.Equal(typeof(TestCommand).FullName, store.Messages[0].MessageType);
     }
 
     // ---- Transaction guard ----
@@ -179,6 +181,7 @@ public sealed class OutboxPublisherTests
 
     private sealed class FakeMessagingContext(Guid correlationId, Guid? causationId) : IMessagingContext
     {
+        public Guid MessageId { get; } = Guid.NewGuid();
         public Guid CorrelationId { get; } = correlationId;
         public Guid? CausationId { get; } = causationId;
     }

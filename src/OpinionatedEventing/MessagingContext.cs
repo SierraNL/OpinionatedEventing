@@ -8,6 +8,9 @@ namespace OpinionatedEventing;
 public sealed class MessagingContext : IMessagingContext
 {
     /// <inheritdoc/>
+    public Guid MessageId { get; private set; } = Guid.NewGuid();
+
+    /// <inheritdoc/>
     public Guid CorrelationId { get; private set; } = Guid.NewGuid();
 
     /// <inheritdoc/>
@@ -17,10 +20,12 @@ public sealed class MessagingContext : IMessagingContext
     /// Initialises the context with values propagated from an inbound message.
     /// Called by the transport layer at the start of each handler scope.
     /// </summary>
+    /// <param name="messageId">The inbound message's own identifier.</param>
     /// <param name="correlationId">The correlation identifier from the inbound message.</param>
     /// <param name="causationId">The outbox message identifier that caused this scope.</param>
-    public void Initialize(Guid correlationId, Guid? causationId)
+    public void Initialize(Guid messageId, Guid correlationId, Guid? causationId)
     {
+        MessageId = messageId;
         CorrelationId = correlationId;
         CausationId = causationId;
     }

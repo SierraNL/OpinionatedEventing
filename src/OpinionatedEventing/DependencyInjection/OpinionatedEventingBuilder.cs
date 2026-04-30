@@ -10,20 +10,27 @@ namespace OpinionatedEventing.DependencyInjection;
 public sealed class OpinionatedEventingBuilder
 {
     private readonly IServiceCollection _services;
-    private readonly MessageHandlerRegistry _registry;
+    private readonly MessageHandlerRegistry _handlerRegistry;
+    private readonly MessageTypeRegistry _typeRegistry;
 
     /// <summary>Gets the underlying <see cref="IServiceCollection"/>.</summary>
     public IServiceCollection Services => _services;
 
-    internal OpinionatedEventingBuilder(IServiceCollection services, MessageHandlerRegistry registry)
+    internal OpinionatedEventingBuilder(
+        IServiceCollection services,
+        MessageHandlerRegistry handlerRegistry,
+        MessageTypeRegistry typeRegistry)
     {
         _services = services;
-        _registry = registry;
+        _handlerRegistry = handlerRegistry;
+        _typeRegistry = typeRegistry;
     }
 
     /// <summary>
     /// Scans the given <paramref name="assemblies"/> for <see cref="IEventHandler{TEvent}"/>
     /// and <see cref="ICommandHandler{TCommand}"/> implementations and registers them in DI.
+    /// The corresponding message types are also registered in <see cref="IMessageTypeRegistry"/>
+    /// so their stable identifiers are available at publish and consume time.
     /// Multiple event handlers for the same event type are allowed.
     /// Duplicate command handlers for the same command type throw <see cref="InvalidOperationException"/>.
     /// </summary>
@@ -52,7 +59,12 @@ public sealed class OpinionatedEventingBuilder
                         if (!alreadyRegistered)
                             _services.AddScoped(iface, type);
 
-                        _registry.RegisterEventType(iface.GetGenericArguments()[0]);
+                        var eventType = iface.GetGenericArguments()[0];
+                        _handlerRegistry.RegisterEventType(eventType);
+                        // Skip open generic type parameters — FullName is null and they
+                        // have no stable identifier (e.g. CapturingEventHandler<T>).
+                        if (eventType.FullName is not null)
+                            _typeRegistry.Register(eventType);
                     }
                     else if (definition == typeof(ICommandHandler<>))
                     {
@@ -72,7 +84,11 @@ public sealed class OpinionatedEventingBuilder
                         }
 
                         _services.AddScoped(iface, type);
-                        _registry.RegisterCommandType(iface.GetGenericArguments()[0]);
+
+                        var cmdType = iface.GetGenericArguments()[0];
+                        _handlerRegistry.RegisterCommandType(cmdType);
+                        if (cmdType.FullName is not null)
+                            _typeRegistry.Register(cmdType);
                     }
                 }
             }
