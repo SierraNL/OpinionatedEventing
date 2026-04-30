@@ -21,10 +21,6 @@ builder.Services.AddDbContext<FulfillmentDbContext>(options =>
 builder.Services.AddOpinionatedEventingSagas();
 builder.Services.AddSagaParticipant<FulfillmentParticipant>();
 
-// Bridge: PaymentReceived must arrive as IEventHandler<PaymentReceived>
-// so the topology initializer creates the queue binding.
-builder.Services.AddScoped<IEventHandler<PaymentReceived>, SagaEventHandlerAdapter<PaymentReceived>>();
-
 builder.Services.AddRabbitMQTransport(options =>
 {
     options.ServiceName = "fulfillment-service";

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using OpinionatedEventing;
 using OpinionatedEventing.DependencyInjection;
 using OpinionatedEventing.Sagas;
 using OpinionatedEventing.Sagas.Options;
@@ -56,12 +57,17 @@ public static class SagaDependencyInjectionExtensions
         var instance = (SagaDescriptor)Activator.CreateInstance(descriptorType)!;
         services.AddSingleton(instance);
 
+        var eventTypes = instance.GetHandledEventTypes().ToList();
+
         var registry = GetRegistry(services);
         if (registry is not null)
         {
-            foreach (var eventType in instance.GetHandledEventTypes())
+            foreach (var eventType in eventTypes)
                 registry.RegisterEventType(eventType);
         }
+
+        foreach (var eventType in eventTypes)
+            RegisterEventHandlerAdapter(services, eventType);
 
         return services;
     }
@@ -91,6 +97,7 @@ public static class SagaDependencyInjectionExtensions
         services.AddSingleton(instance);
 
         GetRegistry(services)?.RegisterEventType(eventType);
+        RegisterEventHandlerAdapter(services, eventType);
 
         return services;
     }
@@ -103,6 +110,17 @@ public static class SagaDependencyInjectionExtensions
                 return t.GetGenericArguments()[0];
         }
         return null;
+    }
+
+    private static void RegisterEventHandlerAdapter(IServiceCollection services, Type eventType)
+    {
+        var handlerInterface = typeof(IEventHandler<>).MakeGenericType(eventType);
+        var adapterType = typeof(SagaEventHandlerAdapter<>).MakeGenericType(eventType);
+        // Guard against duplicate adapters when multiple sagas handle the same event type.
+        // A single adapter is sufficient: SagaDispatcher already fans out to all descriptors.
+        // This does NOT suppress user-registered IEventHandler<T> implementations (fan-out still works).
+        if (!services.Any(d => d.ServiceType == handlerInterface && d.ImplementationType == adapterType))
+            services.AddScoped(handlerInterface, adapterType);
     }
 
     private static MessageHandlerRegistry? GetRegistry(IServiceCollection services)

@@ -70,6 +70,8 @@ services.AddOpinionatedEventingSagas();
 services.AddSaga<OrderSaga>();
 ```
 
+`AddSaga<T>` discovers the event types handled by the orchestrator and automatically registers `IEventHandler<TEvent>` for each one. No manual adapter registration is needed.
+
 ## How it works
 
 ### Starting a saga

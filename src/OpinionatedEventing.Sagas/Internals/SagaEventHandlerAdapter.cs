@@ -1,9 +1,7 @@
-using OpinionatedEventing.Sagas;
+#nullable enable
 
-namespace Samples.FulfillmentService;
+namespace OpinionatedEventing.Sagas;
 
-// Bridges IEventHandler<T> (transport subscription mechanism) to ISagaDispatcher
-// so the RabbitMQ consumer routes PaymentReceived to FulfillmentParticipant.
 internal sealed class SagaEventHandlerAdapter<TEvent>(ISagaDispatcher dispatcher)
     : IEventHandler<TEvent>
     where TEvent : class, IEvent
