@@ -11,6 +11,12 @@ internal abstract class SagaDescriptor
 {
     public abstract string SagaTypeName { get; }
 
+    /// <summary>
+    /// Returns the event types handled by this saga, or an empty collection if the orchestrator
+    /// cannot be instantiated without DI (e.g. it has constructor dependencies).
+    /// </summary>
+    internal abstract IEnumerable<Type> GetHandledEventTypes();
+
     public abstract Task HandleEventAsync(
         object @event,
         IServiceProvider sp,
@@ -37,6 +43,24 @@ internal sealed class SagaDescriptor<TOrchestrator, TSagaState> : SagaDescriptor
     // FullName is null only for generic type parameters and array element types;
     // TOrchestrator is always a concrete named class so the value is guaranteed non-null.
     public override string SagaTypeName { get; } = typeof(TOrchestrator).FullName!;
+
+    internal override IEnumerable<Type> GetHandledEventTypes()
+    {
+        try
+        {
+            var orchestrator = Activator.CreateInstance<TOrchestrator>();
+            var def = orchestrator.GetDefinition();
+            return def.EventHandlers.Keys
+                .Concat(def.CompensationHandlerByType.Keys)
+                .Distinct()
+                .ToList();
+        }
+        catch (Exception)
+        {
+            // Orchestrator has constructor dependencies or Configure() threw — skip silently.
+            return [];
+        }
+    }
 
     public override async Task HandleEventAsync(
         object @event,

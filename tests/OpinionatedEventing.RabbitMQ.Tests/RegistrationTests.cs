@@ -3,6 +3,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using OpinionatedEventing;
+using OpinionatedEventing.DependencyInjection;
 using OpinionatedEventing.Outbox;
 using OpinionatedEventing.RabbitMQ;
 using Xunit;
@@ -72,5 +73,43 @@ public sealed class RegistrationTests
         Assert.Equal("order-service", opts.ServiceName);
         Assert.False(opts.AutoDeclareTopology);
         Assert.Equal(5, opts.PrefetchCount);
+    }
+
+    [Fact]
+    public void Handler_registered_after_AddRabbitMQTransport_appears_in_registry()
+    {
+        var services = new ServiceCollection();
+        var builder = services.AddOpinionatedEventing();
+
+        // Transport is called first — registry must still capture handlers registered after this.
+        services.AddRabbitMQTransport(o => o.ConnectionString = "amqp://guest:guest@localhost:5672/");
+
+        builder.AddHandlersFromAssemblies(typeof(RegistrationTests).Assembly);
+
+        // Read the registry directly from the descriptor — avoids building the provider,
+        // which would reject the open-generic CapturingEventHandler<T> in the integration tests.
+        var registry = services
+            .FirstOrDefault(d => d.ImplementationInstance is MessageHandlerRegistry)
+            ?.ImplementationInstance as MessageHandlerRegistry;
+        Assert.NotNull(registry);
+        Assert.Contains(typeof(RmqTestEvent), registry.EventTypes);
+        Assert.Contains(typeof(RmqTestCommand), registry.CommandTypes);
+    }
+
+    // ---- test fakes ----
+
+    public sealed record RmqTestEvent(Guid Id) : IEvent;
+    public sealed record RmqTestCommand(Guid Id) : ICommand;
+
+    public sealed class RmqTestEventHandler : IEventHandler<RmqTestEvent>
+    {
+        public Task HandleAsync(RmqTestEvent @event, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+    }
+
+    public sealed class RmqTestCommandHandler : ICommandHandler<RmqTestCommand>
+    {
+        public Task HandleAsync(RmqTestCommand command, CancellationToken cancellationToken)
+            => Task.CompletedTask;
     }
 }

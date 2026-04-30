@@ -4,8 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using MSOptions = Microsoft.Extensions.Options.Options;
 using OpinionatedEventing;
+using OpinionatedEventing.DependencyInjection;
 using OpinionatedEventing.RabbitMQ;
-using OpinionatedEventing.RabbitMQ.DependencyInjection;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
@@ -17,15 +17,13 @@ public sealed class RabbitMQConsumerWorkerTests
 {
     private static RabbitMQConsumerWorker CreateWorker(IMessageHandlerRunner runner)
     {
-        var emptyServices = new ServiceCollection();
-        var accessor = new ServiceCollectionAccessor(emptyServices);
         var options = MSOptions.Create(new RabbitMQOptions { ConnectionString = "amqp://localhost" });
 
         return new RabbitMQConsumerWorker(
             connection: new NeverCalledConnection(),
             handlerRunner: runner,
             scopeFactory: new NeverCalledScopeFactory(),
-            accessor: accessor,
+            registry: new MessageHandlerRegistry(),
             options: options,
             pauseController: new FakeConsumerPauseController(startPaused: false),
             timeProvider: TimeProvider.System,

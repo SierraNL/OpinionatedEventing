@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using MSOptions = Microsoft.Extensions.Options.Options;
 using OpinionatedEventing;
 using OpinionatedEventing.AzureServiceBus;
-using OpinionatedEventing.AzureServiceBus.DependencyInjection;
+using OpinionatedEventing.DependencyInjection;
 using Xunit;
 
 namespace OpinionatedEventing.AzureServiceBus.Tests;
@@ -15,8 +15,6 @@ public sealed class AzureServiceBusConsumerWorkerTests
 {
     private static AzureServiceBusConsumerWorker CreateWorker(IMessageHandlerRunner runner)
     {
-        var emptyServices = new ServiceCollection();
-        var accessor = new ServiceCollectionAccessor(emptyServices);
         var options = MSOptions.Create(new AzureServiceBusOptions
         {
             ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;" +
@@ -28,7 +26,7 @@ public sealed class AzureServiceBusConsumerWorkerTests
             client: new NoOpServiceBusClient(),
             handlerRunner: runner,
             scopeFactory: new NeverCalledScopeFactory(),
-            accessor: accessor,
+            registry: new MessageHandlerRegistry(),
             options: options,
             pauseController: new FakeConsumerPauseController(startPaused: false),
             timeProvider: TimeProvider.System,

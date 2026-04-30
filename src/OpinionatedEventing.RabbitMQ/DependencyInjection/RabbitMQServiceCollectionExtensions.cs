@@ -5,9 +5,9 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using OpinionatedEventing;
+using OpinionatedEventing.DependencyInjection;
 using OpinionatedEventing.Outbox;
 using OpinionatedEventing.RabbitMQ;
-using OpinionatedEventing.RabbitMQ.DependencyInjection;
 using RabbitMQ.Client;
 
 // Placed in this namespace so the extension is available without an extra using directive.
@@ -33,9 +33,6 @@ public static class RabbitMQServiceCollectionExtensions
 
         services.Configure(configure);
         services.TryAddSingleton(TimeProvider.System);
-
-        // Capture the service collection for handler-type scanning at host startup.
-        services.TryAddSingleton(new ServiceCollectionAccessor(services));
 
         services.TryAddSingleton<IConnection>(sp =>
         {

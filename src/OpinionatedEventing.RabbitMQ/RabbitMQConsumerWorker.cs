@@ -6,7 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpinionatedEventing;
-using OpinionatedEventing.RabbitMQ.DependencyInjection;
+using OpinionatedEventing.DependencyInjection;
 using OpinionatedEventing.RabbitMQ.Routing;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -23,7 +23,7 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
     private readonly IConnection _connection;
     private readonly IMessageHandlerRunner _handlerRunner;
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ServiceCollectionAccessor _accessor;
+    private readonly MessageHandlerRegistry _registry;
     private readonly IOptions<RabbitMQOptions> _options;
     private readonly IConsumerPauseController _pauseController;
     private readonly TimeProvider _timeProvider;
@@ -43,7 +43,7 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
         IConnection connection,
         IMessageHandlerRunner handlerRunner,
         IServiceScopeFactory scopeFactory,
-        ServiceCollectionAccessor accessor,
+        MessageHandlerRegistry registry,
         IOptions<RabbitMQOptions> options,
         IConsumerPauseController pauseController,
         TimeProvider timeProvider,
@@ -52,7 +52,7 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
         _connection = connection;
         _handlerRunner = handlerRunner;
         _scopeFactory = scopeFactory;
-        _accessor = accessor;
+        _registry = registry;
         _options = options;
         _pauseController = pauseController;
         _timeProvider = timeProvider;
@@ -63,8 +63,8 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var opts = _options.Value;
-        var eventTypes = ScanHandlerTypes(typeof(IEventHandler<>));
-        var commandTypes = ScanHandlerTypes(typeof(ICommandHandler<>));
+        var eventTypes = _registry.EventTypes;
+        var commandTypes = _registry.CommandTypes;
 
         foreach (var eventType in eventTypes)
         {
@@ -285,14 +285,6 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
         }
         _consumers.Clear();
     }
-
-    private List<Type> ScanHandlerTypes(Type openGenericInterface)
-        => _accessor.Services
-            .Where(d => d.ServiceType.IsGenericType
-                && d.ServiceType.GetGenericTypeDefinition() == openGenericInterface)
-            .Select(d => d.ServiceType.GetGenericArguments()[0])
-            .Distinct()
-            .ToList();
 
     private static string? GetHeader(IReadOnlyBasicProperties properties, string key)
     {

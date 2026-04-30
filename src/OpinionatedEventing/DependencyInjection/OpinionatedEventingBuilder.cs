@@ -10,15 +10,20 @@ namespace OpinionatedEventing.DependencyInjection;
 public sealed class OpinionatedEventingBuilder
 {
     private readonly IServiceCollection _services;
-    private readonly MessageTypeRegistry _registry;
+    private readonly MessageHandlerRegistry _handlerRegistry;
+    private readonly MessageTypeRegistry _typeRegistry;
 
     /// <summary>Gets the underlying <see cref="IServiceCollection"/>.</summary>
     public IServiceCollection Services => _services;
 
-    internal OpinionatedEventingBuilder(IServiceCollection services, MessageTypeRegistry registry)
+    internal OpinionatedEventingBuilder(
+        IServiceCollection services,
+        MessageHandlerRegistry handlerRegistry,
+        MessageTypeRegistry typeRegistry)
     {
         _services = services;
-        _registry = registry;
+        _handlerRegistry = handlerRegistry;
+        _typeRegistry = typeRegistry;
     }
 
     /// <summary>
@@ -54,8 +59,12 @@ public sealed class OpinionatedEventingBuilder
                         if (!alreadyRegistered)
                             _services.AddScoped(iface, type);
 
-                        // Register the event type in the message-type registry.
-                        _registry.Register(iface.GetGenericArguments()[0]);
+                        var eventType = iface.GetGenericArguments()[0];
+                        _handlerRegistry.RegisterEventType(eventType);
+                        // Skip open generic type parameters — FullName is null and they
+                        // have no stable identifier (e.g. CapturingEventHandler<T>).
+                        if (eventType.FullName is not null)
+                            _typeRegistry.Register(eventType);
                     }
                     else if (definition == typeof(ICommandHandler<>))
                     {
@@ -76,8 +85,10 @@ public sealed class OpinionatedEventingBuilder
 
                         _services.AddScoped(iface, type);
 
-                        // Register the command type in the message-type registry.
-                        _registry.Register(iface.GetGenericArguments()[0]);
+                        var cmdType = iface.GetGenericArguments()[0];
+                        _handlerRegistry.RegisterCommandType(cmdType);
+                        if (cmdType.FullName is not null)
+                            _typeRegistry.Register(cmdType);
                     }
                 }
             }

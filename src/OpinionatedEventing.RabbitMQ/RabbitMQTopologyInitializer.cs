@@ -3,7 +3,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using OpinionatedEventing.RabbitMQ.DependencyInjection;
+using OpinionatedEventing.DependencyInjection;
 using OpinionatedEventing.RabbitMQ.Routing;
 using RabbitMQ.Client;
 
@@ -17,19 +17,19 @@ namespace OpinionatedEventing.RabbitMQ;
 internal sealed class RabbitMQTopologyInitializer : IHostedService
 {
     private readonly IConnection _connection;
-    private readonly ServiceCollectionAccessor _accessor;
+    private readonly MessageHandlerRegistry _registry;
     private readonly IOptions<RabbitMQOptions> _options;
     private readonly ILogger<RabbitMQTopologyInitializer> _logger;
 
     /// <summary>Initialises a new <see cref="RabbitMQTopologyInitializer"/>.</summary>
     public RabbitMQTopologyInitializer(
         IConnection connection,
-        ServiceCollectionAccessor accessor,
+        MessageHandlerRegistry registry,
         IOptions<RabbitMQOptions> options,
         ILogger<RabbitMQTopologyInitializer> logger)
     {
         _connection = connection;
-        _accessor = accessor;
+        _registry = registry;
         _options = options;
         _logger = logger;
     }
@@ -41,8 +41,8 @@ internal sealed class RabbitMQTopologyInitializer : IHostedService
         if (!opts.AutoDeclareTopology)
             return;
 
-        var eventTypes = ScanHandlerTypes(typeof(IEventHandler<>));
-        var commandTypes = ScanHandlerTypes(typeof(ICommandHandler<>));
+        var eventTypes = _registry.EventTypes;
+        var commandTypes = _registry.CommandTypes;
 
         await using var channel = await _connection
             .CreateChannelAsync(cancellationToken: cancellationToken)
@@ -162,11 +162,4 @@ internal sealed class RabbitMQTopologyInitializer : IHostedService
         }
     }
 
-    private List<Type> ScanHandlerTypes(Type openGenericInterface)
-        => _accessor.Services
-            .Where(d => d.ServiceType.IsGenericType
-                && d.ServiceType.GetGenericTypeDefinition() == openGenericInterface)
-            .Select(d => d.ServiceType.GetGenericArguments()[0])
-            .Distinct()
-            .ToList();
 }

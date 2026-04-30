@@ -7,8 +7,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpinionatedEventing;
 using OpinionatedEventing.AzureServiceBus.Attributes;
-using OpinionatedEventing.AzureServiceBus.DependencyInjection;
 using OpinionatedEventing.AzureServiceBus.Routing;
+using OpinionatedEventing.DependencyInjection;
 
 namespace OpinionatedEventing.AzureServiceBus;
 
@@ -21,7 +21,7 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
     private readonly ServiceBusClient _client;
     private readonly IMessageHandlerRunner _handlerRunner;
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ServiceCollectionAccessor _accessor;
+    private readonly MessageHandlerRegistry _registry;
     private readonly IOptions<AzureServiceBusOptions> _options;
     private readonly IConsumerPauseController _pauseController;
     private readonly TimeProvider _timeProvider;
@@ -35,7 +35,7 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
         ServiceBusClient client,
         IMessageHandlerRunner handlerRunner,
         IServiceScopeFactory scopeFactory,
-        ServiceCollectionAccessor accessor,
+        MessageHandlerRegistry registry,
         IOptions<AzureServiceBusOptions> options,
         IConsumerPauseController pauseController,
         TimeProvider timeProvider,
@@ -44,7 +44,7 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
         _client = client;
         _handlerRunner = handlerRunner;
         _scopeFactory = scopeFactory;
-        _accessor = accessor;
+        _registry = registry;
         _options = options;
         _pauseController = pauseController;
         _timeProvider = timeProvider;
@@ -61,8 +61,8 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
             MaxConcurrentCalls = opts.MaxConcurrentCalls,
         };
 
-        var eventTypes = ScanHandlerTypes(typeof(IEventHandler<>));
-        var commandTypes = ScanHandlerTypes(typeof(ICommandHandler<>));
+        var eventTypes = _registry.EventTypes;
+        var commandTypes = _registry.CommandTypes;
 
         foreach (var eventType in eventTypes)
         {
@@ -296,11 +296,4 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
         }
     }
 
-    private List<Type> ScanHandlerTypes(Type openGenericInterface)
-        => _accessor.Services
-            .Where(d => d.ServiceType.IsGenericType
-                && d.ServiceType.GetGenericTypeDefinition() == openGenericInterface)
-            .Select(d => d.ServiceType.GetGenericArguments()[0])
-            .Distinct()
-            .ToList();
 }

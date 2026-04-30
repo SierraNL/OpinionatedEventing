@@ -13,4 +13,5 @@ See [AGENTS.md](AGENTS.md) for the full project context, design rules, conventio
 2. Create branch: `git checkout -b issue/<number>-<short-description>` (e.g. `issue/42-fix-outbox-retry`)
 3. Present a plan and wait for explicit approval before writing any code (see AGENTS.md § Planning)
 4. Implement, then run `/review` on staged changes before committing
-5. Open a PR targeting `main` via `gh pr create`
+5. Ensure every new line in `src/` is covered by a unit test — CI enforces this via `codecov/patch`
+6. Open a PR targeting `main` via `gh pr create`
