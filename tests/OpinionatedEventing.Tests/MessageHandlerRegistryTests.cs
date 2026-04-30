@@ -57,6 +57,25 @@ public sealed class MessageHandlerRegistryTests
         Assert.Single(registry.EventTypes, t => t == typeof(RegistryTestEvent));
     }
 
+    [Fact]
+    public void AddOpinionatedEventing_called_twice_shares_same_registry_instance()
+    {
+        var services = new ServiceCollection();
+        var builder1 = services.AddOpinionatedEventing();
+        builder1.AddHandlersFromAssemblies(typeof(MessageHandlerRegistryTests).Assembly);
+
+        // Second call must retrieve the already-registered instance, not create a new one.
+        services.AddOpinionatedEventing();
+
+        var registry = services
+            .FirstOrDefault(d => d.ImplementationInstance is MessageHandlerRegistry)
+            ?.ImplementationInstance as MessageHandlerRegistry;
+
+        Assert.NotNull(registry);
+        Assert.Contains(typeof(RegistryTestEvent), registry.EventTypes);
+        Assert.Contains(typeof(RegistryTestCommand), registry.CommandTypes);
+    }
+
     // ---- test fakes ----
 
     public sealed record RegistryTestEvent(Guid Id) : IEvent;
