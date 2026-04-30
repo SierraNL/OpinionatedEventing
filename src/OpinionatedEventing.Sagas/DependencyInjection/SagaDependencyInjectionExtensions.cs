@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using OpinionatedEventing.DependencyInjection;
 using OpinionatedEventing.Sagas;
 using OpinionatedEventing.Sagas.Options;
 
@@ -55,6 +56,13 @@ public static class SagaDependencyInjectionExtensions
         var instance = (SagaDescriptor)Activator.CreateInstance(descriptorType)!;
         services.AddSingleton(instance);
 
+        var registry = GetRegistry(services);
+        if (registry is not null)
+        {
+            foreach (var eventType in instance.GetHandledEventTypes())
+                registry.RegisterEventType(eventType);
+        }
+
         return services;
     }
 
@@ -82,6 +90,8 @@ public static class SagaDependencyInjectionExtensions
         var instance = (SagaParticipantDescriptor)Activator.CreateInstance(descriptorType)!;
         services.AddSingleton(instance);
 
+        GetRegistry(services)?.RegisterEventType(eventType);
+
         return services;
     }
 
@@ -94,4 +104,8 @@ public static class SagaDependencyInjectionExtensions
         }
         return null;
     }
+
+    private static MessageHandlerRegistry? GetRegistry(IServiceCollection services)
+        => services.FirstOrDefault(d => d.ImplementationInstance is MessageHandlerRegistry)
+               ?.ImplementationInstance as MessageHandlerRegistry;
 }
