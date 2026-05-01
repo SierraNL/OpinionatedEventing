@@ -177,6 +177,73 @@ public sealed class ServiceCollectionExtensionsTests
         Assert.NotNull(handler);
     }
 
+    [Fact]
+    public void AddOpinionatedEventing_RegistersIServiceCollectionAsSingleton()
+    {
+        var services = new ServiceCollection();
+        services.AddOpinionatedEventing();
+
+        var provider = services.BuildServiceProvider();
+        var resolved = provider.GetService<IServiceCollection>();
+
+        Assert.NotNull(resolved);
+        // Must be the same instance that was registered, not a copy.
+        Assert.Same(services, resolved);
+    }
+
+    [Fact]
+    public void MessageHandlerRegistry_BackfillFromServiceCollection_PicksUpFactoryRegisteredEventHandler()
+    {
+        var services = new ServiceCollection();
+        services.AddOpinionatedEventing();
+
+        // Register handler via factory lambda — the pattern used in integration tests.
+        services.AddScoped<IEventHandler<TestEvent>>(_ => new TestEventHandler());
+
+        var provider = services.BuildServiceProvider();
+        var registry = provider.GetRequiredService<MessageHandlerRegistry>();
+        var serviceCollection = provider.GetRequiredService<IServiceCollection>();
+
+        registry.BackfillFromServiceCollection(serviceCollection);
+
+        Assert.Contains(typeof(TestEvent), registry.EventTypes);
+    }
+
+    [Fact]
+    public void MessageHandlerRegistry_BackfillFromServiceCollection_PicksUpFactoryRegisteredCommandHandler()
+    {
+        var services = new ServiceCollection();
+        services.AddOpinionatedEventing();
+
+        services.AddScoped<ICommandHandler<TestCommand>>(_ => new TestCommandHandler());
+
+        var provider = services.BuildServiceProvider();
+        var registry = provider.GetRequiredService<MessageHandlerRegistry>();
+        var serviceCollection = provider.GetRequiredService<IServiceCollection>();
+
+        registry.BackfillFromServiceCollection(serviceCollection);
+
+        Assert.Contains(typeof(TestCommand), registry.CommandTypes);
+    }
+
+    [Fact]
+    public void MessageHandlerRegistry_BackfillFromServiceCollection_IsIdempotent()
+    {
+        var services = new ServiceCollection();
+        services.AddOpinionatedEventing();
+        services.AddScoped<IEventHandler<TestEvent>>(_ => new TestEventHandler());
+
+        var provider = services.BuildServiceProvider();
+        var registry = provider.GetRequiredService<MessageHandlerRegistry>();
+        var serviceCollection = provider.GetRequiredService<IServiceCollection>();
+
+        // Calling twice must not throw and must not duplicate the entry.
+        registry.BackfillFromServiceCollection(serviceCollection);
+        registry.BackfillFromServiceCollection(serviceCollection);
+
+        Assert.Single(registry.EventTypes, t => t == typeof(TestEvent));
+    }
+
     // ---- test fakes ----
 
     public sealed record TestEvent(Guid Id) : IEvent;

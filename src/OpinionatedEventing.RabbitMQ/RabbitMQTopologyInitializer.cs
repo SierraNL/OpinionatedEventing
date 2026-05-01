@@ -1,5 +1,6 @@
 #nullable enable
 
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -18,6 +19,7 @@ internal sealed class RabbitMQTopologyInitializer : IHostedService
 {
     private readonly IConnection _connection;
     private readonly MessageHandlerRegistry _registry;
+    private readonly IServiceCollection _serviceCollection;
     private readonly IOptions<RabbitMQOptions> _options;
     private readonly ILogger<RabbitMQTopologyInitializer> _logger;
 
@@ -25,11 +27,13 @@ internal sealed class RabbitMQTopologyInitializer : IHostedService
     public RabbitMQTopologyInitializer(
         IConnection connection,
         MessageHandlerRegistry registry,
+        IServiceCollection serviceCollection,
         IOptions<RabbitMQOptions> options,
         ILogger<RabbitMQTopologyInitializer> logger)
     {
         _connection = connection;
         _registry = registry;
+        _serviceCollection = serviceCollection;
         _options = options;
         _logger = logger;
     }
@@ -37,6 +41,9 @@ internal sealed class RabbitMQTopologyInitializer : IHostedService
     /// <inheritdoc/>
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        // Backfill handler types registered via factory lambdas (not AddHandlersFromAssemblies).
+        _registry.BackfillFromServiceCollection(_serviceCollection);
+
         var opts = _options.Value;
         if (!opts.AutoDeclareTopology)
             return;
