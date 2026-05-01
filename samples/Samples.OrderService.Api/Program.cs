@@ -21,13 +21,6 @@ builder.Services.AddOrderServiceInfrastructure(
 builder.Services.AddOpinionatedEventingSagas();
 builder.Services.AddSaga<OrderSaga>();
 
-// Bridge: register IEventHandler<T> adapters so the RabbitMQ topology initializer
-// creates subscriptions and the consumer routes these events to the saga dispatcher.
-builder.Services.AddScoped<IEventHandler<OrderPlaced>, SagaEventHandlerAdapter<OrderPlaced>>();
-builder.Services.AddScoped<IEventHandler<PaymentReceived>, SagaEventHandlerAdapter<PaymentReceived>>();
-builder.Services.AddScoped<IEventHandler<PaymentFailed>, SagaEventHandlerAdapter<PaymentFailed>>();
-builder.Services.AddScoped<IEventHandler<StockReserved>, SagaEventHandlerAdapter<StockReserved>>();
-
 // ── Transport ─────────────────────────────────────────────────────────────────
 // Reads ConnectionStrings__rabbitmq injected by Aspire; falls back to RabbitMQOptions.ConnectionString.
 builder.Services.AddRabbitMQTransport(options =>

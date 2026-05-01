@@ -71,7 +71,7 @@ services.AddOpinionatedEventingSagas();
 services.AddSagaParticipant<FulfillmentParticipant>();
 ```
 
-`AddSagaParticipant<T>` scans the `ISagaParticipant<TEvent>` interface, extracts the event type, and registers the correct subscription internally. The participant is resolved from DI per message — constructor injection works normally.
+`AddSagaParticipant<T>` scans the `ISagaParticipant<TEvent>` interface, extracts the event type, registers the correct `IEventHandler<TEvent>` subscription automatically, and wires it to the saga dispatcher. The participant is resolved from DI per message — constructor injection works normally.
 
 ## ISagaContext in choreography
 

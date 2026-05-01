@@ -52,6 +52,59 @@ public sealed class SagaRegistrationTests
     }
 
     [Fact]
+    public void AddSaga_registers_IEventHandler_adapters_for_each_event_type()
+    {
+        var services = new ServiceCollection();
+        services.AddOpinionatedEventing();
+        services.AddSaga<OrderSaga>();
+
+        Assert.Contains(services, d => d.ServiceType == typeof(IEventHandler<OrderPlaced>)
+            && d.ImplementationType == typeof(SagaEventHandlerAdapter<OrderPlaced>));
+        Assert.Contains(services, d => d.ServiceType == typeof(IEventHandler<PaymentReceived>)
+            && d.ImplementationType == typeof(SagaEventHandlerAdapter<PaymentReceived>));
+        Assert.Contains(services, d => d.ServiceType == typeof(IEventHandler<PaymentFailed>)
+            && d.ImplementationType == typeof(SagaEventHandlerAdapter<PaymentFailed>));
+    }
+
+    [Fact]
+    public void AddSagaParticipant_registers_IEventHandler_adapter_for_event_type()
+    {
+        var services = new ServiceCollection();
+        services.AddOpinionatedEventing();
+        services.AddSagaParticipant<StockParticipant>();
+
+        Assert.Contains(services, d => d.ServiceType == typeof(IEventHandler<StockReserved>)
+            && d.ImplementationType == typeof(SagaEventHandlerAdapter<StockReserved>));
+    }
+
+    [Fact]
+    public void AddSaga_called_twice_for_sagas_sharing_event_type_registers_adapter_only_once()
+    {
+        var services = new ServiceCollection();
+        services.AddOpinionatedEventing();
+        services.AddSaga<OrderSaga>();
+        services.AddSaga<TimedOrderSaga>(); // also handles OrderPlaced
+
+        var adapters = services.Where(d =>
+            d.ServiceType == typeof(IEventHandler<OrderPlaced>)
+            && d.ImplementationType == typeof(SagaEventHandlerAdapter<OrderPlaced>)).ToList();
+
+        Assert.Single(adapters);
+    }
+
+    [Fact]
+    public void AddSaga_with_di_constructor_does_not_register_IEventHandler_adapters()
+    {
+        var services = new ServiceCollection();
+        services.AddOpinionatedEventing();
+        services.AddSaga<DependencyRequiringSaga>();
+
+        Assert.DoesNotContain(services, d =>
+            d.ImplementationType?.IsGenericType == true
+            && d.ImplementationType.GetGenericTypeDefinition() == typeof(SagaEventHandlerAdapter<>));
+    }
+
+    [Fact]
     public void AddSaga_with_di_constructor_silently_skips_event_type_registration()
     {
         var services = new ServiceCollection();
