@@ -201,7 +201,7 @@ public sealed class AzureServiceBusIntegrationTests
         => new()
         {
             Id = Guid.NewGuid(),
-            MessageType = typeof(T).AssemblyQualifiedName!,
+            MessageType = typeof(T).FullName!,
             MessageKind = kind,
             Payload = System.Text.Json.JsonSerializer.Serialize(payload),
             CorrelationId = Guid.NewGuid(),

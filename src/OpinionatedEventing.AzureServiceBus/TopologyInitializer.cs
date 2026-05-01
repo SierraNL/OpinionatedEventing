@@ -1,6 +1,7 @@
 #nullable enable
 
 using Azure.Messaging.ServiceBus.Administration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -19,6 +20,7 @@ internal sealed class TopologyInitializer : IHostedService
 {
     private readonly ServiceBusAdministrationClient _adminClient;
     private readonly MessageHandlerRegistry _registry;
+    private readonly IServiceCollection _serviceCollection;
     private readonly IOptions<AzureServiceBusOptions> _options;
     private readonly ILogger<TopologyInitializer> _logger;
 
@@ -26,11 +28,13 @@ internal sealed class TopologyInitializer : IHostedService
     public TopologyInitializer(
         ServiceBusAdministrationClient adminClient,
         MessageHandlerRegistry registry,
+        IServiceCollection serviceCollection,
         IOptions<AzureServiceBusOptions> options,
         ILogger<TopologyInitializer> logger)
     {
         _adminClient = adminClient;
         _registry = registry;
+        _serviceCollection = serviceCollection;
         _options = options;
         _logger = logger;
     }
@@ -38,6 +42,9 @@ internal sealed class TopologyInitializer : IHostedService
     /// <inheritdoc/>
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        // Backfill handler types registered via factory lambdas (not AddHandlersFromAssemblies).
+        _registry.BackfillFromServiceCollection(_serviceCollection);
+
         var opts = _options.Value;
         if (!opts.AutoCreateResources)
             return;

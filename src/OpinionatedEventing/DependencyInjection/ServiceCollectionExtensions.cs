@@ -31,6 +31,12 @@ public static class ServiceCollectionExtensions
         services.TryAddScoped<IMessagingContext>(sp => sp.GetRequiredService<MessagingContext>());
         services.TryAddSingleton<IMessageHandlerRunner, MessageHandlerRunner>();
 
+        // Expose the service collection itself so topology initializers can backfill
+        // MessageHandlerRegistry with handler types registered via factory lambdas.
+        // Safe as a singleton: the collection is fully populated before any IHostedService.StartAsync
+        // runs, so topology initializers only ever read it — never write to it.
+        services.TryAddSingleton<IServiceCollection>(services);
+
         // Re-use existing instances when AddOpinionatedEventing is called more than once so that
         // all builders always write to the same instances that the DI container will resolve.
         var handlerRegistry =
