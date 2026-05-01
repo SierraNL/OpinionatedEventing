@@ -17,10 +17,13 @@ public sealed class RabbitMQConsumerWorkerTests
 {
     private static RabbitMQConsumerWorker CreateWorker(IMessageHandlerRunner runner)
     {
+        var holder = new RabbitMqConnectionHolder();
+        holder.SetConnection(new NeverCalledConnection());
+
         var options = MSOptions.Create(new RabbitMQOptions { ConnectionString = "amqp://localhost" });
 
         return new RabbitMQConsumerWorker(
-            connection: new NeverCalledConnection(),
+            connectionHolder: holder,
             handlerRunner: runner,
             scopeFactory: new NeverCalledScopeFactory(),
             registry: new MessageHandlerRegistry(),

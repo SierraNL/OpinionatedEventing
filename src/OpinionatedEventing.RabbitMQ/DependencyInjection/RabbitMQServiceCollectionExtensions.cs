@@ -1,6 +1,5 @@
 #nullable enable
 
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -8,7 +7,6 @@ using OpinionatedEventing;
 using OpinionatedEventing.DependencyInjection;
 using OpinionatedEventing.Outbox;
 using OpinionatedEventing.RabbitMQ;
-using RabbitMQ.Client;
 
 // Placed in this namespace so the extension is available without an extra using directive.
 namespace Microsoft.Extensions.DependencyInjection;
@@ -34,37 +32,19 @@ public static class RabbitMQServiceCollectionExtensions
         services.Configure(configure);
         services.TryAddSingleton(TimeProvider.System);
 
-        services.TryAddSingleton<IConnection>(sp =>
-        {
-            var opts = sp.GetRequiredService<IOptions<RabbitMQOptions>>().Value;
-            var config = sp.GetService<IConfiguration>();
-            var connectionString = ResolveConnectionString(opts, config);
-            var factory = new ConnectionFactory { Uri = new Uri(connectionString) };
-            return factory.CreateConnectionAsync().GetAwaiter().GetResult();
-        });
-
+        services.TryAddSingleton<RabbitMqConnectionHolder>();
         services.TryAddSingleton<IConsumerPauseController, NullConsumerPauseController>();
         services.TryAddSingleton<ITransport, RabbitMQTransport>();
 
+        // Connection initializer must be registered before topology and consumer so that
+        // StartAsync runs first and the holder is populated before the others await it.
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, RabbitMqConnectionInitializer>());
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, RabbitMQTopologyInitializer>());
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, RabbitMQConsumerWorker>());
 
         return services;
-    }
-
-    private static string ResolveConnectionString(RabbitMQOptions opts, IConfiguration? config)
-    {
-        if (!string.IsNullOrWhiteSpace(opts.ConnectionString))
-            return opts.ConnectionString;
-
-        var aspireConnectionString = config?["ConnectionStrings:rabbitmq"];
-        if (!string.IsNullOrWhiteSpace(aspireConnectionString))
-            return aspireConnectionString;
-
-        throw new InvalidOperationException(
-            "RabbitMQOptions requires either ConnectionString to be set, " +
-            "or a 'ConnectionStrings:rabbitmq' entry in IConfiguration (Aspire service discovery).");
     }
 }

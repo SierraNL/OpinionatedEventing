@@ -14,20 +14,21 @@ namespace OpinionatedEventing.RabbitMQ;
 /// </summary>
 internal sealed class RabbitMQTransport : ITransport, IAsyncDisposable
 {
-    private readonly IConnection _connection;
+    private readonly RabbitMqConnectionHolder _connectionHolder;
     private readonly IMessageTypeRegistry _registry;
     private readonly ILogger<RabbitMQTransport> _logger;
 
+    private IConnection? _connection;
     private IChannel? _publishChannel;
     private readonly SemaphoreSlim _channelLock = new(1, 1);
 
     /// <summary>Initialises a new <see cref="RabbitMQTransport"/>.</summary>
     public RabbitMQTransport(
-        IConnection connection,
+        RabbitMqConnectionHolder connectionHolder,
         IMessageTypeRegistry registry,
         ILogger<RabbitMQTransport> logger)
     {
-        _connection = connection;
+        _connectionHolder = connectionHolder;
         _registry = registry;
         _logger = logger;
     }
@@ -71,6 +72,8 @@ internal sealed class RabbitMQTransport : ITransport, IAsyncDisposable
         await _channelLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            _connection ??= await _connectionHolder.GetConnectionAsync(cancellationToken).ConfigureAwait(false);
+
             if (_publishChannel is null || !_publishChannel.IsOpen)
                 _publishChannel = await _connection
                     .CreateChannelAsync(cancellationToken: cancellationToken)
