@@ -13,7 +13,8 @@ public static class RabbitMqHealthChecksBuilderExtensions
 {
     /// <summary>
     /// Registers a liveness health check that verifies the RabbitMQ broker connection is open.
-    /// Requires <c>IConnection</c> to be registered (provided by <c>AddRabbitMQTransport</c>).
+    /// Requires <c>AddRabbitMQTransport()</c> to have been called so that the internal
+    /// connection holder is available in the service collection.
     /// </summary>
     /// <param name="builder">The health checks builder to extend.</param>
     /// <returns>The same <paramref name="builder"/> for chaining.</returns>

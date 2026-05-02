@@ -20,7 +20,7 @@ namespace OpinionatedEventing.RabbitMQ;
 /// </summary>
 internal sealed class RabbitMQConsumerWorker : BackgroundService
 {
-    private readonly IConnection _connection;
+    private readonly RabbitMqConnectionHolder _connectionHolder;
     private readonly IMessageHandlerRunner _handlerRunner;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly MessageHandlerRegistry _registry;
@@ -40,7 +40,7 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
 
     /// <summary>Initialises a new <see cref="RabbitMQConsumerWorker"/>.</summary>
     public RabbitMQConsumerWorker(
-        IConnection connection,
+        RabbitMqConnectionHolder connectionHolder,
         IMessageHandlerRunner handlerRunner,
         IServiceScopeFactory scopeFactory,
         MessageHandlerRegistry registry,
@@ -49,7 +49,7 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
         TimeProvider timeProvider,
         ILogger<RabbitMQConsumerWorker> logger)
     {
-        _connection = connection;
+        _connectionHolder = connectionHolder;
         _handlerRunner = handlerRunner;
         _scopeFactory = scopeFactory;
         _registry = registry;
@@ -62,6 +62,8 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
     /// <inheritdoc/>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        var connection = await _connectionHolder.GetConnectionAsync(stoppingToken).ConfigureAwait(false);
+
         var opts = _options.Value;
         var eventTypes = _registry.EventTypes;
         var commandTypes = _registry.CommandTypes;
@@ -78,7 +80,7 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
 
             var queueName = MessageNamingConvention.GetEventQueueName(eventType, opts.ServiceName);
             var exchangeName = MessageNamingConvention.GetExchangeName(eventType);
-            await StartConsumerAsync(queueName, stoppingToken).ConfigureAwait(false);
+            await StartConsumerAsync(connection, queueName, stoppingToken).ConfigureAwait(false);
 
             _logger.LogInformation(
                 "Consuming event '{EventType}' from queue '{Queue}' (exchange '{Exchange}').",
@@ -88,7 +90,7 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
         foreach (var commandType in commandTypes)
         {
             var queueName = MessageNamingConvention.GetQueueName(commandType);
-            await StartConsumerAsync(queueName, stoppingToken).ConfigureAwait(false);
+            await StartConsumerAsync(connection, queueName, stoppingToken).ConfigureAwait(false);
 
             _logger.LogInformation(
                 "Consuming command '{CommandType}' from queue '{Queue}'.",
@@ -179,10 +181,11 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
     }
 
     private async Task StartConsumerAsync(
+        IConnection connection,
         string queueName,
         CancellationToken ct)
     {
-        var channel = await _connection.CreateChannelAsync(cancellationToken: ct).ConfigureAwait(false);
+        var channel = await connection.CreateChannelAsync(cancellationToken: ct).ConfigureAwait(false);
 
         await channel.BasicQosAsync(
             prefetchSize: 0,

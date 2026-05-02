@@ -15,18 +15,21 @@ namespace OpinionatedEventing.RabbitMQ.Tests;
 
 /// <summary>
 /// Unit tests for the pause/resume loop in <see cref="RabbitMQConsumerWorker"/>.
-/// These tests register no handlers so the worker never calls <see cref="IConnection"/>
+/// These tests register no handlers so the worker never creates channels
 /// — it proceeds directly to <c>RunPauseLoopAsync</c> where the pause logic lives.
 /// </summary>
 public sealed class ConsumerWorkerPauseTests
 {
     private static RabbitMQConsumerWorker CreateWorker(IConsumerPauseController pauseController)
     {
-        // Empty registry → no handlers registered → no channels created
+        // Empty registry → no handlers → GetConnectionAsync resolves immediately then no channels are created
+        var holder = new RabbitMqConnectionHolder();
+        holder.SetConnection(new NeverCalledConnection());
+
         var options = MSOptions.Create(new RabbitMQOptions { ConnectionString = "amqp://localhost" });
 
         return new RabbitMQConsumerWorker(
-            connection: new NeverCalledConnection(),
+            connectionHolder: holder,
             handlerRunner: new NeverCalledHandlerRunner(),
             scopeFactory: new NeverCalledScopeFactory(),
             registry: new MessageHandlerRegistry(),

@@ -17,7 +17,7 @@ namespace OpinionatedEventing.RabbitMQ;
 /// </summary>
 internal sealed class RabbitMQTopologyInitializer : IHostedService
 {
-    private readonly IConnection _connection;
+    private readonly RabbitMqConnectionHolder _connectionHolder;
     private readonly MessageHandlerRegistry _registry;
     private readonly IServiceCollection _serviceCollection;
     private readonly IOptions<RabbitMQOptions> _options;
@@ -25,13 +25,13 @@ internal sealed class RabbitMQTopologyInitializer : IHostedService
 
     /// <summary>Initialises a new <see cref="RabbitMQTopologyInitializer"/>.</summary>
     public RabbitMQTopologyInitializer(
-        IConnection connection,
+        RabbitMqConnectionHolder connectionHolder,
         MessageHandlerRegistry registry,
         IServiceCollection serviceCollection,
         IOptions<RabbitMQOptions> options,
         ILogger<RabbitMQTopologyInitializer> logger)
     {
-        _connection = connection;
+        _connectionHolder = connectionHolder;
         _registry = registry;
         _serviceCollection = serviceCollection;
         _options = options;
@@ -48,10 +48,12 @@ internal sealed class RabbitMQTopologyInitializer : IHostedService
         if (!opts.AutoDeclareTopology)
             return;
 
+        var connection = await _connectionHolder.GetConnectionAsync(cancellationToken).ConfigureAwait(false);
+
         var eventTypes = _registry.EventTypes;
         var commandTypes = _registry.CommandTypes;
 
-        await using var channel = await _connection
+        await using var channel = await connection
             .CreateChannelAsync(cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
@@ -168,5 +170,4 @@ internal sealed class RabbitMQTopologyInitializer : IHostedService
             throw;
         }
     }
-
 }

@@ -1,11 +1,13 @@
 #nullable enable
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using OpinionatedEventing;
 using OpinionatedEventing.DependencyInjection;
 using OpinionatedEventing.Outbox;
 using OpinionatedEventing.RabbitMQ;
+using RabbitMQ.Client;
 using Xunit;
 
 namespace OpinionatedEventing.RabbitMQ.Tests;
@@ -73,6 +75,44 @@ public sealed class RegistrationTests
         Assert.Equal("order-service", opts.ServiceName);
         Assert.False(opts.AutoDeclareTopology);
         Assert.Equal(5, opts.PrefetchCount);
+    }
+
+    [Fact]
+    public void AddRabbitMQTransport_does_not_register_IConnection_singleton()
+    {
+        // IConnection must not be registered as a singleton — doing so would require
+        // sync-over-async at DI resolution time (see issue #104).
+        var services = new ServiceCollection();
+        services.AddOpinionatedEventing();
+        services.AddRabbitMQTransport(o => o.ConnectionString = "amqp://guest:guest@localhost:5672/");
+
+        var descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IConnection));
+        Assert.Null(descriptor);
+    }
+
+    [Fact]
+    public void AddRabbitMQTransport_registers_RabbitMqConnectionHolder()
+    {
+        var services = new ServiceCollection();
+        services.AddOpinionatedEventing();
+        services.AddRabbitMQTransport(o => o.ConnectionString = "amqp://guest:guest@localhost:5672/");
+
+        var descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(RabbitMqConnectionHolder));
+        Assert.NotNull(descriptor);
+        Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
+    }
+
+    [Fact]
+    public void AddRabbitMQTransport_registers_RabbitMqConnectionInitializer_as_IHostedService()
+    {
+        var services = new ServiceCollection();
+        services.AddOpinionatedEventing();
+        services.AddRabbitMQTransport(o => o.ConnectionString = "amqp://guest:guest@localhost:5672/");
+
+        var descriptor = services.FirstOrDefault(d =>
+            d.ServiceType == typeof(IHostedService) &&
+            d.ImplementationType == typeof(RabbitMqConnectionInitializer));
+        Assert.NotNull(descriptor);
     }
 
     [Fact]
