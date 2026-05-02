@@ -116,7 +116,28 @@ public sealed class MigrationBuilderExtensionsTests : IClassFixture<MigrationTes
 
         var createTable = Assert.Single(builder.Operations.OfType<CreateTableOperation>());
         Assert.Equal("saga_states", createTable.Name);
+        Assert.Contains(createTable.Columns, c => c.Name == "LockedUntil");
+        Assert.Contains(createTable.Columns, c => c.Name == "LockedBy");
         Assert.Equal(2, builder.Operations.OfType<CreateIndexOperation>().Count());
+    }
+
+    [Fact]
+    public void AddSagaStateLockColumns_queues_AddColumn_DropIndex_and_CreateIndex_operations()
+    {
+        var builder = new MigrationBuilder(SqlServerProvider);
+
+        builder.AddSagaStateLockColumns();
+
+        var addColumns = builder.Operations.OfType<AddColumnOperation>().ToList();
+        Assert.Contains(addColumns, c => c.Name == "LockedBy");
+        Assert.Contains(addColumns, c => c.Name == "LockedUntil");
+
+        var dropIndex = Assert.Single(builder.Operations.OfType<DropIndexOperation>());
+        Assert.Equal("IX_saga_states_timeout", dropIndex.Name);
+
+        var createIndex = Assert.Single(builder.Operations.OfType<CreateIndexOperation>());
+        Assert.Equal("IX_saga_states_timeout", createIndex.Name);
+        Assert.Contains("LockedUntil", createIndex.Columns);
     }
 
     [Fact]
@@ -126,11 +147,13 @@ public sealed class MigrationBuilderExtensionsTests : IClassFixture<MigrationTes
         var b2 = new MigrationBuilder(SqlServerProvider);
         var b3 = new MigrationBuilder(SqlServerProvider);
         var b4 = new MigrationBuilder(SqlServerProvider);
+        var b5 = new MigrationBuilder(SqlServerProvider);
 
         Assert.Same(b1, b1.CreateOutboxTable());
         Assert.Same(b2, b2.DropOutboxTable());
         Assert.Same(b3, b3.CreateSagaStateTable());
         Assert.Same(b4, b4.DropSagaStateTable());
+        Assert.Same(b5, b5.AddSagaStateLockColumns());
     }
 
     // --- helpers ---

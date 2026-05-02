@@ -36,4 +36,17 @@ public sealed class SagaState
     /// or <see langword="null"/> if no timeout is configured.
     /// </summary>
     public DateTimeOffset? ExpiresAt { get; set; }
+
+    /// <summary>
+    /// Gets or sets the UTC time until which this saga instance is claimed by a timeout worker,
+    /// or <see langword="null"/> if not currently claimed.
+    /// Expired claims are re-eligible automatically, providing crash recovery.
+    /// </summary>
+    public DateTimeOffset? LockedUntil { get; set; }
+
+    /// <summary>
+    /// Gets or sets the unique identifier of the timeout worker instance that has claimed this saga,
+    /// or <see langword="null"/> if not currently claimed.
+    /// </summary>
+    public string? LockedBy { get; set; }
 }

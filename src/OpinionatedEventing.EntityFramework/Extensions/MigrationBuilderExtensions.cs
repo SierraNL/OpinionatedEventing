@@ -76,8 +76,8 @@ public static class OpinionatedEventingMigrationBuilderExtensions
     /// </summary>
     /// <remarks>
     /// When <see cref="MigrationBuilder.ActiveProvider"/> contains <c>"Sqlite"</c> (case-insensitive),
-    /// <see cref="DateTimeOffset"/> columns (<c>CreatedAt</c>, <c>UpdatedAt</c>, <c>ExpiresAt</c>) are
-    /// emitted as <c>long</c> (<c>INTEGER</c>) to store UTC ticks, matching the
+    /// <see cref="DateTimeOffset"/> columns (<c>CreatedAt</c>, <c>UpdatedAt</c>, <c>ExpiresAt</c>,
+    /// <c>LockedUntil</c>) are emitted as <c>long</c> (<c>INTEGER</c>) to store UTC ticks, matching the
     /// <see cref="Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter{TModel,TProvider}"/>
     /// applied by <c>modelBuilder.ApplySagaStateConfiguration(Database.ProviderName)</c>.
     /// </remarks>
@@ -101,6 +101,8 @@ public static class OpinionatedEventingMigrationBuilderExtensions
                 CreatedAt = sqlite ? table.Column<long>(nullable: false) : table.Column<DateTimeOffset>(nullable: false),
                 UpdatedAt = sqlite ? table.Column<long>(nullable: false) : table.Column<DateTimeOffset>(nullable: false),
                 ExpiresAt = sqlite ? table.Column<long>(nullable: true) : table.Column<DateTimeOffset>(nullable: true),
+                LockedUntil = sqlite ? table.Column<long>(nullable: true) : table.Column<DateTimeOffset>(nullable: true),
+                LockedBy = table.Column<string>(maxLength: 36, nullable: true),
             },
             constraints: table =>
                 table.PrimaryKey("PK_saga_states", x => x.Id));
@@ -114,7 +116,7 @@ public static class OpinionatedEventingMigrationBuilderExtensions
         migrationBuilder.CreateIndex(
             name: "IX_saga_states_timeout",
             table: "saga_states",
-            columns: ["Status", "ExpiresAt"]);
+            columns: ["Status", "ExpiresAt", "LockedUntil"]);
 
         return migrationBuilder;
     }
@@ -125,6 +127,52 @@ public static class OpinionatedEventingMigrationBuilderExtensions
     public static MigrationBuilder DropSagaStateTable(this MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable(name: "saga_states");
+        return migrationBuilder;
+    }
+
+    /// <summary>
+    /// Adds <c>LockedUntil</c> and <c>LockedBy</c> columns to an existing <c>saga_states</c> table.
+    /// Use this in an upgrade migration when the table was created by an earlier version of
+    /// <c>CreateSagaStateTable</c> that did not include the claim-column locking columns.
+    /// Also drops the old two-column timeout index and recreates it with the additional
+    /// <c>LockedUntil</c> column.
+    /// </summary>
+    /// <remarks>
+    /// When <see cref="MigrationBuilder.ActiveProvider"/> contains <c>"Sqlite"</c> (case-insensitive),
+    /// <c>LockedUntil</c> is emitted as <c>long</c> (<c>INTEGER</c>) to store UTC ticks.
+    /// </remarks>
+    /// <param name="migrationBuilder">The migration builder.</param>
+    /// <returns>The same <paramref name="migrationBuilder"/> for chaining.</returns>
+    public static MigrationBuilder AddSagaStateLockColumns(this MigrationBuilder migrationBuilder)
+    {
+        var sqlite = migrationBuilder.ActiveProvider?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true;
+
+        migrationBuilder.AddColumn<string>(
+            name: "LockedBy",
+            table: "saga_states",
+            maxLength: 36,
+            nullable: true);
+
+        if (sqlite)
+            migrationBuilder.AddColumn<long>(
+                name: "LockedUntil",
+                table: "saga_states",
+                nullable: true);
+        else
+            migrationBuilder.AddColumn<DateTimeOffset>(
+                name: "LockedUntil",
+                table: "saga_states",
+                nullable: true);
+
+        migrationBuilder.DropIndex(
+            name: "IX_saga_states_timeout",
+            table: "saga_states");
+
+        migrationBuilder.CreateIndex(
+            name: "IX_saga_states_timeout",
+            table: "saga_states",
+            columns: ["Status", "ExpiresAt", "LockedUntil"]);
+
         return migrationBuilder;
     }
 }
