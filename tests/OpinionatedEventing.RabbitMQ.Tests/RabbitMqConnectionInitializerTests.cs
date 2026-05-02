@@ -63,6 +63,23 @@ public sealed class RabbitMqConnectionInitializerTests
             () => RabbitMqConnectionInitializer.ResolveConnectionString(opts, config: null));
     }
 
+    // ─── StopAsync ────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task StopAsync_completes_without_exception()
+    {
+        var opts = MSOptions.Create(new RabbitMQOptions { ConnectionString = "amqp://localhost/" });
+        var holder = new RabbitMqConnectionHolder();
+
+        await using var initializer = new RabbitMqConnectionInitializer(
+            holder,
+            opts,
+            NullLogger<RabbitMqConnectionInitializer>.Instance);
+
+        // StopAsync is a no-op — just verify it doesn't throw
+        await initializer.StopAsync(TestContext.Current.CancellationToken);
+    }
+
     // ─── StartAsync failure ────────────────────────────────────────────────────────
 
     [Fact]
