@@ -7,11 +7,9 @@ using Xunit;
 namespace OpinionatedEventing.EntityFramework.Tests;
 
 /// <summary>
-/// Integration tests verifying that pending-message dispatch and saga timeout queries
-/// work correctly against an in-process SQLite database using UTC-ticks storage for
-/// <see cref="DateTimeOffset"/> columns.
+/// Verifies that pending-message dispatch and saga timeout queries work correctly against
+/// an in-process SQLite database using UTC-ticks storage for <see cref="DateTimeOffset"/> columns.
 /// </summary>
-[Trait("Category", "Integration")]
 public sealed class SqliteIntegrationTests : IDisposable
 {
     // xUnit v3 creates a new class instance per test method, so each test gets its own

@@ -12,11 +12,10 @@ using Xunit;
 namespace OpinionatedEventing.EntityFramework.Tests;
 
 /// <summary>
-/// Integration tests for <see cref="OpinionatedEventingMigrationBuilderExtensions"/>.
-/// Require Docker with a SQL Server image available.
-/// Run with: dotnet test --filter "Category=Integration"
+/// Tests for <see cref="OpinionatedEventingMigrationBuilderExtensions"/>.
+/// Tests that execute DDL against a real SQL Server instance are tagged
+/// <c>Category=Integration</c> and require Docker.
 /// </summary>
-[Trait("Category", "Integration")]
 public sealed class MigrationBuilderExtensionsTests : IClassFixture<MigrationTestFixture>
 {
     private const string SqlServerProvider = "Microsoft.EntityFrameworkCore.SqlServer";
@@ -29,7 +28,7 @@ public sealed class MigrationBuilderExtensionsTests : IClassFixture<MigrationTes
         _fixture = fixture;
     }
 
-    [Fact]
+    [Fact, Trait("Category", "Integration")]
     public void CreateOutboxTable_creates_table_and_both_indexes()
     {
         using var ctx = BuildContext();
@@ -47,7 +46,7 @@ public sealed class MigrationBuilderExtensionsTests : IClassFixture<MigrationTes
         Drop(ctx, generator, b => b.DropOutboxTable());
     }
 
-    [Fact]
+    [Fact, Trait("Category", "Integration")]
     public void DropOutboxTable_removes_table_and_index()
     {
         using var ctx = BuildContext();
@@ -59,7 +58,7 @@ public sealed class MigrationBuilderExtensionsTests : IClassFixture<MigrationTes
         Assert.False(TableExists(ctx, "outbox_messages"));
     }
 
-    [Fact]
+    [Fact, Trait("Category", "Integration")]
     public void CreateSagaStateTable_creates_table_unique_and_timeout_indexes()
     {
         using var ctx = BuildContext();
@@ -76,7 +75,7 @@ public sealed class MigrationBuilderExtensionsTests : IClassFixture<MigrationTes
         Drop(ctx, generator, b => b.DropSagaStateTable());
     }
 
-    [Fact]
+    [Fact, Trait("Category", "Integration")]
     public void DropSagaStateTable_removes_table_and_indexes()
     {
         using var ctx = BuildContext();
@@ -154,6 +153,30 @@ public sealed class MigrationBuilderExtensionsTests : IClassFixture<MigrationTes
         Assert.Same(b3, b3.CreateSagaStateTable());
         Assert.Same(b4, b4.DropSagaStateTable());
         Assert.Same(b5, b5.AddSagaStateLockColumns());
+    }
+
+    [Fact]
+    public void CreateSagaStateTable_emits_long_columns_for_SQLite_provider()
+    {
+        var builder = new MigrationBuilder("Microsoft.EntityFrameworkCore.Sqlite");
+
+        builder.CreateSagaStateTable();
+
+        var createTable = Assert.Single(builder.Operations.OfType<CreateTableOperation>());
+        Assert.Equal(typeof(long), createTable.Columns.Single(c => c.Name == "ExpiresAt").ClrType);
+        Assert.Equal(typeof(long), createTable.Columns.Single(c => c.Name == "LockedUntil").ClrType);
+    }
+
+    [Fact]
+    public void AddSagaStateLockColumns_emits_long_LockedUntil_for_SQLite_provider()
+    {
+        var builder = new MigrationBuilder("Microsoft.EntityFrameworkCore.Sqlite");
+
+        builder.AddSagaStateLockColumns();
+
+        var addColumns = builder.Operations.OfType<AddColumnOperation>().ToList();
+        Assert.Equal(typeof(long), addColumns.Single(c => c.Name == "LockedUntil").ClrType);
+        Assert.Equal(typeof(string), addColumns.Single(c => c.Name == "LockedBy").ClrType);
     }
 
     // --- helpers ---
