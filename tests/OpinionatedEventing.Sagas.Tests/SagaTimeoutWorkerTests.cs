@@ -95,52 +95,48 @@ public sealed class SagaTimeoutWorkerTests
     }
 
     [Fact]
-    public async Task Worker_second_cycle_fires_when_FakeTimeProvider_advances_past_check_interval()
+    public async Task Worker_cycle_fires_when_FakeTimeProvider_advances_past_check_interval()
     {
         // Verifies that Task.Delay uses the TimeProvider-aware overload: advancing FakeTimeProvider
         // past the check interval must trigger the next worker cycle without any real-time wait.
+        //
+        // Design: start the worker with an empty store so the first check finds nothing and the
+        // worker immediately blocks on Task.Delay. A brief real-time pause ensures the timer is
+        // registered before we call Advance — eliminating the race where Advance fires before
+        // the timer exists.
         var clock = new FakeTimeProvider();
         await using var h = SagaTestHarness.Create(s => s.AddSaga<TimedOrderSaga>(), clock);
         var ct = TestContext.Current.CancellationToken;
 
-        // First saga: already expired so the first worker check catches it immediately.
-        var corrId1 = Guid.NewGuid();
-        await h.Dispatcher.DispatchAsync(new OrderPlaced { CorrelationId = corrId1 }, ct);
-        clock.Advance(TimeSpan.FromMinutes(31));
-
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         _ = h.Worker.StartAsync(cts.Token);
 
-        // Poll (real time) until the first check completes and the worker is waiting on Task.Delay.
+        // Wait (real time) for the first empty check to complete and the worker to register
+        // its Task.Delay timer with the fake clock. The check finds no sagas so it returns
+        // almost immediately; 200 ms is a generous real-time budget for any CI runner.
+        await Task.Delay(200, ct);
+
+        // Dispatch a saga that expires right now (relative to the fake clock).
+        var corrId = Guid.NewGuid();
+        await h.Dispatcher.DispatchAsync(new OrderPlaced { CorrelationId = corrId }, ct);
+        clock.Advance(TimeSpan.FromMinutes(31)); // expire the saga
+
+        // Advance the fake clock past the 30-second check interval. This fires the Task.Delay
+        // timer synchronously, queuing the second CheckTimeoutsAsync on the thread pool.
+        // Without the TimeProvider-aware overload this advance would have no effect.
+        clock.Advance(TimeSpan.FromSeconds(31));
+
+        // Poll (real time) until the second check completes.
         var deadline = DateTime.UtcNow.AddSeconds(5);
         while (DateTime.UtcNow < deadline)
         {
-            var s = await h.Store.FindAsync(typeof(TimedOrderSaga).FullName!, corrId1.ToString(), ct);
-            if (s?.Status == SagaStatus.Completed) break;
-            await Task.Delay(10, ct);
-        }
-        Assert.Equal(SagaStatus.Completed,
-            (await h.Store.FindAsync(typeof(TimedOrderSaga).FullName!, corrId1.ToString(), ct))!.Status);
-
-        // Second saga: dispatched now (fake time = T+31 min), expires in 30 min.
-        var corrId2 = Guid.NewGuid();
-        await h.Dispatcher.DispatchAsync(new OrderPlaced { CorrelationId = corrId2 }, ct);
-
-        // Advance fake clock 31 minutes: both expires the second saga AND ticks past the
-        // 30-second check interval, unblocking Task.Delay and triggering the second check.
-        // Without the TimeProvider-aware Task.Delay overload this advance would have no effect.
-        clock.Advance(TimeSpan.FromMinutes(31));
-
-        deadline = DateTime.UtcNow.AddSeconds(5);
-        while (DateTime.UtcNow < deadline)
-        {
-            var s = await h.Store.FindAsync(typeof(TimedOrderSaga).FullName!, corrId2.ToString(), ct);
+            var s = await h.Store.FindAsync(typeof(TimedOrderSaga).FullName!, corrId.ToString(), ct);
             if (s?.Status == SagaStatus.Completed) break;
             await Task.Delay(10, ct);
         }
 
-        var state2 = await h.Store.FindAsync(typeof(TimedOrderSaga).FullName!, corrId2.ToString(), ct);
-        Assert.Equal(SagaStatus.Completed, state2!.Status);
+        var state = await h.Store.FindAsync(typeof(TimedOrderSaga).FullName!, corrId.ToString(), ct);
+        Assert.Equal(SagaStatus.Completed, state!.Status);
 
         await cts.CancelAsync();
         await h.Worker.StopAsync(CancellationToken.None);
