@@ -12,82 +12,14 @@ using Xunit;
 namespace OpinionatedEventing.EntityFramework.Tests;
 
 /// <summary>
-/// Tests for <see cref="OpinionatedEventingMigrationBuilderExtensions"/>.
-/// Tests that execute DDL against a real SQL Server instance are tagged
-/// <c>Category=Integration</c> and require Docker.
+/// Pure-operations tests for <see cref="OpinionatedEventingMigrationBuilderExtensions"/>.
+/// These tests inspect the <see cref="MigrationBuilder.Operations"/> queue without executing
+/// any DDL, so no database or Docker is required.
 /// </summary>
-public sealed class MigrationBuilderExtensionsTests : IClassFixture<MigrationTestFixture>
+public sealed class MigrationBuilderOperationsTests
 {
     private const string SqlServerProvider = "Microsoft.EntityFrameworkCore.SqlServer";
-
-    private readonly MigrationTestFixture _fixture;
-
-    /// <summary>Initialises the test class with the shared SQL Server fixture.</summary>
-    public MigrationBuilderExtensionsTests(MigrationTestFixture fixture)
-    {
-        _fixture = fixture;
-    }
-
-    [Fact, Trait("Category", "Integration")]
-    public void CreateOutboxTable_creates_table_and_both_indexes()
-    {
-        using var ctx = BuildContext();
-        var generator = ctx.GetInfrastructure().GetRequiredService<IMigrationsSqlGenerator>();
-
-        var builder = new MigrationBuilder(SqlServerProvider);
-        builder.CreateOutboxTable();
-        Apply(ctx, generator, builder);
-
-        Assert.True(TableExists(ctx, "outbox_messages"));
-        Assert.True(IndexExists(ctx, "IX_outbox_messages_pending"));
-        Assert.True(IndexExists(ctx, "IX_outbox_messages_lock"));
-
-        // Cleanup so subsequent tests start with a clean slate.
-        Drop(ctx, generator, b => b.DropOutboxTable());
-    }
-
-    [Fact, Trait("Category", "Integration")]
-    public void DropOutboxTable_removes_table_and_index()
-    {
-        using var ctx = BuildContext();
-        var generator = ctx.GetInfrastructure().GetRequiredService<IMigrationsSqlGenerator>();
-
-        Apply(ctx, generator, new MigrationBuilder(SqlServerProvider), b => b.CreateOutboxTable());
-        Apply(ctx, generator, new MigrationBuilder(SqlServerProvider), b => b.DropOutboxTable());
-
-        Assert.False(TableExists(ctx, "outbox_messages"));
-    }
-
-    [Fact, Trait("Category", "Integration")]
-    public void CreateSagaStateTable_creates_table_unique_and_timeout_indexes()
-    {
-        using var ctx = BuildContext();
-        var generator = ctx.GetInfrastructure().GetRequiredService<IMigrationsSqlGenerator>();
-
-        var builder = new MigrationBuilder(SqlServerProvider);
-        builder.CreateSagaStateTable();
-        Apply(ctx, generator, builder);
-
-        Assert.True(TableExists(ctx, "saga_states"));
-        Assert.True(IndexExists(ctx, "UX_saga_states_type_correlation"));
-        Assert.True(IndexExists(ctx, "IX_saga_states_timeout"));
-
-        Drop(ctx, generator, b => b.DropSagaStateTable());
-    }
-
-    [Fact, Trait("Category", "Integration")]
-    public void DropSagaStateTable_removes_table_and_indexes()
-    {
-        using var ctx = BuildContext();
-        var generator = ctx.GetInfrastructure().GetRequiredService<IMigrationsSqlGenerator>();
-
-        Apply(ctx, generator, new MigrationBuilder(SqlServerProvider), b => b.CreateSagaStateTable());
-        Apply(ctx, generator, new MigrationBuilder(SqlServerProvider), b => b.DropSagaStateTable());
-
-        Assert.False(TableExists(ctx, "saga_states"));
-    }
-
-    // --- pure-operations tests (no database required) ---
+    private const string SqliteProvider = "Microsoft.EntityFrameworkCore.Sqlite";
 
     [Fact]
     public void CreateOutboxTable_queues_CreateTable_and_CreateIndex_operations()
@@ -158,7 +90,7 @@ public sealed class MigrationBuilderExtensionsTests : IClassFixture<MigrationTes
     [Fact]
     public void CreateSagaStateTable_emits_long_columns_for_SQLite_provider()
     {
-        var builder = new MigrationBuilder("Microsoft.EntityFrameworkCore.Sqlite");
+        var builder = new MigrationBuilder(SqliteProvider);
 
         builder.CreateSagaStateTable();
 
@@ -170,13 +102,90 @@ public sealed class MigrationBuilderExtensionsTests : IClassFixture<MigrationTes
     [Fact]
     public void AddSagaStateLockColumns_emits_long_LockedUntil_for_SQLite_provider()
     {
-        var builder = new MigrationBuilder("Microsoft.EntityFrameworkCore.Sqlite");
+        var builder = new MigrationBuilder(SqliteProvider);
 
         builder.AddSagaStateLockColumns();
 
         var addColumns = builder.Operations.OfType<AddColumnOperation>().ToList();
         Assert.Equal(typeof(long), addColumns.Single(c => c.Name == "LockedUntil").ClrType);
         Assert.Equal(typeof(string), addColumns.Single(c => c.Name == "LockedBy").ClrType);
+    }
+}
+
+/// <summary>
+/// Integration tests for <see cref="OpinionatedEventingMigrationBuilderExtensions"/> that
+/// execute DDL against a real SQL Server instance. Require Docker.
+/// </summary>
+[Trait("Category", "Integration")]
+public sealed class MigrationBuilderExtensionsTests : IClassFixture<MigrationTestFixture>
+{
+    private const string SqlServerProvider = "Microsoft.EntityFrameworkCore.SqlServer";
+
+    private readonly MigrationTestFixture _fixture;
+
+    /// <summary>Initialises the test class with the shared SQL Server fixture.</summary>
+    public MigrationBuilderExtensionsTests(MigrationTestFixture fixture)
+    {
+        _fixture = fixture;
+    }
+
+    [Fact]
+    public void CreateOutboxTable_creates_table_and_both_indexes()
+    {
+        using var ctx = BuildContext();
+        var generator = ctx.GetInfrastructure().GetRequiredService<IMigrationsSqlGenerator>();
+
+        var builder = new MigrationBuilder(SqlServerProvider);
+        builder.CreateOutboxTable();
+        Apply(ctx, generator, builder);
+
+        Assert.True(TableExists(ctx, "outbox_messages"));
+        Assert.True(IndexExists(ctx, "IX_outbox_messages_pending"));
+        Assert.True(IndexExists(ctx, "IX_outbox_messages_lock"));
+
+        // Cleanup so subsequent tests start with a clean slate.
+        Drop(ctx, generator, b => b.DropOutboxTable());
+    }
+
+    [Fact]
+    public void DropOutboxTable_removes_table_and_index()
+    {
+        using var ctx = BuildContext();
+        var generator = ctx.GetInfrastructure().GetRequiredService<IMigrationsSqlGenerator>();
+
+        Apply(ctx, generator, new MigrationBuilder(SqlServerProvider), b => b.CreateOutboxTable());
+        Apply(ctx, generator, new MigrationBuilder(SqlServerProvider), b => b.DropOutboxTable());
+
+        Assert.False(TableExists(ctx, "outbox_messages"));
+    }
+
+    [Fact]
+    public void CreateSagaStateTable_creates_table_unique_and_timeout_indexes()
+    {
+        using var ctx = BuildContext();
+        var generator = ctx.GetInfrastructure().GetRequiredService<IMigrationsSqlGenerator>();
+
+        var builder = new MigrationBuilder(SqlServerProvider);
+        builder.CreateSagaStateTable();
+        Apply(ctx, generator, builder);
+
+        Assert.True(TableExists(ctx, "saga_states"));
+        Assert.True(IndexExists(ctx, "UX_saga_states_type_correlation"));
+        Assert.True(IndexExists(ctx, "IX_saga_states_timeout"));
+
+        Drop(ctx, generator, b => b.DropSagaStateTable());
+    }
+
+    [Fact]
+    public void DropSagaStateTable_removes_table_and_indexes()
+    {
+        using var ctx = BuildContext();
+        var generator = ctx.GetInfrastructure().GetRequiredService<IMigrationsSqlGenerator>();
+
+        Apply(ctx, generator, new MigrationBuilder(SqlServerProvider), b => b.CreateSagaStateTable());
+        Apply(ctx, generator, new MigrationBuilder(SqlServerProvider), b => b.DropSagaStateTable());
+
+        Assert.False(TableExists(ctx, "saga_states"));
     }
 
     // --- helpers ---
