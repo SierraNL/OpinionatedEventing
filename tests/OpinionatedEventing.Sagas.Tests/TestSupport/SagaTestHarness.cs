@@ -19,19 +19,22 @@ internal sealed class SagaTestHarness : IAsyncDisposable
     public InMemorySagaStateStore Store { get; }
     public FakePublisher Publisher { get; }
     public IServiceScope Scope => _scope;
+    public SagaTimeoutWorker Worker { get; }
 
     private SagaTestHarness(
         ServiceProvider root,
         IServiceScope scope,
         ISagaDispatcher dispatcher,
         InMemorySagaStateStore store,
-        FakePublisher publisher)
+        FakePublisher publisher,
+        SagaTimeoutWorker worker)
     {
         _root = root;
         _scope = scope;
         Dispatcher = dispatcher;
         Store = store;
         Publisher = publisher;
+        Worker = worker;
     }
 
     public static SagaTestHarness Create(Action<IServiceCollection> configure, TimeProvider? timeProvider = null)
@@ -51,8 +54,11 @@ internal sealed class SagaTestHarness : IAsyncDisposable
         var root = services.BuildServiceProvider(validateScopes: true);
         var scope = root.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<ISagaDispatcher>();
+        var worker = root.GetServices<Microsoft.Extensions.Hosting.IHostedService>()
+            .OfType<SagaTimeoutWorker>()
+            .Single();
 
-        return new SagaTestHarness(root, scope, dispatcher, store, publisher);
+        return new SagaTestHarness(root, scope, dispatcher, store, publisher, worker);
     }
 
     public ValueTask DisposeAsync()

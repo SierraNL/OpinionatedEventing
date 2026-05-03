@@ -15,3 +15,4 @@ See [AGENTS.md](AGENTS.md) for the full project context, design rules, conventio
 4. Implement, then run `/review` on staged changes before committing
 5. Ensure every new line in `src/` is covered by a unit test — CI enforces this via `codecov/patch`
 6. Open a PR targeting `main` via `gh pr create`
+7. After pushing, wait for all CI checks to finish (`gh pr checks <number> --watch`), then verify the `codecov/patch` check passes — if it fails, add tests to cover the uncovered lines before considering the PR done

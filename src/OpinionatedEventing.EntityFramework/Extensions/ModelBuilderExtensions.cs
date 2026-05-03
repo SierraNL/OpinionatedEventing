@@ -88,6 +88,7 @@ public static class OpinionatedEventingModelBuilderExtensions
             b.Property(s => s.CreatedAt).HasConversion(DateTimeOffsetToTicks);
             b.Property(s => s.UpdatedAt).HasConversion(DateTimeOffsetToTicks);
             b.Property(s => s.ExpiresAt).HasConversion(DateTimeOffsetToTicks);
+            b.Property(s => s.LockedUntil).HasConversion(DateTimeOffsetToTicks);
         });
     }
 }
