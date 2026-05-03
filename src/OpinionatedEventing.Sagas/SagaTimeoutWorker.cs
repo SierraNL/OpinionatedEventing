@@ -38,16 +38,9 @@ public sealed class SagaTimeoutWorker : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            try
-            {
-                await Task.Delay(_options.Value.TimeoutCheckInterval, stoppingToken);
-            }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
-
             await CheckTimeoutsAsync(stoppingToken);
+            await Task.Delay(_options.Value.TimeoutCheckInterval, _timeProvider, stoppingToken)
+                .ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         }
     }
 

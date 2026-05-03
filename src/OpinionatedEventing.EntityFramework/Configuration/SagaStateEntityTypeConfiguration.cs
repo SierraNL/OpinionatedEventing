@@ -36,14 +36,16 @@ public sealed class SagaStateEntityTypeConfiguration : IEntityTypeConfiguration<
         builder.Property(s => s.CreatedAt).IsRequired();
         builder.Property(s => s.UpdatedAt).IsRequired();
         builder.Property(s => s.ExpiresAt);
+        builder.Property(s => s.LockedUntil);
+        builder.Property(s => s.LockedBy).HasMaxLength(36);
 
         // Unique constraint: one instance per saga type + correlation ID
         builder.HasIndex(s => new { s.SagaType, s.CorrelationId })
             .IsUnique()
             .HasDatabaseName("UX_saga_states_type_correlation");
 
-        // Supports efficient timeout polling: WHERE Status = Active AND ExpiresAt <= now
-        builder.HasIndex(s => new { s.Status, s.ExpiresAt })
+        // Supports efficient timeout polling: WHERE Status = Active AND ExpiresAt <= now AND LockedUntil IS NULL/expired
+        builder.HasIndex(s => new { s.Status, s.ExpiresAt, s.LockedUntil })
             .HasDatabaseName("IX_saga_states_timeout");
     }
 }

@@ -7,11 +7,9 @@ using Xunit;
 namespace OpinionatedEventing.EntityFramework.Tests;
 
 /// <summary>
-/// Integration tests verifying that pending-message dispatch and saga timeout queries
-/// work correctly against an in-process SQLite database using UTC-ticks storage for
-/// <see cref="DateTimeOffset"/> columns.
+/// Verifies that pending-message dispatch and saga timeout queries work correctly against
+/// an in-process SQLite database using UTC-ticks storage for <see cref="DateTimeOffset"/> columns.
 /// </summary>
-[Trait("Category", "Integration")]
 public sealed class SqliteIntegrationTests : IDisposable
 {
     // xUnit v3 creates a new class instance per test method, so each test gets its own
@@ -171,6 +169,41 @@ public sealed class SqliteIntegrationTests : IDisposable
 
         Assert.Single(results);
         Assert.Equal(expired.Id, results[0].Id);
+    }
+
+    [Fact]
+    public async Task GetExpiredAsync_competing_workers_receive_disjoint_saga_sets_on_SQLite()
+    {
+        // Verifies the claim-column invariant at the SQLite layer: once worker A has claimed an
+        // expired saga, worker B receives only the unclaimed remainder — no saga appears in both.
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTimeOffset.UtcNow;
+
+        // Seed 6 expired sagas.
+        await using (var seedCtx = _factory.CreateContext())
+        {
+            var store = CreateSagaStore(seedCtx);
+            for (int i = 0; i < 6; i++)
+                await store.SaveAsync(MakeSagaState(now.AddHours(-1)), ct);
+        }
+
+        // Worker A claims first.
+        await using var ctx1 = _factory.CreateContext();
+        var store1 = CreateSagaStore(ctx1);
+        IReadOnlyList<SagaState> batch1 = await store1.GetExpiredAsync(now, ct);
+
+        // Worker B claims after — should only get the unclaimed remainder.
+        await using var ctx2 = _factory.CreateContext();
+        var store2 = CreateSagaStore(ctx2);
+        IReadOnlyList<SagaState> batch2 = await store2.GetExpiredAsync(now, ct);
+
+        // No saga appears in both batches.
+        HashSet<Guid> ids1 = batch1.Select(s => s.Id).ToHashSet();
+        HashSet<Guid> ids2 = batch2.Select(s => s.Id).ToHashSet();
+        Assert.Empty(ids1.Intersect(ids2));
+
+        // Together they cover all 6 sagas without any duplicates.
+        Assert.Equal(6, ids1.Union(ids2).Count());
     }
 
     [Fact]

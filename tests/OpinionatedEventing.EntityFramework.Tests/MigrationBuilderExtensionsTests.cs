@@ -12,9 +12,109 @@ using Xunit;
 namespace OpinionatedEventing.EntityFramework.Tests;
 
 /// <summary>
-/// Integration tests for <see cref="OpinionatedEventingMigrationBuilderExtensions"/>.
-/// Require Docker with a SQL Server image available.
-/// Run with: dotnet test --filter "Category=Integration"
+/// Pure-operations tests for <see cref="OpinionatedEventingMigrationBuilderExtensions"/>.
+/// These tests inspect the <see cref="MigrationBuilder.Operations"/> queue without executing
+/// any DDL, so no database or Docker is required.
+/// </summary>
+public sealed class MigrationBuilderOperationsTests
+{
+    private const string SqlServerProvider = "Microsoft.EntityFrameworkCore.SqlServer";
+    private const string SqliteProvider = "Microsoft.EntityFrameworkCore.Sqlite";
+
+    [Fact]
+    public void CreateOutboxTable_queues_CreateTable_and_CreateIndex_operations()
+    {
+        var builder = new MigrationBuilder(SqlServerProvider);
+
+        builder.CreateOutboxTable();
+
+        var createTable = Assert.Single(builder.Operations.OfType<CreateTableOperation>());
+        Assert.Equal("outbox_messages", createTable.Name);
+        Assert.Contains(createTable.Columns, c => c.Name == "LockedUntil");
+        Assert.Contains(createTable.Columns, c => c.Name == "LockedBy");
+
+        var indexes = builder.Operations.OfType<CreateIndexOperation>().ToList();
+        Assert.Contains(indexes, i => i.Name == "IX_outbox_messages_pending");
+        Assert.Contains(indexes, i => i.Name == "IX_outbox_messages_lock");
+    }
+
+    [Fact]
+    public void CreateSagaStateTable_queues_CreateTable_and_two_CreateIndex_operations()
+    {
+        var builder = new MigrationBuilder(SqlServerProvider);
+
+        builder.CreateSagaStateTable();
+
+        var createTable = Assert.Single(builder.Operations.OfType<CreateTableOperation>());
+        Assert.Equal("saga_states", createTable.Name);
+        Assert.Contains(createTable.Columns, c => c.Name == "LockedUntil");
+        Assert.Contains(createTable.Columns, c => c.Name == "LockedBy");
+        Assert.Equal(2, builder.Operations.OfType<CreateIndexOperation>().Count());
+    }
+
+    [Fact]
+    public void AddSagaStateLockColumns_queues_AddColumn_DropIndex_and_CreateIndex_operations()
+    {
+        var builder = new MigrationBuilder(SqlServerProvider);
+
+        builder.AddSagaStateLockColumns();
+
+        var addColumns = builder.Operations.OfType<AddColumnOperation>().ToList();
+        Assert.Contains(addColumns, c => c.Name == "LockedBy");
+        Assert.Contains(addColumns, c => c.Name == "LockedUntil");
+
+        var dropIndex = Assert.Single(builder.Operations.OfType<DropIndexOperation>());
+        Assert.Equal("IX_saga_states_timeout", dropIndex.Name);
+
+        var createIndex = Assert.Single(builder.Operations.OfType<CreateIndexOperation>());
+        Assert.Equal("IX_saga_states_timeout", createIndex.Name);
+        Assert.Contains("LockedUntil", createIndex.Columns);
+    }
+
+    [Fact]
+    public void All_extension_methods_return_the_same_builder_for_fluent_chaining()
+    {
+        var b1 = new MigrationBuilder(SqlServerProvider);
+        var b2 = new MigrationBuilder(SqlServerProvider);
+        var b3 = new MigrationBuilder(SqlServerProvider);
+        var b4 = new MigrationBuilder(SqlServerProvider);
+        var b5 = new MigrationBuilder(SqlServerProvider);
+
+        Assert.Same(b1, b1.CreateOutboxTable());
+        Assert.Same(b2, b2.DropOutboxTable());
+        Assert.Same(b3, b3.CreateSagaStateTable());
+        Assert.Same(b4, b4.DropSagaStateTable());
+        Assert.Same(b5, b5.AddSagaStateLockColumns());
+    }
+
+    [Fact]
+    public void CreateSagaStateTable_emits_long_columns_for_SQLite_provider()
+    {
+        var builder = new MigrationBuilder(SqliteProvider);
+
+        builder.CreateSagaStateTable();
+
+        var createTable = Assert.Single(builder.Operations.OfType<CreateTableOperation>());
+        Assert.Equal(typeof(long), createTable.Columns.Single(c => c.Name == "ExpiresAt").ClrType);
+        Assert.Equal(typeof(long), createTable.Columns.Single(c => c.Name == "LockedUntil").ClrType);
+    }
+
+    [Fact]
+    public void AddSagaStateLockColumns_emits_long_LockedUntil_for_SQLite_provider()
+    {
+        var builder = new MigrationBuilder(SqliteProvider);
+
+        builder.AddSagaStateLockColumns();
+
+        var addColumns = builder.Operations.OfType<AddColumnOperation>().ToList();
+        Assert.Equal(typeof(long), addColumns.Single(c => c.Name == "LockedUntil").ClrType);
+        Assert.Equal(typeof(string), addColumns.Single(c => c.Name == "LockedBy").ClrType);
+    }
+}
+
+/// <summary>
+/// Integration tests for <see cref="OpinionatedEventingMigrationBuilderExtensions"/> that
+/// execute DDL against a real SQL Server instance. Require Docker.
 /// </summary>
 [Trait("Category", "Integration")]
 public sealed class MigrationBuilderExtensionsTests : IClassFixture<MigrationTestFixture>
@@ -86,51 +186,6 @@ public sealed class MigrationBuilderExtensionsTests : IClassFixture<MigrationTes
         Apply(ctx, generator, new MigrationBuilder(SqlServerProvider), b => b.DropSagaStateTable());
 
         Assert.False(TableExists(ctx, "saga_states"));
-    }
-
-    // --- pure-operations tests (no database required) ---
-
-    [Fact]
-    public void CreateOutboxTable_queues_CreateTable_and_CreateIndex_operations()
-    {
-        var builder = new MigrationBuilder(SqlServerProvider);
-
-        builder.CreateOutboxTable();
-
-        var createTable = Assert.Single(builder.Operations.OfType<CreateTableOperation>());
-        Assert.Equal("outbox_messages", createTable.Name);
-        Assert.Contains(createTable.Columns, c => c.Name == "LockedUntil");
-        Assert.Contains(createTable.Columns, c => c.Name == "LockedBy");
-
-        var indexes = builder.Operations.OfType<CreateIndexOperation>().ToList();
-        Assert.Contains(indexes, i => i.Name == "IX_outbox_messages_pending");
-        Assert.Contains(indexes, i => i.Name == "IX_outbox_messages_lock");
-    }
-
-    [Fact]
-    public void CreateSagaStateTable_queues_CreateTable_and_two_CreateIndex_operations()
-    {
-        var builder = new MigrationBuilder(SqlServerProvider);
-
-        builder.CreateSagaStateTable();
-
-        var createTable = Assert.Single(builder.Operations.OfType<CreateTableOperation>());
-        Assert.Equal("saga_states", createTable.Name);
-        Assert.Equal(2, builder.Operations.OfType<CreateIndexOperation>().Count());
-    }
-
-    [Fact]
-    public void All_extension_methods_return_the_same_builder_for_fluent_chaining()
-    {
-        var b1 = new MigrationBuilder(SqlServerProvider);
-        var b2 = new MigrationBuilder(SqlServerProvider);
-        var b3 = new MigrationBuilder(SqlServerProvider);
-        var b4 = new MigrationBuilder(SqlServerProvider);
-
-        Assert.Same(b1, b1.CreateOutboxTable());
-        Assert.Same(b2, b2.DropOutboxTable());
-        Assert.Same(b3, b3.CreateSagaStateTable());
-        Assert.Same(b4, b4.DropSagaStateTable());
     }
 
     // --- helpers ---
