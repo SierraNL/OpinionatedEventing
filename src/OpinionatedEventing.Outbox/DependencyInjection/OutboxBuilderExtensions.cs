@@ -32,6 +32,8 @@ public static class OutboxBuilderExtensions
         builder.Services.TryAddScoped<IPublisher, OutboxPublisher>();
         builder.Services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, OutboxDispatcherWorker>());
+        builder.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IHostedService, OutboxCleanupWorker>());
         return builder;
     }
 }

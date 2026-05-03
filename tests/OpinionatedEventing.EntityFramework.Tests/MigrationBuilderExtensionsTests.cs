@@ -72,6 +72,47 @@ public sealed class MigrationBuilderOperationsTests
     }
 
     [Fact]
+    public void AddOutboxRetentionColumns_queues_AddColumn_DateTimeOffset_and_CreateIndex_for_SqlServer()
+    {
+        var builder = new MigrationBuilder(SqlServerProvider);
+
+        builder.AddOutboxRetentionColumns();
+
+        var addColumn = Assert.Single(builder.Operations.OfType<AddColumnOperation>());
+        Assert.Equal("NextAttemptAt", addColumn.Name);
+        Assert.Equal(typeof(DateTimeOffset), addColumn.ClrType);
+
+        var createIndex = Assert.Single(builder.Operations.OfType<CreateIndexOperation>());
+        Assert.Equal("IX_outbox_messages_cleanup_failed", createIndex.Name);
+    }
+
+    [Fact]
+    public void AddOutboxRetentionColumns_queues_AddColumn_long_for_SQLite_provider()
+    {
+        var builder = new MigrationBuilder(SqliteProvider);
+
+        builder.AddOutboxRetentionColumns();
+
+        var addColumn = Assert.Single(builder.Operations.OfType<AddColumnOperation>());
+        Assert.Equal("NextAttemptAt", addColumn.Name);
+        Assert.Equal(typeof(long), addColumn.ClrType);
+    }
+
+    [Fact]
+    public void DropOutboxRetentionColumns_queues_DropIndex_then_DropColumn()
+    {
+        var builder = new MigrationBuilder(SqlServerProvider);
+
+        builder.DropOutboxRetentionColumns();
+
+        var dropIndex = Assert.Single(builder.Operations.OfType<DropIndexOperation>());
+        Assert.Equal("IX_outbox_messages_cleanup_failed", dropIndex.Name);
+
+        var dropColumn = Assert.Single(builder.Operations.OfType<DropColumnOperation>());
+        Assert.Equal("NextAttemptAt", dropColumn.Name);
+    }
+
+    [Fact]
     public void All_extension_methods_return_the_same_builder_for_fluent_chaining()
     {
         var b1 = new MigrationBuilder(SqlServerProvider);
@@ -79,12 +120,16 @@ public sealed class MigrationBuilderOperationsTests
         var b3 = new MigrationBuilder(SqlServerProvider);
         var b4 = new MigrationBuilder(SqlServerProvider);
         var b5 = new MigrationBuilder(SqlServerProvider);
+        var b6 = new MigrationBuilder(SqlServerProvider);
+        var b7 = new MigrationBuilder(SqlServerProvider);
 
         Assert.Same(b1, b1.CreateOutboxTable());
         Assert.Same(b2, b2.DropOutboxTable());
         Assert.Same(b3, b3.CreateSagaStateTable());
         Assert.Same(b4, b4.DropSagaStateTable());
         Assert.Same(b5, b5.AddSagaStateLockColumns());
+        Assert.Same(b6, b6.AddOutboxRetentionColumns());
+        Assert.Same(b7, b7.DropOutboxRetentionColumns());
     }
 
     [Fact]

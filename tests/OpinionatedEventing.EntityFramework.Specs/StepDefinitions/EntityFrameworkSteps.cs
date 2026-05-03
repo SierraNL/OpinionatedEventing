@@ -157,7 +157,7 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
     [When("the message attempt count is incremented with error {string}")]
     public async Task WhenMessageAttemptCountIncremented(string error)
     {
-        await _store!.IncrementAttemptAsync(_savedMessage!.Id, error);
+        await _store!.IncrementAttemptAsync(_savedMessage!.Id, error, null);
     }
 
     [When("MarkProcessedAsync is called with an unknown message ID")]
@@ -181,7 +181,7 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
     {
         var context = GetOrCreateContext();
         _store = new EFCoreOutboxStore<SpecsDbContext>(context, TimeProvider.System);
-        await _store.IncrementAttemptAsync(Guid.NewGuid(), "unknown");
+        await _store.IncrementAttemptAsync(Guid.NewGuid(), "unknown", null);
     }
 
     [When("the saga state is saved via EFCoreSagaStateStore")]

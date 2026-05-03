@@ -73,10 +73,11 @@ internal sealed class EFCoreOutboxStore<TDbContext> : IOutboxStore
         DateTimeOffset lockUntil = now.Add(LockDuration);
         string claimToken = Guid.NewGuid().ToString();
 
-        // Step 1: identify candidates — rows that are pending and not currently claimed.
+        // Step 1: identify candidates — rows that are pending, not currently claimed, and past their backoff delay.
         List<Guid> ids = await _dbContext.Set<OutboxMessage>()
             .Where(m => m.ProcessedAt == null && m.FailedAt == null &&
-                        (m.LockedUntil == null || m.LockedUntil < now))
+                        (m.LockedUntil == null || m.LockedUntil < now) &&
+                        (m.NextAttemptAt == null || m.NextAttemptAt <= now))
             .OrderBy(m => m.CreatedAt)
             .Take(batchSize)
             .Select(m => m.Id)
@@ -127,16 +128,29 @@ internal sealed class EFCoreOutboxStore<TDbContext> : IOutboxStore
     }
 
     /// <inheritdoc/>
-    public async Task IncrementAttemptAsync(Guid id, string error, CancellationToken cancellationToken = default)
+    public async Task IncrementAttemptAsync(Guid id, string error, DateTimeOffset? nextAttemptAt, CancellationToken cancellationToken = default)
     {
         OutboxMessage? message = await _dbContext.Set<OutboxMessage>().FindAsync([id], cancellationToken);
         if (message is null) return;
 
         message.AttemptCount++;
         message.Error = error;
-        // Clear the claim so the message is immediately eligible for the next retry cycle.
+        message.NextAttemptAt = nextAttemptAt;
+        // Clear the claim so the message is re-eligible after the backoff delay.
         message.LockedBy = null;
         message.LockedUntil = null;
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
+
+    /// <inheritdoc/>
+    public async Task<int> DeleteProcessedAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default)
+        => await _dbContext.Set<OutboxMessage>()
+            .Where(m => m.ProcessedAt != null && m.ProcessedAt < cutoff)
+            .ExecuteDeleteAsync(cancellationToken);
+
+    /// <inheritdoc/>
+    public async Task<int> DeleteFailedAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default)
+        => await _dbContext.Set<OutboxMessage>()
+            .Where(m => m.FailedAt != null && m.FailedAt < cutoff)
+            .ExecuteDeleteAsync(cancellationToken);
 }

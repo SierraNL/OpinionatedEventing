@@ -77,4 +77,98 @@ public sealed class InMemoryOutboxStoreTests
         var batch = await store.GetPendingAsync(3, TestContext.Current.CancellationToken);
         Assert.Equal(3, batch.Count);
     }
+
+    [Fact]
+    public async Task IncrementAttemptAsync_IncrementsCountSetsErrorAndNextAttemptAt()
+    {
+        var store = new InMemoryOutboxStore();
+        var msg = MakeMessage();
+        await store.SaveAsync(msg, TestContext.Current.CancellationToken);
+        DateTimeOffset next = DateTimeOffset.UtcNow.AddSeconds(30);
+
+        await store.IncrementAttemptAsync(msg.Id, "transient", next, TestContext.Current.CancellationToken);
+
+        var updated = Assert.Single(store.Messages);
+        Assert.Equal(1, updated.AttemptCount);
+        Assert.Equal("transient", updated.Error);
+        Assert.Equal(next, updated.NextAttemptAt);
+    }
+
+    [Fact]
+    public async Task GetPendingAsync_ExcludesMessageWithFutureNextAttemptAt()
+    {
+        var store = new InMemoryOutboxStore();
+        var msg = MakeMessage();
+        msg.NextAttemptAt = DateTimeOffset.UtcNow.AddMinutes(5);
+        await store.SaveAsync(msg, TestContext.Current.CancellationToken);
+
+        var batch = await store.GetPendingAsync(10, TestContext.Current.CancellationToken);
+        Assert.Empty(batch);
+    }
+
+    [Fact]
+    public async Task GetPendingAsync_IncludesMessageWithElapsedNextAttemptAt()
+    {
+        var store = new InMemoryOutboxStore();
+        var msg = MakeMessage();
+        msg.NextAttemptAt = DateTimeOffset.UtcNow.AddMinutes(-1);
+        await store.SaveAsync(msg, TestContext.Current.CancellationToken);
+
+        var batch = await store.GetPendingAsync(10, TestContext.Current.CancellationToken);
+        Assert.Single(batch);
+    }
+
+    [Fact]
+    public async Task DeleteProcessedAsync_RemovesRowsOlderThanCutoff()
+    {
+        var store = new InMemoryOutboxStore();
+        var ct = TestContext.Current.CancellationToken;
+
+        var old = MakeMessage();
+        var recent = MakeMessage();
+        await store.SaveAsync(old, ct);
+        await store.SaveAsync(recent, ct);
+        old.ProcessedAt = DateTimeOffset.UtcNow.AddDays(-8);
+        recent.ProcessedAt = DateTimeOffset.UtcNow.AddDays(-1);
+
+        int deleted = await store.DeleteProcessedAsync(DateTimeOffset.UtcNow.AddDays(-7), ct);
+
+        Assert.Equal(1, deleted);
+        Assert.DoesNotContain(store.Messages, m => m.Id == old.Id);
+        Assert.Contains(store.Messages, m => m.Id == recent.Id);
+    }
+
+    [Fact]
+    public async Task DeleteFailedAsync_RemovesRowsOlderThanCutoff()
+    {
+        var store = new InMemoryOutboxStore();
+        var ct = TestContext.Current.CancellationToken;
+
+        var old = MakeMessage();
+        var recent = MakeMessage();
+        await store.SaveAsync(old, ct);
+        await store.SaveAsync(recent, ct);
+        old.FailedAt = DateTimeOffset.UtcNow.AddDays(-8);
+        recent.FailedAt = DateTimeOffset.UtcNow.AddDays(-1);
+
+        int deleted = await store.DeleteFailedAsync(DateTimeOffset.UtcNow.AddDays(-7), ct);
+
+        Assert.Equal(1, deleted);
+        Assert.DoesNotContain(store.Messages, m => m.Id == old.Id);
+        Assert.Contains(store.Messages, m => m.Id == recent.Id);
+    }
+
+    [Fact]
+    public async Task DeleteProcessedAsync_DoesNotDeletePendingRows()
+    {
+        var store = new InMemoryOutboxStore();
+        var ct = TestContext.Current.CancellationToken;
+        var msg = MakeMessage();
+        await store.SaveAsync(msg, ct);
+
+        int deleted = await store.DeleteProcessedAsync(DateTimeOffset.UtcNow.AddDays(1), ct);
+
+        Assert.Equal(0, deleted);
+        Assert.Single(store.Messages);
+    }
 }

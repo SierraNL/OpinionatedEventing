@@ -158,6 +158,30 @@ public sealed class OutboxDispatcherWorkerTests
     }
 
     [Fact]
+    public async Task Worker_SetsNextAttemptAtOnTransientFailure()
+    {
+        var (worker, store, transport) = BuildWorker(o => { o.MaxAttempts = 5; o.MaxRetryDelay = TimeSpan.FromMinutes(5); });
+        transport.FailNextCount = 1;
+        var message = MakePendingMessage(attemptCount: 0);
+        await store.SaveAsync(message, TestContext.Current.CancellationToken);
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var task = worker.StartAsync(cts.Token);
+
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (DateTime.UtcNow < deadline && store.Messages[0].AttemptCount == 0)
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+
+        await cts.CancelAsync();
+        await worker.StopAsync(CancellationToken.None);
+        await task;
+
+        // NextAttemptAt should be in the future (exponential backoff applied).
+        Assert.NotNull(store.Messages[0].NextAttemptAt);
+        Assert.True(store.Messages[0].NextAttemptAt > DateTimeOffset.UtcNow);
+    }
+
+    [Fact]
     public async Task Worker_RespectsConfiguredBatchSize()
     {
         const int batchSize = 2;
@@ -234,8 +258,14 @@ public sealed class OutboxDispatcherWorkerTests
         public Task MarkFailedAsync(Guid id, string error, CancellationToken cancellationToken = default)
             => _inner.MarkFailedAsync(id, error, cancellationToken);
 
-        public Task IncrementAttemptAsync(Guid id, string error, CancellationToken cancellationToken = default)
-            => _inner.IncrementAttemptAsync(id, error, cancellationToken);
+        public Task IncrementAttemptAsync(Guid id, string error, DateTimeOffset? nextAttemptAt, CancellationToken cancellationToken = default)
+            => _inner.IncrementAttemptAsync(id, error, nextAttemptAt, cancellationToken);
+
+        public Task<int> DeleteProcessedAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default)
+            => _inner.DeleteProcessedAsync(cutoff, cancellationToken);
+
+        public Task<int> DeleteFailedAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default)
+            => _inner.DeleteFailedAsync(cutoff, cancellationToken);
     }
 
     private sealed class FakeTransport : ITransport

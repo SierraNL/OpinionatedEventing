@@ -117,7 +117,8 @@ public sealed class OutboxDispatcherWorker : BackgroundService
                 }
                 else
                 {
-                    await store.IncrementAttemptAsync(message.Id, ex.Message, stoppingToken).ConfigureAwait(false);
+                    DateTimeOffset nextAttemptAt = ComputeNextAttemptAt(nextAttempt, outboxOptions.MaxRetryDelay);
+                    await store.IncrementAttemptAsync(message.Id, ex.Message, nextAttemptAt, stoppingToken).ConfigureAwait(false);
                 }
             }
             finally
@@ -125,5 +126,15 @@ public sealed class OutboxDispatcherWorker : BackgroundService
                 OutboxDiagnostics.DispatchDuration.Record(Stopwatch.GetElapsedTime(sw).TotalMilliseconds);
             }
         }
+    }
+
+    private DateTimeOffset ComputeNextAttemptAt(int attemptNumber, TimeSpan maxDelay)
+    {
+        // Exponential backoff: 2^attemptNumber seconds, capped at maxDelay.
+        double backoffSeconds = Math.Pow(2, attemptNumber);
+        TimeSpan backoff = backoffSeconds >= maxDelay.TotalSeconds
+            ? maxDelay
+            : TimeSpan.FromSeconds(backoffSeconds);
+        return _timeProvider.GetUtcNow() + backoff;
     }
 }

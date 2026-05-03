@@ -1,7 +1,7 @@
 namespace OpinionatedEventing.Options;
 
 /// <summary>
-/// Configuration options for the outbox dispatcher.
+/// Configuration options for the outbox dispatcher and cleanup worker.
 /// </summary>
 public sealed class OutboxOptions
 {
@@ -36,4 +36,32 @@ public sealed class OutboxOptions
     /// that verify dispatch ordering.
     /// </remarks>
     public int ConcurrentWorkers { get; set; } = 1;
+
+    /// <summary>
+    /// Gets or sets the cap on the exponential retry backoff delay applied between dispatch attempts.
+    /// The delay for attempt <em>n</em> is <c>min(2^n seconds, MaxRetryDelay)</c>.
+    /// Defaults to <c>5 minutes</c>.
+    /// </summary>
+    public TimeSpan MaxRetryDelay { get; set; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// Gets or sets how long successfully processed messages are retained before the
+    /// <c>OutboxCleanupWorker</c> deletes them.
+    /// Defaults to <c>7 days</c>.
+    /// Set to <see langword="null"/> to disable deletion of processed messages.
+    /// </summary>
+    public TimeSpan? ProcessedRetention { get; set; } = TimeSpan.FromDays(7);
+
+    /// <summary>
+    /// Gets or sets how long dead-lettered messages are retained before the
+    /// <c>OutboxCleanupWorker</c> deletes them.
+    /// Defaults to <see langword="null"/> (dead-letters are kept indefinitely).
+    /// </summary>
+    public TimeSpan? FailedRetention { get; set; } = null;
+
+    /// <summary>
+    /// Gets or sets how often the <c>OutboxCleanupWorker</c> runs its retention sweep.
+    /// Defaults to <c>1 hour</c>.
+    /// </summary>
+    public TimeSpan CleanupInterval { get; set; } = TimeSpan.FromHours(1);
 }
