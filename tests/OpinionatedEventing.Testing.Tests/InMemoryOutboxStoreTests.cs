@@ -79,6 +79,22 @@ public sealed class InMemoryOutboxStoreTests
     }
 
     [Fact]
+    public async Task IncrementAttemptAsync_IncrementsCountSetsErrorAndNextAttemptAt()
+    {
+        var store = new InMemoryOutboxStore();
+        var msg = MakeMessage();
+        await store.SaveAsync(msg, TestContext.Current.CancellationToken);
+        DateTimeOffset next = DateTimeOffset.UtcNow.AddSeconds(30);
+
+        await store.IncrementAttemptAsync(msg.Id, "transient", next, TestContext.Current.CancellationToken);
+
+        var updated = Assert.Single(store.Messages);
+        Assert.Equal(1, updated.AttemptCount);
+        Assert.Equal("transient", updated.Error);
+        Assert.Equal(next, updated.NextAttemptAt);
+    }
+
+    [Fact]
     public async Task GetPendingAsync_ExcludesMessageWithFutureNextAttemptAt()
     {
         var store = new InMemoryOutboxStore();

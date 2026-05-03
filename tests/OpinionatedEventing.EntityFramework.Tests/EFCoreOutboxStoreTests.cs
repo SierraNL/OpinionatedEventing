@@ -11,7 +11,6 @@ namespace OpinionatedEventing.EntityFramework.Tests;
 /// Uses an in-process SQLite database because <c>ExecuteUpdateAsync</c> (used by the claim logic)
 /// requires a relational provider.
 /// </summary>
-[Trait("Category", "Integration")]
 public sealed class EFCoreOutboxStoreTests : IDisposable
 {
     // xUnit v3 creates a new class instance per test, so each test gets its own isolated database.

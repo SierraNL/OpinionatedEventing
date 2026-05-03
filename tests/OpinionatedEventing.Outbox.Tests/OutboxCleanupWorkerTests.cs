@@ -10,6 +10,28 @@ using Xunit;
 
 namespace OpinionatedEventing.Outbox.Tests;
 
+/// <summary>
+/// Store that throws a configurable exception on every operation, used to exercise
+/// the worker's error-handling catch block.
+/// </summary>
+file sealed class ThrowingOutboxStore(Exception exception) : IOutboxStore
+{
+    public Task SaveAsync(OutboxMessage message, CancellationToken cancellationToken = default)
+        => throw exception;
+    public Task<IReadOnlyList<OutboxMessage>> GetPendingAsync(int batchSize, CancellationToken cancellationToken = default)
+        => throw exception;
+    public Task MarkProcessedAsync(Guid id, CancellationToken cancellationToken = default)
+        => throw exception;
+    public Task MarkFailedAsync(Guid id, string error, CancellationToken cancellationToken = default)
+        => throw exception;
+    public Task IncrementAttemptAsync(Guid id, string error, DateTimeOffset? nextAttemptAt, CancellationToken cancellationToken = default)
+        => throw exception;
+    public Task<int> DeleteProcessedAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default)
+        => throw exception;
+    public Task<int> DeleteFailedAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default)
+        => throw exception;
+}
+
 public sealed class OutboxCleanupWorkerTests
 {
     private static OutboxMessage MakeProcessedMessage(DateTimeOffset processedAt) => new()
@@ -56,6 +78,23 @@ public sealed class OutboxCleanupWorkerTests
             NullLogger<OutboxCleanupWorker>.Instance);
 
         return (worker, store);
+    }
+
+    private static OutboxCleanupWorker BuildWorkerWithStore(IOutboxStore store, Action<OutboxOptions>? configureOutbox = null)
+    {
+        var optionsValue = new OpinionatedEventingOptions();
+        optionsValue.Outbox.CleanupInterval = TimeSpan.FromMilliseconds(50);
+        configureOutbox?.Invoke(optionsValue.Outbox);
+
+        var services = new ServiceCollection();
+        services.AddSingleton<IOutboxStore>(store);
+        var provider = services.BuildServiceProvider();
+
+        return new OutboxCleanupWorker(
+            provider.GetRequiredService<IServiceScopeFactory>(),
+            Microsoft.Extensions.Options.Options.Create(optionsValue),
+            TimeProvider.System,
+            NullLogger<OutboxCleanupWorker>.Instance);
     }
 
     [Fact]
@@ -151,5 +190,23 @@ public sealed class OutboxCleanupWorkerTests
         await task;
 
         Assert.Contains(store.Messages, m => m.Id == old.Id);
+    }
+
+    [Fact]
+    public async Task Worker_ContinuesRunningAfterStoreThrowsUnhandledException()
+    {
+        var throwingStore = new ThrowingOutboxStore(new InvalidOperationException("broker down"));
+        var worker = BuildWorkerWithStore(throwingStore, o => o.ProcessedRetention = TimeSpan.FromDays(7));
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        var task = worker.StartAsync(cts.Token);
+
+        // Give the worker enough time to fire at least one cleanup cycle.
+        await Task.Delay(200, TestContext.Current.CancellationToken);
+
+        await cts.CancelAsync();
+        await worker.StopAsync(CancellationToken.None);
+        // The worker must not have propagated the exception.
+        await task;
     }
 }
