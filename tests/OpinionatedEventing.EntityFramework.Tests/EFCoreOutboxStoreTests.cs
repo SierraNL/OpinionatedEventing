@@ -217,7 +217,7 @@ public sealed class EFCoreOutboxStoreTests : IDisposable
 
         await store.SaveAsync(message, ct);
         await context.SaveChangesAsync(ct);
-        await store.IncrementAttemptAsync(message.Id, "transient", ct);
+        await store.IncrementAttemptAsync(message.Id, "transient", null, ct);
 
         OutboxMessage? saved = await context.Set<OutboxMessage>().FindAsync([message.Id], ct);
         Assert.Equal(1, saved!.AttemptCount);
@@ -234,9 +234,153 @@ public sealed class EFCoreOutboxStoreTests : IDisposable
 
         await store.SaveAsync(message, ct);
         await context.SaveChangesAsync(ct);
-        await store.IncrementAttemptAsync(message.Id, "transient", ct);
+        await store.IncrementAttemptAsync(message.Id, "transient", null, ct);
 
         IReadOnlyList<OutboxMessage> pending = await store.GetPendingAsync(10, ct);
         Assert.Single(pending);
+    }
+
+    [Fact]
+    public async Task IncrementAttemptAsync_sets_next_attempt_at()
+    {
+        await using SqliteTestDbContext context = _factory.CreateContext();
+        EFCoreOutboxStore<SqliteTestDbContext> store = CreateStore(context);
+        CancellationToken ct = TestContext.Current.CancellationToken;
+        OutboxMessage message = MakeMessage();
+        DateTimeOffset nextAttempt = DateTimeOffset.UtcNow.AddSeconds(30);
+
+        await store.SaveAsync(message, ct);
+        await context.SaveChangesAsync(ct);
+        await store.IncrementAttemptAsync(message.Id, "transient", nextAttempt, ct);
+
+        OutboxMessage? saved = await context.Set<OutboxMessage>().FindAsync([message.Id], ct);
+        Assert.NotNull(saved!.NextAttemptAt);
+    }
+
+    [Fact]
+    public async Task GetPendingAsync_excludes_messages_before_next_attempt_at()
+    {
+        await using SqliteTestDbContext context = _factory.CreateContext();
+        EFCoreOutboxStore<SqliteTestDbContext> store = CreateStore(context);
+        CancellationToken ct = TestContext.Current.CancellationToken;
+        OutboxMessage message = MakeMessage();
+
+        message.NextAttemptAt = DateTimeOffset.UtcNow.AddMinutes(5);
+        context.Set<OutboxMessage>().Add(message);
+        await context.SaveChangesAsync(ct);
+
+        await using SqliteTestDbContext context2 = _factory.CreateContext();
+        EFCoreOutboxStore<SqliteTestDbContext> store2 = CreateStore(context2);
+        IReadOnlyList<OutboxMessage> pending = await store2.GetPendingAsync(10, ct);
+
+        Assert.Empty(pending);
+    }
+
+    [Fact]
+    public async Task GetPendingAsync_returns_message_when_next_attempt_at_elapsed()
+    {
+        await using SqliteTestDbContext context = _factory.CreateContext();
+        CancellationToken ct = TestContext.Current.CancellationToken;
+        OutboxMessage message = MakeMessage();
+
+        message.NextAttemptAt = DateTimeOffset.UtcNow.AddMinutes(-1);
+        context.Set<OutboxMessage>().Add(message);
+        await context.SaveChangesAsync(ct);
+
+        await using SqliteTestDbContext context2 = _factory.CreateContext();
+        EFCoreOutboxStore<SqliteTestDbContext> store2 = CreateStore(context2);
+        IReadOnlyList<OutboxMessage> pending = await store2.GetPendingAsync(10, ct);
+
+        Assert.Single(pending);
+        Assert.Equal(message.Id, pending[0].Id);
+    }
+
+    [Fact]
+    public async Task DeleteProcessedAsync_removes_rows_older_than_cutoff()
+    {
+        CancellationToken ct = TestContext.Current.CancellationToken;
+
+        await using SqliteTestDbContext context = _factory.CreateContext();
+        EFCoreOutboxStore<SqliteTestDbContext> store = CreateStore(context);
+
+        OutboxMessage old = MakeMessage();
+        OutboxMessage recent = MakeMessage();
+
+        await store.SaveAsync(old, ct);
+        await store.SaveAsync(recent, ct);
+        await context.SaveChangesAsync(ct);
+
+        DateTimeOffset cutoff = DateTimeOffset.UtcNow;
+        old.ProcessedAt = cutoff.AddDays(-8);
+        recent.ProcessedAt = cutoff.AddDays(-1);
+        await context.SaveChangesAsync(ct);
+
+        int deleted = await store.DeleteProcessedAsync(cutoff.AddDays(-7), ct);
+
+        Assert.Equal(1, deleted);
+
+        // ExecuteDeleteAsync bypasses the EF change tracker, so use a fresh context to verify.
+        await using SqliteTestDbContext verifyContext = _factory.CreateContext();
+        Assert.Null(await verifyContext.Set<OutboxMessage>().FindAsync([old.Id], ct));
+        Assert.NotNull(await verifyContext.Set<OutboxMessage>().FindAsync([recent.Id], ct));
+    }
+
+    [Fact]
+    public async Task DeleteProcessedAsync_returns_zero_when_nothing_matches()
+    {
+        await using SqliteTestDbContext context = _factory.CreateContext();
+        EFCoreOutboxStore<SqliteTestDbContext> store = CreateStore(context);
+        CancellationToken ct = TestContext.Current.CancellationToken;
+
+        int deleted = await store.DeleteProcessedAsync(DateTimeOffset.UtcNow.AddDays(-7), ct);
+
+        Assert.Equal(0, deleted);
+    }
+
+    [Fact]
+    public async Task DeleteFailedAsync_removes_rows_older_than_cutoff()
+    {
+        CancellationToken ct = TestContext.Current.CancellationToken;
+
+        await using SqliteTestDbContext context = _factory.CreateContext();
+        EFCoreOutboxStore<SqliteTestDbContext> store = CreateStore(context);
+
+        OutboxMessage old = MakeMessage();
+        OutboxMessage recent = MakeMessage();
+
+        await store.SaveAsync(old, ct);
+        await store.SaveAsync(recent, ct);
+        await context.SaveChangesAsync(ct);
+
+        DateTimeOffset cutoff = DateTimeOffset.UtcNow;
+        old.FailedAt = cutoff.AddDays(-8);
+        recent.FailedAt = cutoff.AddDays(-1);
+        await context.SaveChangesAsync(ct);
+
+        int deleted = await store.DeleteFailedAsync(cutoff.AddDays(-7), ct);
+
+        Assert.Equal(1, deleted);
+
+        // ExecuteDeleteAsync bypasses the EF change tracker, so use a fresh context to verify.
+        await using SqliteTestDbContext verifyContext = _factory.CreateContext();
+        Assert.Null(await verifyContext.Set<OutboxMessage>().FindAsync([old.Id], ct));
+        Assert.NotNull(await verifyContext.Set<OutboxMessage>().FindAsync([recent.Id], ct));
+    }
+
+    [Fact]
+    public async Task DeleteFailedAsync_does_not_delete_pending_rows()
+    {
+        await using SqliteTestDbContext context = _factory.CreateContext();
+        EFCoreOutboxStore<SqliteTestDbContext> store = CreateStore(context);
+        CancellationToken ct = TestContext.Current.CancellationToken;
+        OutboxMessage message = MakeMessage();
+
+        await store.SaveAsync(message, ct);
+        await context.SaveChangesAsync(ct);
+
+        int deleted = await store.DeleteFailedAsync(DateTimeOffset.UtcNow.AddDays(1), ct);
+
+        Assert.Equal(0, deleted);
+        Assert.NotNull(await context.Set<OutboxMessage>().FindAsync([message.Id], ct));
     }
 }

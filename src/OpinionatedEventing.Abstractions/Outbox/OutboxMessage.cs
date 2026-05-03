@@ -70,4 +70,11 @@ public sealed class OutboxMessage
     /// or <see langword="null"/> if the message is not currently claimed.
     /// </summary>
     public string? LockedBy { get; set; }
+
+    /// <summary>
+    /// Gets or sets the earliest UTC time at which this message is eligible for the next dispatch
+    /// attempt, or <see langword="null"/> if the message is immediately eligible.
+    /// Set by <see cref="IOutboxStore.IncrementAttemptAsync"/> to implement exponential backoff.
+    /// </summary>
+    public DateTimeOffset? NextAttemptAt { get; set; }
 }

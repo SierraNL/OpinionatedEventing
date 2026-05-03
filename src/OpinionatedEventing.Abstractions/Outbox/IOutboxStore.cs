@@ -46,11 +46,34 @@ public interface IOutboxStore
 
     /// <summary>
     /// Records a transient dispatch failure without dead-lettering the message.
-    /// Increments <see cref="OutboxMessage.AttemptCount"/> by one and stores the last error description.
-    /// The message remains eligible for future dispatch attempts.
+    /// Increments <see cref="OutboxMessage.AttemptCount"/> by one, stores the last error description,
+    /// and sets <see cref="OutboxMessage.NextAttemptAt"/> to defer the next retry.
+    /// The message is not eligible for re-dispatch until <paramref name="nextAttemptAt"/>.
     /// </summary>
     /// <param name="id">The identifier of the outbox message.</param>
     /// <param name="error">A description of the error from the failed attempt.</param>
+    /// <param name="nextAttemptAt">
+    /// The earliest UTC time at which this message should be retried.
+    /// Pass <see langword="null"/> to make the message immediately eligible.
+    /// </param>
     /// <param name="cancellationToken">Propagates notification that the operation should be cancelled.</param>
-    Task IncrementAttemptAsync(Guid id, string error, CancellationToken cancellationToken = default);
+    Task IncrementAttemptAsync(Guid id, string error, DateTimeOffset? nextAttemptAt, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Permanently deletes processed outbox messages whose <see cref="OutboxMessage.ProcessedAt"/>
+    /// is earlier than <paramref name="cutoff"/>.
+    /// </summary>
+    /// <param name="cutoff">Rows with <c>ProcessedAt &lt; cutoff</c> are deleted.</param>
+    /// <param name="cancellationToken">Propagates notification that the operation should be cancelled.</param>
+    /// <returns>The number of rows deleted.</returns>
+    Task<int> DeleteProcessedAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Permanently deletes dead-lettered outbox messages whose <see cref="OutboxMessage.FailedAt"/>
+    /// is earlier than <paramref name="cutoff"/>.
+    /// </summary>
+    /// <param name="cutoff">Rows with <c>FailedAt &lt; cutoff</c> are deleted.</param>
+    /// <param name="cancellationToken">Propagates notification that the operation should be cancelled.</param>
+    /// <returns>The number of rows deleted.</returns>
+    Task<int> DeleteFailedAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default);
 }

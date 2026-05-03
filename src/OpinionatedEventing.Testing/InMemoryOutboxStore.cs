@@ -38,8 +38,10 @@ public sealed class InMemoryOutboxStore : IOutboxStore
         int batchSize,
         CancellationToken cancellationToken = default)
     {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
         var pending = _messages.Values
-            .Where(m => m.ProcessedAt is null && m.FailedAt is null)
+            .Where(m => m.ProcessedAt is null && m.FailedAt is null &&
+                        (m.NextAttemptAt is null || m.NextAttemptAt <= now))
             .OrderBy(m => m.CreatedAt)
             .Take(batchSize)
             .ToList();
@@ -67,13 +69,42 @@ public sealed class InMemoryOutboxStore : IOutboxStore
     }
 
     /// <inheritdoc/>
-    public Task IncrementAttemptAsync(Guid id, string error, CancellationToken cancellationToken = default)
+    public Task IncrementAttemptAsync(Guid id, string error, DateTimeOffset? nextAttemptAt, CancellationToken cancellationToken = default)
     {
         if (_messages.TryGetValue(id, out var message))
         {
             message.AttemptCount++;
             message.Error = error;
+            message.NextAttemptAt = nextAttemptAt;
         }
         return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task<int> DeleteProcessedAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default)
+    {
+        var toDelete = _messages.Values
+            .Where(m => m.ProcessedAt is not null && m.ProcessedAt < cutoff)
+            .Select(m => m.Id)
+            .ToList();
+
+        foreach (Guid id in toDelete)
+            _messages.TryRemove(id, out _);
+
+        return Task.FromResult(toDelete.Count);
+    }
+
+    /// <inheritdoc/>
+    public Task<int> DeleteFailedAsync(DateTimeOffset cutoff, CancellationToken cancellationToken = default)
+    {
+        var toDelete = _messages.Values
+            .Where(m => m.FailedAt is not null && m.FailedAt < cutoff)
+            .Select(m => m.Id)
+            .ToList();
+
+        foreach (Guid id in toDelete)
+            _messages.TryRemove(id, out _);
+
+        return Task.FromResult(toDelete.Count);
     }
 }

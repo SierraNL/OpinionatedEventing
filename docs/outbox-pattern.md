@@ -89,22 +89,56 @@ Each row in `outbox_messages` contains:
 | `FailedAt` | Set when MaxAttempts is exhausted (dead-lettered) |
 | `AttemptCount` | Number of dispatch attempts made |
 | `Error` | Last dispatch error message |
+| `NextAttemptAt` | Earliest time this message is eligible for retry (backoff) |
 
-## Retry behaviour
+## Retry behaviour and exponential backoff
 
-The `OutboxDispatcherWorker` retries failed dispatches up to `OutboxOptions.MaxAttempts` (default: 5). Between attempts the worker continues processing other messages — there is no exponential back-off by default, but the `PollInterval` (default: 1 second) acts as a natural delay.
+The `OutboxDispatcherWorker` retries failed dispatches up to `OutboxOptions.MaxAttempts` (default: 5). After each transient failure, the worker applies exponential backoff: the message is held back until `now + min(2^n seconds, MaxRetryDelay)` where `n` is the new attempt count. The default `MaxRetryDelay` is 5 minutes.
+
+| Attempt | Backoff delay |
+|---|---|
+| 1st retry | 2 s |
+| 2nd retry | 4 s |
+| 3rd retry | 8 s |
+| 4th retry | 16 s |
+| 5th retry+ | capped at `MaxRetryDelay` (default 5 min) |
+
+This prevents a single poisonous message from hammering the broker at the poll rate. `GetPendingAsync` filters `WHERE NextAttemptAt IS NULL OR NextAttemptAt <= now` so delayed messages are invisible to other workers until their backoff window has elapsed.
 
 After `MaxAttempts` failures the row is marked as dead-lettered (`FailedAt` is set). Dead-lettered rows are never retried automatically. Use `IOutboxMonitor.GetDeadLetterCountAsync()` to detect accumulation and alert on it.
+
+## Retention and cleanup
+
+By default, processed rows are deleted after 7 days and dead-lettered rows are kept indefinitely. The `OutboxCleanupWorker` hosted service runs hourly and enforces these limits.
+
+**Why keep dead-letters indefinitely by default?** Dead-letters represent messages that could not be delivered after all attempts. They are rare and operationally significant — you typically want to inspect them before removing.
+
+Configure retention in `OutboxOptions`:
+
+```csharp
+services.AddOpinionatedEventing(options =>
+{
+    options.Outbox.ProcessedRetention = TimeSpan.FromDays(7);   // null = keep forever
+    options.Outbox.FailedRetention = null;                      // null = keep forever (default)
+    options.Outbox.CleanupInterval = TimeSpan.FromHours(1);     // how often the cleanup worker runs
+});
+```
+
+The cleanup worker is safe to run across multiple application instances. The delete predicates (`ProcessedAt < cutoff` / `FailedAt < cutoff`) are mutually exclusive with the dispatcher's pending-message predicate (`ProcessedAt IS NULL AND FailedAt IS NULL`), so cleanup can never remove a row that the dispatcher is currently processing. Concurrent cleanup runs on the same rows are idempotent.
 
 ## Configuring the dispatcher
 
 ```csharp
 services.AddOpinionatedEventing(options =>
 {
-    options.Outbox.PollInterval = TimeSpan.FromSeconds(1);   // how often to poll
-    options.Outbox.BatchSize = 50;                           // messages per poll cycle
-    options.Outbox.MaxAttempts = 5;                          // before dead-lettering
-    options.Outbox.ConcurrentWorkers = 1;                    // parallel dispatch workers
+    options.Outbox.PollInterval = TimeSpan.FromSeconds(1);      // how often to poll
+    options.Outbox.BatchSize = 50;                              // messages per poll cycle
+    options.Outbox.MaxAttempts = 5;                             // before dead-lettering
+    options.Outbox.ConcurrentWorkers = 1;                       // parallel dispatch workers
+    options.Outbox.MaxRetryDelay = TimeSpan.FromMinutes(5);     // backoff cap
+    options.Outbox.ProcessedRetention = TimeSpan.FromDays(7);   // null to keep forever
+    options.Outbox.FailedRetention = null;                      // null to keep forever
+    options.Outbox.CleanupInterval = TimeSpan.FromHours(1);     // cleanup sweep interval
 });
 ```
 
@@ -163,3 +197,15 @@ migrationBuilder.CreateSagaStateTable(); // if using sagas
 migrationBuilder.DropOutboxTable();
 migrationBuilder.DropSagaStateTable();
 ```
+
+If you are upgrading an existing deployment (the table already exists), add a new migration that applies only the incremental schema change:
+
+```csharp
+// In the Up() method of a new migration:
+migrationBuilder.AddOutboxRetentionColumns();
+
+// In the Down() method:
+migrationBuilder.DropOutboxRetentionColumns();
+```
+
+This adds the `NextAttemptAt` column and the `IX_outbox_messages_cleanup_failed` index. New deployments that call `CreateOutboxTable` already include these elements.

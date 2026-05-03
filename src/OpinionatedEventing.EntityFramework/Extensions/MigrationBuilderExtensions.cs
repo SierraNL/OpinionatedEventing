@@ -45,6 +45,7 @@ public static class OpinionatedEventingMigrationBuilderExtensions
                 Error = table.Column<string>(nullable: true),
                 LockedUntil = sqlite ? table.Column<long>(nullable: true) : table.Column<DateTimeOffset>(nullable: true),
                 LockedBy = table.Column<string>(maxLength: 36, nullable: true),
+                NextAttemptAt = sqlite ? table.Column<long>(nullable: true) : table.Column<DateTimeOffset>(nullable: true),
             },
             constraints: table =>
                 table.PrimaryKey("PK_outbox_messages", x => x.Id));
@@ -59,6 +60,11 @@ public static class OpinionatedEventingMigrationBuilderExtensions
             table: "outbox_messages",
             columns: ["LockedUntil", "ProcessedAt", "FailedAt"]);
 
+        migrationBuilder.CreateIndex(
+            name: "IX_outbox_messages_cleanup_failed",
+            table: "outbox_messages",
+            column: "FailedAt");
+
         return migrationBuilder;
     }
 
@@ -68,6 +74,63 @@ public static class OpinionatedEventingMigrationBuilderExtensions
     public static MigrationBuilder DropOutboxTable(this MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable(name: "outbox_messages");
+        return migrationBuilder;
+    }
+
+    /// <summary>
+    /// Adds the <c>NextAttemptAt</c> column and <c>IX_outbox_messages_cleanup_failed</c> index
+    /// to an existing <c>outbox_messages</c> table.
+    /// </summary>
+    /// <remarks>
+    /// Use this in a new migration when upgrading an existing deployment that was created with
+    /// an earlier version of <c>CreateOutboxTable</c> (before retry backoff and retention were added).
+    /// New deployments that call <c>CreateOutboxTable</c> already include these schema elements.
+    /// </remarks>
+    /// <param name="migrationBuilder">The migration builder.</param>
+    /// <returns>The same <paramref name="migrationBuilder"/> for chaining.</returns>
+    public static MigrationBuilder AddOutboxRetentionColumns(this MigrationBuilder migrationBuilder)
+    {
+        var sqlite = migrationBuilder.ActiveProvider?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true;
+
+        if (sqlite)
+        {
+            migrationBuilder.AddColumn<long>(
+                name: "NextAttemptAt",
+                table: "outbox_messages",
+                nullable: true);
+        }
+        else
+        {
+            migrationBuilder.AddColumn<DateTimeOffset>(
+                name: "NextAttemptAt",
+                table: "outbox_messages",
+                nullable: true);
+        }
+
+        migrationBuilder.CreateIndex(
+            name: "IX_outbox_messages_cleanup_failed",
+            table: "outbox_messages",
+            column: "FailedAt");
+
+        return migrationBuilder;
+    }
+
+    /// <summary>
+    /// Reverses <see cref="AddOutboxRetentionColumns"/>: drops the <c>NextAttemptAt</c> column
+    /// and <c>IX_outbox_messages_cleanup_failed</c> index from <c>outbox_messages</c>.
+    /// </summary>
+    /// <param name="migrationBuilder">The migration builder.</param>
+    /// <returns>The same <paramref name="migrationBuilder"/> for chaining.</returns>
+    public static MigrationBuilder DropOutboxRetentionColumns(this MigrationBuilder migrationBuilder)
+    {
+        migrationBuilder.DropIndex(
+            name: "IX_outbox_messages_cleanup_failed",
+            table: "outbox_messages");
+
+        migrationBuilder.DropColumn(
+            name: "NextAttemptAt",
+            table: "outbox_messages");
+
         return migrationBuilder;
     }
 
