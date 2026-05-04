@@ -76,12 +76,13 @@ internal sealed class RabbitMqConnectionInitializer : IHostedService, IAsyncDisp
         if (!string.IsNullOrWhiteSpace(opts.ConnectionString))
             return opts.ConnectionString;
 
-        var aspireConnectionString = config?["ConnectionStrings:rabbitmq"];
+        var key = $"ConnectionStrings:{opts.AspireConnectionStringName}";
+        var aspireConnectionString = config?[key];
         if (!string.IsNullOrWhiteSpace(aspireConnectionString))
             return aspireConnectionString;
 
         throw new InvalidOperationException(
-            "RabbitMQOptions requires either ConnectionString to be set, " +
-            "or a 'ConnectionStrings:rabbitmq' entry in IConfiguration (Aspire service discovery).");
+            $"RabbitMQOptions requires either ConnectionString to be set, " +
+            $"or a '{key}' entry in IConfiguration (Aspire service discovery).");
     }
 }

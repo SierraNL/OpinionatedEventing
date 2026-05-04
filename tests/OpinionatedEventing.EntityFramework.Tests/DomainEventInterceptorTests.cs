@@ -39,7 +39,7 @@ public sealed class DomainEventInterceptorTests : IDisposable
 
         var outboxMessages = context.Set<OutboxMessage>().ToList();
         Assert.Single(outboxMessages);
-        Assert.Equal("Event", outboxMessages[0].MessageKind);
+        Assert.Equal(MessageKind.Event, outboxMessages[0].MessageKind);
     }
 
     [Fact]

@@ -211,7 +211,7 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
     {
         var messages = _context!.Set<OutboxMessage>().ToList();
         Xunit.Assert.Single(messages);
-        Xunit.Assert.Equal(kind, messages[0].MessageKind);
+        Xunit.Assert.Equal(Enum.Parse<MessageKind>(kind), messages[0].MessageKind);
     }
 
     [Then("the outbox message carries the messaging context correlation ID")]
@@ -331,7 +331,7 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
         Id = Guid.NewGuid(),
         MessageType = "SomeType, SomeAssembly",
         Payload = "{}",
-        MessageKind = "Event",
+        MessageKind = MessageKind.Event,
         CorrelationId = Guid.NewGuid(),
         CreatedAt = DateTimeOffset.UtcNow,
     };

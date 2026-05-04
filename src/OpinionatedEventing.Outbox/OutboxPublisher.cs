@@ -44,9 +44,9 @@ internal sealed class OutboxPublisher : IPublisher
         where TEvent : IEvent
     {
         _transactionGuard?.EnsureTransaction();
-        var message = CreateMessage(@event, "Event");
+        var message = CreateMessage(@event, MessageKind.Event);
         var sw = Stopwatch.GetTimestamp();
-        using var activity = OutboxDiagnostics.StartPublishActivity(message.MessageType, "Event", message.CorrelationId, message.CausationId);
+        using var activity = OutboxDiagnostics.StartPublishActivity(message.MessageType, nameof(MessageKind.Event), message.CorrelationId, message.CausationId);
         try
         {
             await _store.SaveAsync(message, cancellationToken).ConfigureAwait(false);
@@ -68,9 +68,9 @@ internal sealed class OutboxPublisher : IPublisher
         where TCommand : ICommand
     {
         _transactionGuard?.EnsureTransaction();
-        var message = CreateMessage(command, "Command");
+        var message = CreateMessage(command, MessageKind.Command);
         var sw = Stopwatch.GetTimestamp();
-        using var activity = OutboxDiagnostics.StartPublishActivity(message.MessageType, "Command", message.CorrelationId, message.CausationId);
+        using var activity = OutboxDiagnostics.StartPublishActivity(message.MessageType, nameof(MessageKind.Command), message.CorrelationId, message.CausationId);
         try
         {
             await _store.SaveAsync(message, cancellationToken).ConfigureAwait(false);
@@ -87,7 +87,7 @@ internal sealed class OutboxPublisher : IPublisher
         }
     }
 
-    private OutboxMessage CreateMessage<T>(T payload, string kind)
+    private OutboxMessage CreateMessage<T>(T payload, MessageKind kind)
     {
         var serializerOptions = _options.Value.SerializerOptions;
         return new OutboxMessage

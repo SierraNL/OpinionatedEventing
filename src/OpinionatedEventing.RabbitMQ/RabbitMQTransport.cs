@@ -41,7 +41,7 @@ internal sealed class RabbitMQTransport : ITransport, IAsyncDisposable
         string exchange;
         string routingKey;
 
-        if (message.MessageKind == "Event")
+        if (message.MessageKind == MessageKind.Event)
         {
             exchange = MessageNamingConvention.GetExchangeName(type);
             routingKey = string.Empty;
@@ -62,7 +62,7 @@ internal sealed class RabbitMQTransport : ITransport, IAsyncDisposable
             Headers = new Dictionary<string, object?>
             {
                 ["MessageType"] = message.MessageType,
-                ["MessageKind"] = message.MessageKind,
+                ["MessageKind"] = message.MessageKind.ToString(),
                 ["CorrelationId"] = message.CorrelationId.ToString(),
             },
         };

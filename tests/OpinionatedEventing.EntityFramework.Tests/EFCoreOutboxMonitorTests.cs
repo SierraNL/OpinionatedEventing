@@ -23,7 +23,7 @@ public sealed class EFCoreOutboxMonitorTests : IDisposable
         Id = Guid.NewGuid(),
         MessageType = "SomeType, SomeAssembly",
         Payload = "{}",
-        MessageKind = "Event",
+        MessageKind = MessageKind.Event,
         CorrelationId = Guid.NewGuid(),
         CreatedAt = DateTimeOffset.UtcNow,
         ProcessedAt = processedAt,

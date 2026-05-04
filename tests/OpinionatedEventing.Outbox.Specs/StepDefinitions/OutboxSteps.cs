@@ -97,7 +97,7 @@ public sealed class OutboxSteps
     public void ThenOutboxMessageWithKindSaved(string kind)
     {
         Assert.Single(_store.Messages);
-        Assert.Equal(kind, _store.Messages[0].MessageKind);
+        Assert.Equal(Enum.Parse<MessageKind>(kind), _store.Messages[0].MessageKind);
     }
 
     [Then("the outbox message carries the correlation ID")]
@@ -216,7 +216,7 @@ public sealed class OutboxSteps
         Id = Guid.NewGuid(),
         MessageType = "Test.Event, Test",
         Payload = "{}",
-        MessageKind = "Event",
+        MessageKind = MessageKind.Event,
         CorrelationId = Guid.NewGuid(),
         CreatedAt = DateTimeOffset.UtcNow,
         AttemptCount = attemptCount,

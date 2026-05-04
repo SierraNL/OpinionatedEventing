@@ -45,7 +45,7 @@ public sealed class RabbitMQIntegrationTests
         await Task.Delay(500, ct);
 
         var transport = host.Services.GetRequiredService<ITransport>();
-        await transport.SendAsync(BuildOutboxMessage(new OrderPlaced("order-1"), "Event"), ct);
+        await transport.SendAsync(BuildOutboxMessage(new OrderPlaced("order-1"), MessageKind.Event), ct);
 
         await WaitForConditionAsync(() => received.Count == 1, ct);
 
@@ -77,7 +77,7 @@ public sealed class RabbitMQIntegrationTests
         await Task.Delay(500, ct);
 
         var transport = hostA.Services.GetRequiredService<ITransport>();
-        await transport.SendAsync(BuildOutboxMessage(new OrderPlaced("order-fanout"), "Event"), ct);
+        await transport.SendAsync(BuildOutboxMessage(new OrderPlaced("order-fanout"), MessageKind.Event), ct);
 
         await WaitForConditionAsync(() => receivedA.Count == 1 && receivedB.Count == 1, ct);
 
@@ -104,7 +104,7 @@ public sealed class RabbitMQIntegrationTests
         await Task.Delay(500, ct);
 
         var transport = host.Services.GetRequiredService<ITransport>();
-        await transport.SendAsync(BuildOutboxMessage(new ProcessPayment("payment-1", 99m), "Command"), ct);
+        await transport.SendAsync(BuildOutboxMessage(new ProcessPayment("payment-1", 99m), MessageKind.Command), ct);
 
         await WaitForConditionAsync(() => received.Count == 1, ct);
 
@@ -133,7 +133,7 @@ public sealed class RabbitMQIntegrationTests
             })
             .Build();
 
-    private static OutboxMessage BuildOutboxMessage<T>(T payload, string kind) where T : notnull
+    private static OutboxMessage BuildOutboxMessage<T>(T payload, MessageKind kind) where T : notnull
         => new()
         {
             Id = Guid.NewGuid(),

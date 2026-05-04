@@ -18,7 +18,7 @@ public sealed class OutboxMessageTests
             Id = id,
             MessageType = "MyApp.OrderPlaced, MyApp",
             Payload = "{}",
-            MessageKind = "Event",
+            MessageKind = MessageKind.Event,
             CorrelationId = correlationId,
             CausationId = causationId,
             CreatedAt = now
@@ -27,7 +27,7 @@ public sealed class OutboxMessageTests
         Assert.Equal(id, message.Id);
         Assert.Equal("MyApp.OrderPlaced, MyApp", message.MessageType);
         Assert.Equal("{}", message.Payload);
-        Assert.Equal("Event", message.MessageKind);
+        Assert.Equal(MessageKind.Event, message.MessageKind);
         Assert.Equal(correlationId, message.CorrelationId);
         Assert.Equal(causationId, message.CausationId);
         Assert.Equal(now, message.CreatedAt);
@@ -44,7 +44,7 @@ public sealed class OutboxMessageTests
         {
             MessageType = "T",
             Payload = "{}",
-            MessageKind = "Command"
+            MessageKind = MessageKind.Command
         };
 
         var processedAt = DateTimeOffset.UtcNow;
@@ -64,7 +64,7 @@ public sealed class OutboxMessageTests
         {
             MessageType = "T",
             Payload = "{}",
-            MessageKind = "Event"
+            MessageKind = MessageKind.Event
         };
 
         Assert.Null(message.CausationId);
