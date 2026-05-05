@@ -131,7 +131,7 @@ public sealed class RabbitMQIntegrationTests
         await Task.Delay(500, ct);
 
         var transport = host.Services.GetRequiredService<ITransport>();
-        await transport.SendAsync(BuildOutboxMessage(new OrderPlaced("dlq-test"), "Event"), ct);
+        await transport.SendAsync(BuildOutboxMessage(new OrderPlaced("dlq-test"), MessageKind.Event), ct);
 
         // After nack the message should appear in the DLQ. Poll via direct BasicGet.
         string queueName = $"test-service-{_testRunId}.order-placed";

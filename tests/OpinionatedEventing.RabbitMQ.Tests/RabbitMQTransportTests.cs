@@ -32,7 +32,7 @@ public sealed class RabbitMQTransportTests
             logger: NullLogger<RabbitMQTransport>.Instance);
     }
 
-    private static OutboxMessage BuildMessage(string kind, Type type) => new()
+    private static OutboxMessage BuildMessage(MessageKind kind, Type type) => new()
     {
         Id = Guid.NewGuid(),
         MessageType = type.FullName!,
@@ -51,7 +51,7 @@ public sealed class RabbitMQTransportTests
         PublishRecordingChannel channel = new();
         await using RabbitMQTransport transport = CreateTransport(channel);
 
-        await transport.SendAsync(BuildMessage("Event", typeof(TestEvent)), ct);
+        await transport.SendAsync(BuildMessage(MessageKind.Event, typeof(TestEvent)), ct);
 
         Assert.Equal("test-event", channel.LastExchange);
         Assert.Equal(string.Empty, channel.LastRoutingKey);
@@ -65,7 +65,7 @@ public sealed class RabbitMQTransportTests
         PublishRecordingChannel channel = new();
         await using RabbitMQTransport transport = CreateTransport(channel);
 
-        await transport.SendAsync(BuildMessage("Command", typeof(TestCommand)), ct);
+        await transport.SendAsync(BuildMessage(MessageKind.Command, typeof(TestCommand)), ct);
 
         Assert.Equal("test-command", channel.LastExchange);
         Assert.Equal("test-command", channel.LastRoutingKey);
@@ -82,7 +82,7 @@ public sealed class RabbitMQTransportTests
         await using RabbitMQTransport transport = CreateTransport(channel);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => transport.SendAsync(BuildMessage("Event", typeof(TestEvent)), ct));
+            () => transport.SendAsync(BuildMessage(MessageKind.Event, typeof(TestEvent)), ct));
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public sealed class RabbitMQTransportTests
         await using RabbitMQTransport transport = CreateTransport(channel);
 
         await Assert.ThrowsAsync<PublishReturnException>(
-            () => transport.SendAsync(BuildMessage("Event", typeof(TestEvent)), ct));
+            () => transport.SendAsync(BuildMessage(MessageKind.Event, typeof(TestEvent)), ct));
     }
 
     // ── channel pool ───────────────────────────────────────────────────────────
@@ -117,8 +117,8 @@ public sealed class RabbitMQTransportTests
             MSOptions.Create(new OutboxOptions { ConcurrentWorkers = 1 }),
             NullLogger<RabbitMQTransport>.Instance);
 
-        await transport.SendAsync(BuildMessage("Event", typeof(TestEvent)), ct);
-        await transport.SendAsync(BuildMessage("Event", typeof(TestEvent)), ct);
+        await transport.SendAsync(BuildMessage(MessageKind.Event, typeof(TestEvent)), ct);
+        await transport.SendAsync(BuildMessage(MessageKind.Event, typeof(TestEvent)), ct);
 
         Assert.Equal(1, connection.ChannelsCreated);
     }
@@ -142,10 +142,10 @@ public sealed class RabbitMQTransportTests
             NullLogger<RabbitMQTransport>.Instance);
 
         await Assert.ThrowsAsync<Exception>(
-            () => transport.SendAsync(BuildMessage("Event", typeof(TestEvent)), ct));
+            () => transport.SendAsync(BuildMessage(MessageKind.Event, typeof(TestEvent)), ct));
 
         // Second publish succeeds with a freshly created channel
-        await transport.SendAsync(BuildMessage("Event", typeof(TestEvent)), ct);
+        await transport.SendAsync(BuildMessage(MessageKind.Event, typeof(TestEvent)), ct);
 
         Assert.Equal(2, connection.ChannelsCreated);
         Assert.Equal(1, secondChannel.PublishCount);
