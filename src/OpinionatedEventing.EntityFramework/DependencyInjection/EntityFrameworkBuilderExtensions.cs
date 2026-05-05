@@ -30,7 +30,10 @@ public static class EntityFrameworkBuilderExtensions
     /// <para>
     /// Wire the interceptor into your <c>DbContext</c> configuration by adding
     /// <c>options.AddInterceptors(sp.GetRequiredService&lt;DomainEventInterceptor&gt;())</c>
-    /// inside your <c>AddDbContext</c> delegate:
+    /// inside your <c>AddDbContext</c> delegate. The <c>sp</c> parameter is the
+    /// <em>scoped</em> service provider supplied by EF Core's factory; resolving from it
+    /// ensures that <c>IMessagingContext</c> is obtained per request and not captured
+    /// once from the root container:
     /// </para>
     /// <code>
     /// services.AddDbContext&lt;AppDbContext&gt;((sp, options) =>

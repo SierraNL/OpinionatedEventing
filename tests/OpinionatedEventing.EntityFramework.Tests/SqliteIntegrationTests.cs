@@ -106,9 +106,12 @@ public sealed class SqliteIntegrationTests : IDisposable
         await ctx.SaveChangesAsync(ct);
         await store.MarkProcessedAsync(message.Id, ct);
 
-        var saved = await ctx.Set<OutboxMessage>().FindAsync([message.Id], ct);
+        // Use a fresh context: ExecuteUpdateAsync bypasses the change tracker
+        await using var ctx2 = _factory.CreateContext();
+        var saved = await ctx2.Set<OutboxMessage>().FindAsync([message.Id], ct);
         Assert.NotNull(saved!.ProcessedAt);
-        Assert.Empty(await store.GetPendingAsync(10, ct));
+        var store2 = CreateOutboxStore(ctx2);
+        Assert.Empty(await store2.GetPendingAsync(10, ct));
     }
 
     [Fact]

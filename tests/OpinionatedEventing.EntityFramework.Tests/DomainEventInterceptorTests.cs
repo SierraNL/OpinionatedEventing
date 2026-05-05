@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using OpinionatedEventing;
 using OpinionatedEventing.EntityFramework.Tests.TestSupport;
@@ -17,10 +18,12 @@ public sealed class DomainEventInterceptorTests : IDisposable
         Guid? correlationId = null,
         Guid? causationId = null)
     {
-        var context = new FakeMessagingContext(correlationId ?? Guid.NewGuid(), causationId);
+        var services = new ServiceCollection();
+        services.AddSingleton<IMessagingContext>(new FakeMessagingContext(correlationId ?? Guid.NewGuid(), causationId));
+        var sp = services.BuildServiceProvider();
         var options = Microsoft.Extensions.Options.Options.Create(new OpinionatedEventingOptions());
         var registry = new MessageTypeRegistry();
-        return new DomainEventInterceptor(context, registry, options, TimeProvider.System);
+        return new DomainEventInterceptor(sp, registry, options, TimeProvider.System);
     }
 
     private TestDbContext CreateContextWithInterceptor(DomainEventInterceptor interceptor)

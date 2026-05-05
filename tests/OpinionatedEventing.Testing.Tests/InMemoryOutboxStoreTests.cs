@@ -171,4 +171,40 @@ public sealed class InMemoryOutboxStoreTests
         Assert.Equal(0, deleted);
         Assert.Single(store.Messages);
     }
+
+    [Fact]
+    public async Task GetPendingAsync_UsesTimeProviderToFilterByNextAttemptAt()
+    {
+        var fake = new FakeTimeProvider(DateTimeOffset.UtcNow);
+        var store = new InMemoryOutboxStore(fake);
+        var ct = TestContext.Current.CancellationToken;
+        var msg = MakeMessage();
+        msg.NextAttemptAt = fake.GetUtcNow().AddMinutes(5);
+        await store.SaveAsync(msg, ct);
+
+        // Before advancing: message is not due yet
+        var batch = await store.GetPendingAsync(10, ct);
+        Assert.Empty(batch);
+
+        // After advancing past the backoff: message becomes eligible
+        fake.Advance(TimeSpan.FromMinutes(6));
+        batch = await store.GetPendingAsync(10, ct);
+        Assert.Single(batch);
+    }
+
+    [Fact]
+    public async Task MarkProcessedAsync_SetsProcessedAtFromTimeProvider()
+    {
+        var start = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var fake = new FakeTimeProvider(start);
+        var store = new InMemoryOutboxStore(fake);
+        var ct = TestContext.Current.CancellationToken;
+        var msg = MakeMessage();
+        await store.SaveAsync(msg, ct);
+
+        fake.Advance(TimeSpan.FromSeconds(30));
+        await store.MarkProcessedAsync(msg.Id, ct);
+
+        Assert.Equal(start.AddSeconds(30), store.Messages[0].ProcessedAt);
+    }
 }

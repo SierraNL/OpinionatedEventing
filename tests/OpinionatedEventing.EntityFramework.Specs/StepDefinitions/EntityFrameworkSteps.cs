@@ -101,10 +101,12 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
     public async Task WhenSaveChangesWithInterceptorActive()
     {
         var corrId = _correlationId == Guid.Empty ? Guid.NewGuid() : _correlationId;
-        var messagingContext = new FakeMessagingContext(corrId);
+        var services = new ServiceCollection();
+        services.AddSingleton<IMessagingContext>(new FakeMessagingContext(corrId));
+        var sp = services.BuildServiceProvider();
         var opts = Microsoft.Extensions.Options.Options.Create(new OpinionatedEventingOptions());
         var registry = new MessageTypeRegistry();
-        var interceptor = new DomainEventInterceptor(messagingContext, registry, opts, TimeProvider.System);
+        var interceptor = new DomainEventInterceptor(sp, registry, opts, TimeProvider.System);
 
         var options = new DbContextOptionsBuilder<SpecsDbContext>()
             .UseInMemoryDatabase(_databaseName)
@@ -120,10 +122,12 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
     [When("SaveChanges is called synchronously with the DomainEventInterceptor active")]
     public void WhenSaveChangesSyncWithInterceptorActive()
     {
-        var messagingContext = new FakeMessagingContext(Guid.NewGuid());
+        var services = new ServiceCollection();
+        services.AddSingleton<IMessagingContext>(new FakeMessagingContext(Guid.NewGuid()));
+        var sp = services.BuildServiceProvider();
         var opts = Microsoft.Extensions.Options.Options.Create(new OpinionatedEventingOptions());
         var registry = new MessageTypeRegistry();
-        var interceptor = new DomainEventInterceptor(messagingContext, registry, opts, TimeProvider.System);
+        var interceptor = new DomainEventInterceptor(sp, registry, opts, TimeProvider.System);
 
         var options = new DbContextOptionsBuilder<SpecsDbContext>()
             .UseInMemoryDatabase(_databaseName + "-sync")
@@ -244,7 +248,11 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
     [Then("the message attempt count is {int} and error is {string}")]
     public async Task ThenMessageAttemptCountIsWithError(int expectedCount, string expectedError)
     {
-        var messages = await _store!.GetPendingAsync(10);
+        // Use a fresh context: ExecuteUpdateAsync bypasses the change tracker so the existing
+        // context still holds the pre-update tracked entity.
+        await using var freshContext = CreateFreshContext();
+        var freshStore = new EFCoreOutboxStore<SpecsDbContext>(freshContext, TimeProvider.System);
+        var messages = await freshStore.GetPendingAsync(10);
         var message = Xunit.Assert.Single(messages);
         Xunit.Assert.Equal(expectedCount, message.AttemptCount);
         Xunit.Assert.Equal(expectedError, message.Error);
@@ -318,6 +326,11 @@ public sealed class EntityFrameworkSteps : IAsyncDisposable
         _context.Database.EnsureCreated();
         return _context;
     }
+
+    private SpecsDbContext CreateFreshContext()
+        => new(new DbContextOptionsBuilder<SpecsDbContext>()
+            .UseSqlite(_sqliteConnection)
+            .Options);
 
     private static SqliteConnection OpenSqliteConnection()
     {

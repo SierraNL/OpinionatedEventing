@@ -161,6 +161,33 @@ public sealed class OutboxPublisherTests
         Assert.Equal(1, guard.EnsureTransactionCallCount);
     }
 
+    // ---- Runtime type serialization ----
+
+    [Fact]
+    public async Task PublishEventAsync_UsesRuntimeTypeForSerialization()
+    {
+        var (publisher, store) = BuildPublisher();
+        var id = Guid.NewGuid();
+
+        // Publish through the interface — static type is IEvent, runtime type is ConcreteEvent
+        IEvent concreteEvent = new ConcreteEvent(id, "extra");
+        await publisher.PublishEventAsync(concreteEvent, TestContext.Current.CancellationToken);
+
+        var payload = JsonSerializer.Deserialize<ConcreteEvent>(store.Messages[0].Payload);
+        Assert.Equal("extra", payload!.Extra);
+    }
+
+    [Fact]
+    public async Task PublishEventAsync_UsesRuntimeTypeForMessageType()
+    {
+        var (publisher, store) = BuildPublisher();
+        IEvent concreteEvent = new ConcreteEvent(Guid.NewGuid(), "x");
+
+        await publisher.PublishEventAsync(concreteEvent, TestContext.Current.CancellationToken);
+
+        Assert.Equal(typeof(ConcreteEvent).FullName, store.Messages[0].MessageType);
+    }
+
     // ---- Custom serializer options ----
 
     [Fact]
@@ -178,6 +205,7 @@ public sealed class OutboxPublisherTests
 
     private sealed record TestEvent(Guid Id) : IEvent;
     private sealed record TestCommand(Guid Id) : ICommand;
+    private sealed record ConcreteEvent(Guid Id, string Extra) : IEvent;
 
     private sealed class FakeMessagingContext(Guid correlationId, Guid? causationId) : IMessagingContext
     {

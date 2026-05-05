@@ -12,7 +12,8 @@ public sealed class MessageNamingConventionTests
     [InlineData(typeof(OrderPlaced), "order-placed")]
     [InlineData(typeof(PaymentReceived), "payment-received")]
     [InlineData(typeof(SimpleEvent), "simple-event")]
-    [InlineData(typeof(ABCEvent), "a-b-c-event")]
+    [InlineData(typeof(ABCEvent), "abc-event")]
+    [InlineData(typeof(HTTPRequestEvent), "http-request-event")]
     public void GetTopicName_derives_kebab_case_from_type_name(Type type, string expected)
     {
         Assert.Equal(expected, MessageNamingConvention.GetTopicName(type));
@@ -44,6 +45,7 @@ public sealed class MessageNamingConventionTests
     private sealed record PaymentReceived : IEvent;
     private sealed record SimpleEvent : IEvent;
     private sealed record ABCEvent : IEvent;
+    private sealed record HTTPRequestEvent : IEvent;
 
     [MessageTopic("my-custom-topic")]
     private sealed record CustomTopicEvent : IEvent;

@@ -43,7 +43,7 @@ internal static class SagaDiagnostics
         if (activity is null) return null;
 
         activity.SetTag("saga.type", StripAssemblyInfo(sagaTypeName));
-        activity.AddBaggage("correlation.id", correlationId);
+        activity.AddBaggage("messaging.message.correlation_id", correlationId);
 
         return activity;
     }
