@@ -14,5 +14,5 @@ See [AGENTS.md](AGENTS.md) for the full project context, design rules, conventio
 3. Present a plan and wait for explicit approval before writing any code (see AGENTS.md § Planning)
 4. Implement, then run `/review` on staged changes before committing
 5. Ensure every new line in `src/` is covered by a unit test — CI enforces this via `codecov/patch`
-6. Open a PR targeting `main` via `gh pr create`
+6. Push the branch first (`git push -u origin <branch>`), then open the PR: `gh pr create --repo SierraNL/OpinionatedEventing --title "..." --body "..."` — `gh pr create` will fail if the branch has not been pushed yet
 7. After pushing, wait for all CI checks to finish (`gh pr checks <number> --watch`), then verify the `codecov/patch` check passes — if it fails, add tests to cover the uncovered lines before considering the PR done
