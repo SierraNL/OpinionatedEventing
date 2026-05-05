@@ -34,6 +34,42 @@ Review the staged and unstaged changes in this repository as if you were a senio
 - Is `#nullable enable` respected (no `!` suppressions without a comment explaining why)?
 - Would `TreatWarningsAsErrors=true` pass cleanly?
 
+**Patch coverage** — run this block in order before reporting findings:
+
+1. Collect unit-test coverage (net10, no Docker required):
+   ```
+   dotnet test --framework net10.0 --filter-not-trait "Category=Integration" --coverage --coverage-output-format cobertura --results-directory ./TestResults/review-cov 2>&1 | tail -5
+   ```
+
+2. Cross-reference the cobertura XML against the added lines in `src/` (PowerShell):
+   ```powershell
+   $diff = git diff HEAD -U0 -- src/
+   $added = @{}; $cur = $null
+   foreach ($ln in ($diff -split "`n")) {
+       if ($ln -match '^\+\+\+ b/(.+)') { $cur = $Matches[1].Replace('\','/'); $added[$cur] = [System.Collections.Generic.HashSet[int]]::new() }
+       elseif ($ln -match '^@@' -and $cur -and $ln -match '\+(\d+)(?:,(\d+))?') {
+           $s=[int]$Matches[1]; $n=if($Matches[2]){[int]$Matches[2]}else{1}
+           for($i=$s;$i-lt$s+$n;$i++){$added[$cur].Add($i)|Out-Null}
+       }
+   }
+   $bad=@()
+   foreach ($xf in (Get-ChildItem './TestResults/review-cov' -Filter '*.cobertura.xml' -Recurse -EA SilentlyContinue)) {
+       $xml=[xml](Get-Content $xf.FullName)
+       foreach ($cls in $xml.SelectNodes('//class')) {
+           $fn=$cls.filename.Replace('\','/').TrimStart('/')
+           if(-not $added.ContainsKey($fn)){continue}
+           foreach ($l in $cls.SelectNodes('lines/line')) {
+               if($added[$fn].Contains([int]$l.number)-and $l.hits-eq'0'){$bad+="${fn}:$($l.number)"}
+           }
+       }
+   }
+   if($bad){$bad}else{'OK - all new src/ lines covered.'}
+   ```
+
+3. Clean up: `Remove-Item -Recurse -Force ./TestResults/review-cov -ErrorAction SilentlyContinue`
+
+Report any uncovered lines from step 2 as **Major** findings.
+
 ## Output format
 
 For each issue found, output:
