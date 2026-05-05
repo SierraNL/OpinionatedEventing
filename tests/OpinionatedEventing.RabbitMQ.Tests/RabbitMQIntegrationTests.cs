@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using OpinionatedEventing.Outbox;
 using OpinionatedEventing.RabbitMQ.Tests.TestSupport;
 using OpinionatedEventing.Testing;
+using RabbitMqClient = RabbitMQ.Client;
 using Xunit;
 
 namespace OpinionatedEventing.RabbitMQ.Tests;
@@ -114,6 +115,32 @@ public sealed class RabbitMQIntegrationTests
         await host.StopAsync(ct);
     }
 
+    // --- delivery hardening tests ---
+
+    [Fact]
+    public async Task Failed_handler_routes_message_to_dlq()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        using var host = BuildHost(services =>
+        {
+            services.AddScoped<IEventHandler<OrderPlaced>>(_ => new ThrowingEventHandler());
+        });
+
+        await host.StartAsync(ct);
+        await Task.Delay(500, ct);
+
+        var transport = host.Services.GetRequiredService<ITransport>();
+        await transport.SendAsync(BuildOutboxMessage(new OrderPlaced("dlq-test"), "Event"), ct);
+
+        // After nack the message should appear in the DLQ. Poll via direct BasicGet.
+        string queueName = $"test-service-{_testRunId}.order-placed";
+        string dlqName = $"{queueName}.dlq";
+        await WaitForDlqMessageAsync(dlqName, ct);
+
+        await host.StopAsync(ct);
+    }
+
     // --- helpers ---
 
     private IHost BuildHost(
@@ -172,6 +199,34 @@ public sealed class RabbitMQIntegrationTests
         private readonly List<T> _captured;
         public CapturingCommandHandler(List<T> captured) => _captured = captured;
         public Task HandleAsync(T command, CancellationToken ct) { _captured.Add(command); return Task.CompletedTask; }
+    }
+
+    private sealed class ThrowingEventHandler : IEventHandler<OrderPlaced>
+    {
+        public Task HandleAsync(OrderPlaced @event, CancellationToken ct)
+            => throw new InvalidOperationException("Deliberate handler failure for DLQ test.");
+    }
+
+    private async Task WaitForDlqMessageAsync(string dlqName, CancellationToken ct, int timeoutMs = 15_000)
+    {
+        var factory = new RabbitMqClient.ConnectionFactory { Uri = new Uri(_fixture.ConnectionString) };
+        await using var connection = await factory.CreateConnectionAsync(ct);
+        await using var channel = await connection.CreateChannelAsync(cancellationToken: ct);
+
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        while (DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(200, ct);
+            try
+            {
+                var result = await channel.BasicGetAsync(dlqName, autoAck: false, ct);
+                if (result is not null)
+                    return;
+            }
+            catch (RabbitMqClient.Exceptions.OperationInterruptedException) { }
+        }
+
+        Assert.Fail($"DLQ '{dlqName}' did not receive a message within the timeout.");
     }
 
 }

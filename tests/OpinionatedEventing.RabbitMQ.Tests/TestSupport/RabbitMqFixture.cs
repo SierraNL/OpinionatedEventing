@@ -10,7 +10,7 @@ public sealed class RabbitMqFixture : IAsyncLifetime
 {
     private RabbitMqContainer? _container;
 
-    /// <summary>Gets the connection string for the running RabbitMQ container.</summary>
+    /// <summary>Gets the AMQP connection string for the running RabbitMQ container.</summary>
     // InitializeAsync guarantees _container is set before any test accesses this property
     public string ConnectionString => _container!.GetConnectionString();
 
