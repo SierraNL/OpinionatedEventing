@@ -14,6 +14,8 @@ namespace OpinionatedEventing.RabbitMQ;
 /// Hosted service that idempotently declares RabbitMQ exchanges, queues, and bindings at
 /// application startup when <see cref="RabbitMQOptions.AutoDeclareTopology"/> is
 /// <see langword="true"/>.
+/// Each consumer queue gets a paired dead-letter exchange (<c>{queue}.dlx</c>) and dead-letter
+/// queue (<c>{queue}.dlq</c>) so that nacked messages are captured rather than dropped.
 /// </summary>
 internal sealed class RabbitMQTopologyInitializer : IHostedService
 {
@@ -44,29 +46,29 @@ internal sealed class RabbitMQTopologyInitializer : IHostedService
         // Backfill handler types registered via factory lambdas (not AddHandlersFromAssemblies).
         _registry.BackfillFromServiceCollection(_serviceCollection);
 
-        var opts = _options.Value;
+        RabbitMQOptions opts = _options.Value;
         if (!opts.AutoDeclareTopology)
             return;
 
-        var connection = await _connectionHolder.GetConnectionAsync(cancellationToken).ConfigureAwait(false);
+        IConnection connection = await _connectionHolder.GetConnectionAsync(cancellationToken).ConfigureAwait(false);
 
-        var eventTypes = _registry.EventTypes;
-        var commandTypes = _registry.CommandTypes;
+        IEnumerable<Type> eventTypes = _registry.EventTypes;
+        IEnumerable<Type> commandTypes = _registry.CommandTypes;
 
-        await using var channel = await connection
+        await using IChannel channel = await connection
             .CreateChannelAsync(cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
-        foreach (var eventType in eventTypes)
+        foreach (Type eventType in eventTypes)
         {
-            var exchangeName = MessageNamingConvention.GetExchangeName(eventType);
+            string exchangeName = MessageNamingConvention.GetExchangeName(eventType);
             await DeclareEventTopologyAsync(channel, exchangeName, opts.ServiceName, cancellationToken)
                 .ConfigureAwait(false);
         }
 
-        foreach (var commandType in commandTypes)
+        foreach (Type commandType in commandTypes)
         {
-            var queueName = MessageNamingConvention.GetQueueName(commandType);
+            string queueName = MessageNamingConvention.GetQueueName(commandType);
             await DeclareCommandTopologyAsync(channel, queueName, cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -101,13 +103,20 @@ internal sealed class RabbitMQTopologyInitializer : IHostedService
                 return;
             }
 
-            var queueName = $"{serviceName}.{exchangeName}";
+            string queueName = $"{serviceName}.{exchangeName}";
+
+            await DeclareDlxForQueueAsync(channel, queueName, ct).ConfigureAwait(false);
+
             await channel.QueueDeclareAsync(
                 queue: queueName,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
-                arguments: null,
+                arguments: new Dictionary<string, object?>
+                {
+                    ["x-dead-letter-exchange"] = $"{queueName}.dlx",
+                    ["x-dead-letter-routing-key"] = queueName,
+                },
                 cancellationToken: ct).ConfigureAwait(false);
 
             await channel.QueueBindAsync(
@@ -118,8 +127,8 @@ internal sealed class RabbitMQTopologyInitializer : IHostedService
                 cancellationToken: ct).ConfigureAwait(false);
 
             _logger.LogInformation(
-                "Declared queue '{Queue}' bound to exchange '{Exchange}'.",
-                queueName, exchangeName);
+                "Declared queue '{Queue}' bound to exchange '{Exchange}' with DLX '{DlxExchange}'.",
+                queueName, exchangeName, $"{queueName}.dlx");
         }
         catch (Exception ex)
         {
@@ -144,12 +153,18 @@ internal sealed class RabbitMQTopologyInitializer : IHostedService
                 arguments: null,
                 cancellationToken: ct).ConfigureAwait(false);
 
+            await DeclareDlxForQueueAsync(channel, queueName, ct).ConfigureAwait(false);
+
             await channel.QueueDeclareAsync(
                 queue: queueName,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
-                arguments: null,
+                arguments: new Dictionary<string, object?>
+                {
+                    ["x-dead-letter-exchange"] = $"{queueName}.dlx",
+                    ["x-dead-letter-routing-key"] = queueName,
+                },
                 cancellationToken: ct).ConfigureAwait(false);
 
             await channel.QueueBindAsync(
@@ -160,8 +175,8 @@ internal sealed class RabbitMQTopologyInitializer : IHostedService
                 cancellationToken: ct).ConfigureAwait(false);
 
             _logger.LogInformation(
-                "Declared command queue '{Queue}' bound to direct exchange '{Exchange}'.",
-                queueName, queueName);
+                "Declared command queue '{Queue}' bound to direct exchange '{Exchange}' with DLX '{DlxExchange}'.",
+                queueName, queueName, $"{queueName}.dlx");
         }
         catch (Exception ex)
         {
@@ -169,5 +184,37 @@ internal sealed class RabbitMQTopologyInitializer : IHostedService
                 "Failed to declare command topology for queue '{Queue}'.", queueName);
             throw;
         }
+    }
+
+    private async Task DeclareDlxForQueueAsync(IChannel channel, string mainQueueName, CancellationToken ct)
+    {
+        string dlxExchange = $"{mainQueueName}.dlx";
+        string dlqQueue = $"{mainQueueName}.dlq";
+
+        await channel.ExchangeDeclareAsync(
+            exchange: dlxExchange,
+            type: ExchangeType.Direct,
+            durable: true,
+            autoDelete: false,
+            arguments: null,
+            cancellationToken: ct).ConfigureAwait(false);
+
+        await channel.QueueDeclareAsync(
+            queue: dlqQueue,
+            durable: true,
+            exclusive: false,
+            autoDelete: false,
+            arguments: null,
+            cancellationToken: ct).ConfigureAwait(false);
+
+        await channel.QueueBindAsync(
+            queue: dlqQueue,
+            exchange: dlxExchange,
+            routingKey: mainQueueName,
+            arguments: null,
+            cancellationToken: ct).ConfigureAwait(false);
+
+        _logger.LogDebug("Declared DLX '{DlxExchange}' and DLQ '{DlqQueue}' for queue '{Queue}'.",
+            dlxExchange, dlqQueue, mainQueueName);
     }
 }
