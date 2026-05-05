@@ -142,7 +142,7 @@ services.AddOpinionatedEventing(options =>
 });
 ```
 
-Increase `ConcurrentWorkers` to raise throughput. Each worker polls and dispatches independently. The `IOutboxStore` implementation is responsible for ensuring that concurrent workers do not pick up the same message (the EF Core store handles this with row-level locking).
+Increase `ConcurrentWorkers` to raise throughput. Each worker polls and dispatches independently. The `IOutboxStore` implementation is responsible for ensuring that concurrent workers do not pick up the same message. The EF Core store uses a claim-column approach: candidate rows are identified with a `SELECT`, then stamped with a unique `LockedBy` token via an `UPDATE` that re-checks the lock predicate. Only rows successfully stamped with that call's token are returned, so concurrent workers cannot receive the same message even without database-level row locking.
 
 ## IOutboxStore
 
@@ -185,6 +185,11 @@ services.AddHealthChecks()
 The outbox guarantees **at-least-once delivery** — under certain failure conditions the same message may be delivered more than once. Consumers are responsible for handling duplicates. See [Idempotency](idempotency.md) for strategies and code examples.
 
 ## EF Core migration helpers
+
+There are two ways to create the outbox table — **pick one per project and do not mix them**:
+
+- **Model-based migrations** — call `modelBuilder.ApplyOutboxConfiguration()` in `OnModelCreating` and let EF generate the `CREATE TABLE` migration automatically via `dotnet ef migrations add`.
+- **Migration helper methods** — call `migrationBuilder.CreateOutboxTable()` inside a hand-authored migration and do **not** call `ApplyOutboxConfiguration()`. If you do both, EF will generate a duplicate `CreateTable` for the same table the next time you run `dotnet ef migrations add`.
 
 Rather than writing migration SQL by hand, use the provided extension methods:
 

@@ -17,7 +17,7 @@ builder.Services.AddOpenTelemetry()
     .WithTracing(tracing => tracing
         .AddOpinionatedEventingInstrumentation())
     .WithMetrics(metrics => metrics
-        .AddOpinionatedEventingInstrumentation());
+        .AddOpinionatedEventingMetrics());
 ```
 
 ## Emitted signals

@@ -107,8 +107,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        modelBuilder.ApplyOutboxConfiguration();   // outbox_messages table
-        modelBuilder.ApplySagaStateConfiguration(); // saga_states table (if using sagas)
+        modelBuilder.ApplyOutboxConfiguration(Database.ProviderName);   // outbox_messages table — pass ProviderName for correct SQLite DDL
+        modelBuilder.ApplySagaStateConfiguration(Database.ProviderName); // saga_states table (if using sagas)
     }
 }
 ```

@@ -44,10 +44,9 @@ public sealed class AzureServiceBusOptions
     public bool EnableSessions { get; set; }
 
     /// <summary>
-    /// Gets or sets the maximum delivery count before a received message is dead-lettered and
-    /// written to the outbox as a failed record. Should match the broker's configured max
-    /// delivery count when <see cref="AutoCreateResources"/> is <see langword="false"/>.
-    /// Defaults to <c>5</c>.
+    /// Gets or sets the maximum delivery count before a received message is dead-lettered by
+    /// the broker. Should match the broker's configured max delivery count when
+    /// <see cref="AutoCreateResources"/> is <see langword="false"/>. Defaults to <c>5</c>.
     /// </summary>
     public int MaxDeliveryCount { get; set; } = 5;
 

@@ -53,10 +53,10 @@ services.AddOpenTelemetry()
 
 | Span name | When | Key attributes |
 |---|---|---|
-| `outbox.publish` | `IPublisher` writes to the outbox store | `message.type`, `message.kind`, `correlation.id` |
-| `outbox.dispatch` | `OutboxDispatcherWorker` calls `ITransport.SendAsync` | `message.type`, `message.id`, `attempt.count` |
-| `message.consume` | Transport consumer hands off to handler(s) | `message.type`, `handler.type`, `correlation.id`, `causation.id` |
-| `saga.step` | A saga handler executes | `saga.type`, `saga.status`, `correlation.id` |
+| `outbox.write` | `IPublisher` writes to the outbox store | `messaging.message.type`, `messaging.message.kind`, `messaging.message.correlation_id` |
+| `outbox.dispatch` | `OutboxDispatcherWorker` calls `ITransport.SendAsync` | `messaging.message.id`, `messaging.message.type` |
+| `consume` | Transport consumer hands off to handler(s) | `messaging.message.type`, `messaging.message.kind`, `messaging.message.correlation_id` |
+| `saga.step` | A saga handler executes | `saga.type`, `saga.correlation_key`, `messaging.message.type` |
 
 Each span carries W3C trace context propagated through the message envelope so traces span service boundaries.
 
@@ -73,7 +73,7 @@ using OpinionatedEventing.OpenTelemetry;
 
 services.AddOpenTelemetry()
     .WithMetrics(metrics => metrics
-        .AddOpinionatedEventingInstrumentation()
+        .AddOpinionatedEventingMetrics()
         .AddOtlpExporter());
 ```
 

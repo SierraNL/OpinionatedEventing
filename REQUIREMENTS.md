@@ -607,7 +607,7 @@ services.AddAzureServiceBusTransport(options =>
 - **DefaultAzureCredential support**: connection string is optional; managed identity works out of the box.
 - **Auto-create**: when `AutoCreateResources = true`, topics, queues, and subscriptions are created or updated at startup using the Service Bus management API.
 - **Session-enabled queues**: opt-in per command type via `[SessionEnabled]` attribute; session ID defaults to `CorrelationId`.
-- **Dead-letter integration**: messages that exceed the broker's delivery count are written back to the outbox as dead-lettered records for observability.
+- **Dead-letter handling**: messages that exceed the broker's delivery count are dead-lettered by the broker via `DeadLetterMessageAsync`; they are not written back to the outbox.
 - **Graceful shutdown**: in-flight message processing completes before the host stops; `CancellationToken` is wired to the host lifetime.
 
 ---
