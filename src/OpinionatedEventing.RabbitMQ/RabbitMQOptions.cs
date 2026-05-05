@@ -30,4 +30,11 @@ public sealed class RabbitMQOptions
     /// Gets or sets the number of messages to prefetch per consumer channel. Defaults to <c>10</c>.
     /// </summary>
     public ushort PrefetchCount { get; set; } = 10;
+
+    /// <summary>
+    /// Gets or sets the <c>ConnectionStrings</c> key used for Aspire service-discovery
+    /// (e.g. the resource name passed to <c>AddRabbitMqMessaging(name)</c>).
+    /// Defaults to <c>"rabbitmq"</c>. Only consulted when <see cref="ConnectionString"/> is not set.
+    /// </summary>
+    public string AspireConnectionStringName { get; set; } = "rabbitmq";
 }

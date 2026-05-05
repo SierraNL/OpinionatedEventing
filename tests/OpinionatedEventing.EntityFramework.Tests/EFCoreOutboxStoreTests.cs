@@ -21,7 +21,7 @@ public sealed class EFCoreOutboxStoreTests : IDisposable
     private EFCoreOutboxStore<SqliteTestDbContext> CreateStore(SqliteTestDbContext context)
         => new(context, TimeProvider.System);
 
-    private static OutboxMessage MakeMessage(string kind = "Event") => new()
+    private static OutboxMessage MakeMessage(MessageKind kind = MessageKind.Event) => new()
     {
         Id = Guid.NewGuid(),
         MessageType = "SomeType, SomeAssembly",
@@ -66,7 +66,7 @@ public sealed class EFCoreOutboxStoreTests : IDisposable
         OutboxMessage older = new()
         {
             Id = Guid.NewGuid(), MessageType = "T, A", Payload = "{}",
-            MessageKind = "Event", CorrelationId = Guid.NewGuid(),
+            MessageKind = MessageKind.Event, CorrelationId = Guid.NewGuid(),
             CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-5),
         };
         OutboxMessage newer = MakeMessage();

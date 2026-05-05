@@ -31,7 +31,7 @@ public sealed class OutboxMessageEntityTypeConfiguration : IEntityTypeConfigurat
 
         builder.Property(m => m.MessageType).IsRequired().HasMaxLength(512);
         builder.Property(m => m.Payload).IsRequired();
-        builder.Property(m => m.MessageKind).IsRequired().HasMaxLength(16);
+        builder.Property(m => m.MessageKind).IsRequired().HasMaxLength(16).HasConversion<string>();
         builder.Property(m => m.CorrelationId).IsRequired();
         builder.Property(m => m.CausationId);
         builder.Property(m => m.CreatedAt).IsRequired();

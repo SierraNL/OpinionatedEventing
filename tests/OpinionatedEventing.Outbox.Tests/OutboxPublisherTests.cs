@@ -42,7 +42,7 @@ public sealed class OutboxPublisherTests
         await publisher.PublishEventAsync(new TestEvent(Guid.NewGuid()), TestContext.Current.CancellationToken);
 
         Assert.Single(store.Messages);
-        Assert.Equal("Event", store.Messages[0].MessageKind);
+        Assert.Equal(MessageKind.Event, store.Messages[0].MessageKind);
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public sealed class OutboxPublisherTests
         await publisher.SendCommandAsync(new TestCommand(Guid.NewGuid()), TestContext.Current.CancellationToken);
 
         Assert.Single(store.Messages);
-        Assert.Equal("Command", store.Messages[0].MessageKind);
+        Assert.Equal(MessageKind.Command, store.Messages[0].MessageKind);
     }
 
     [Fact]

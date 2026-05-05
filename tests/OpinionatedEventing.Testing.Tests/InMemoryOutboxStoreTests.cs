@@ -10,7 +10,7 @@ public sealed class InMemoryOutboxStoreTests
     {
         Id = Guid.NewGuid(),
         MessageType = "TestMessage",
-        MessageKind = "Event",
+        MessageKind = MessageKind.Event,
         Payload = "{}",
         CreatedAt = DateTimeOffset.UtcNow,
     };

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpinionatedEventing.Diagnostics;
 using OpinionatedEventing.Options;
+using OpinionatedEventing.Outbox;
 
 namespace OpinionatedEventing;
 
@@ -66,16 +67,17 @@ public sealed class MessageHandlerRunner : IMessageHandlerRunner
                 ["MessageType"] = messageType,
             });
 
-            switch (messageKind)
+            if (!Enum.TryParse<MessageKind>(messageKind, ignoreCase: false, out var kind))
+                throw new InvalidOperationException($"Unknown message kind '{messageKind}'.");
+
+            switch (kind)
             {
-                case "Event":
+                case MessageKind.Event:
                     await DispatchEventAsync(scope.ServiceProvider, type, message, ct).ConfigureAwait(false);
                     break;
-                case "Command":
+                case MessageKind.Command:
                     await DispatchCommandAsync(scope.ServiceProvider, type, message, ct).ConfigureAwait(false);
                     break;
-                default:
-                    throw new InvalidOperationException($"Unknown message kind '{messageKind}'.");
             }
         }
         catch (Exception ex)

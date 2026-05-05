@@ -29,7 +29,7 @@ public sealed class SqliteIntegrationTests : IDisposable
         Id = Guid.NewGuid(),
         MessageType = "SomeType, SomeAssembly",
         Payload = "{}",
-        MessageKind = "Event",
+        MessageKind = MessageKind.Event,
         CorrelationId = Guid.NewGuid(),
         CreatedAt = createdAt ?? DateTimeOffset.UtcNow,
     };

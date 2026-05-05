@@ -19,7 +19,7 @@ public sealed class OutboxDispatcherWorkerTests
         Id = Guid.NewGuid(),
         MessageType = "Test.Event, Test",
         Payload = "{}",
-        MessageKind = "Event",
+        MessageKind = MessageKind.Event,
         CorrelationId = Guid.NewGuid(),
         CreatedAt = DateTimeOffset.UtcNow,
         AttemptCount = attemptCount,

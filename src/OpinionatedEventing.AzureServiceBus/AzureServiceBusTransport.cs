@@ -40,7 +40,7 @@ internal sealed class AzureServiceBusTransport : ITransport, IAsyncDisposable
     {
         var type = _registry.Resolve(message.MessageType);
 
-        var destination = message.MessageKind == "Event"
+        var destination = message.MessageKind == MessageKind.Event
             ? MessageNamingConvention.GetTopicName(type)
             : MessageNamingConvention.GetQueueName(type);
 
@@ -55,14 +55,14 @@ internal sealed class AzureServiceBusTransport : ITransport, IAsyncDisposable
             CorrelationId = message.CorrelationId.ToString(),
         };
         sbMessage.ApplicationProperties["MessageType"] = message.MessageType;
-        sbMessage.ApplicationProperties["MessageKind"] = message.MessageKind;
+        sbMessage.ApplicationProperties["MessageKind"] = message.MessageKind.ToString();
         sbMessage.ApplicationProperties["CorrelationId"] = message.CorrelationId.ToString();
         if (message.CausationId.HasValue)
             sbMessage.ApplicationProperties["CausationId"] = message.CausationId.Value.ToString();
 
         var opts = _options.Value;
         if (opts.EnableSessions
-            && message.MessageKind == "Command"
+            && message.MessageKind == MessageKind.Command
             && Attribute.IsDefined(type, typeof(SessionEnabledAttribute)))
         {
             sbMessage.SessionId = message.CorrelationId.ToString();

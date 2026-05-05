@@ -17,10 +17,8 @@ public sealed class OutboxMessage
     /// <summary>Gets the JSON-serialised message body.</summary>
     public required string Payload { get; init; }
 
-    /// <summary>
-    /// Gets the kind of message: <c>"Event"</c> or <c>"Command"</c>.
-    /// </summary>
-    public required string MessageKind { get; init; }
+    /// <summary>Gets the kind of message: <see cref="Outbox.MessageKind.Event"/> or <see cref="Outbox.MessageKind.Command"/>.</summary>
+    public required MessageKind MessageKind { get; init; }
 
     /// <summary>
     /// Gets the correlation identifier propagated across the entire message chain.

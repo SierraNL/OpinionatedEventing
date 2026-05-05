@@ -82,7 +82,7 @@ public sealed class DomainEventInterceptor : SaveChangesInterceptor
                     Id = Guid.NewGuid(),
                     MessageType = _registry.GetIdentifier(eventType),
                     Payload = JsonSerializer.Serialize(domainEvent, eventType, serializerOptions),
-                    MessageKind = "Event",
+                    MessageKind = MessageKind.Event,
                     CorrelationId = _messagingContext.CorrelationId,
                     CausationId = _messagingContext.CausationId,
                     CreatedAt = now,

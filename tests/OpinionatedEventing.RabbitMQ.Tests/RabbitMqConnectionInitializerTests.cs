@@ -55,6 +55,37 @@ public sealed class RabbitMqConnectionInitializerTests
     }
 
     [Fact]
+    public void ResolveConnectionString_uses_custom_AspireConnectionStringName()
+    {
+        var opts = new RabbitMQOptions { AspireConnectionStringName = "messaging" };
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ConnectionStrings:messaging"] = "amqp://custom-aspire/",
+            })
+            .Build();
+
+        var result = RabbitMqConnectionInitializer.ResolveConnectionString(opts, config);
+
+        Assert.Equal("amqp://custom-aspire/", result);
+    }
+
+    [Fact]
+    public void ResolveConnectionString_custom_name_ignores_default_key()
+    {
+        var opts = new RabbitMQOptions { AspireConnectionStringName = "messaging" };
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ConnectionStrings:rabbitmq"] = "amqp://wrong/",
+            })
+            .Build();
+
+        Assert.Throws<InvalidOperationException>(
+            () => RabbitMqConnectionInitializer.ResolveConnectionString(opts, config));
+    }
+
+    [Fact]
     public void ResolveConnectionString_throws_when_no_connection_string_available()
     {
         var opts = new RabbitMQOptions();
