@@ -10,7 +10,11 @@
       "Bash(cd * && dotnet test *)",
       "Bash(cd * && dotnet restore *)",
       "Bash(cd * && dotnet clean *)",
-      "mcp__github__get_issue"
+      "Bash(gh issue list *)",
+      "Bash(gh issue view *)",
+      "Bash(gh pr list *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr checks *)"
     ]
   }
 }

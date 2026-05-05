@@ -28,6 +28,7 @@ A suite of opinionated .NET libraries for event-driven and command-driven messag
 | `OpinionatedEventing.Sagas` | [![NuGet](https://img.shields.io/nuget/v/OpinionatedEventing.Sagas.svg)](https://www.nuget.org/packages/OpinionatedEventing.Sagas) | Orchestration and choreography engine |
 | `OpinionatedEventing.AzureServiceBus` | [![NuGet](https://img.shields.io/nuget/v/OpinionatedEventing.AzureServiceBus.svg)](https://www.nuget.org/packages/OpinionatedEventing.AzureServiceBus) | Azure Service Bus transport |
 | `OpinionatedEventing.RabbitMQ` | [![NuGet](https://img.shields.io/nuget/v/OpinionatedEventing.RabbitMQ.svg)](https://www.nuget.org/packages/OpinionatedEventing.RabbitMQ) | RabbitMQ transport |
+| `OpinionatedEventing.OpenTelemetry` | [![NuGet](https://img.shields.io/nuget/v/OpinionatedEventing.OpenTelemetry.svg)](https://www.nuget.org/packages/OpinionatedEventing.OpenTelemetry) | OpenTelemetry tracing and metrics integration |
 | `OpinionatedEventing.Aspire` | [![NuGet](https://img.shields.io/nuget/v/OpinionatedEventing.Aspire.svg)](https://www.nuget.org/packages/OpinionatedEventing.Aspire) | Aspire AppHost extensions and health checks |
 | `OpinionatedEventing.Testing` | [![NuGet](https://img.shields.io/nuget/v/OpinionatedEventing.Testing.svg)](https://www.nuget.org/packages/OpinionatedEventing.Testing) | In-memory stores and fakes for tests |
 
