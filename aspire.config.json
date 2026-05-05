@@ -1,0 +1,6 @@
+{
+  "appHost": {
+    "language": "csharp",
+    "path": "samples/Samples.AppHost/Samples.AppHost.csproj"
+  }
+}

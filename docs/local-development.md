@@ -123,6 +123,20 @@ In `appsettings.Development.json`:
 
 ## Running locally
 
+To try the included sample (four services, RabbitMQ, PostgreSQL — zero config):
+
+```bash
+# From the repository root
+aspire run
+
+# Or without the Aspire CLI
+dotnet run --project samples/Samples.AppHost
+```
+
+See [samples/README.md](../samples/README.md) for the full walkthrough and how to place a test order.
+
+For your own solution:
+
 ```bash
 cd src/YourSolution.AppHost
 dotnet run

@@ -1,10 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!-- Aspire AppHost SDK wires up project discovery, resource injection, and the dashboard. -->
-  <Sdk Name="Aspire.AppHost.Sdk" Version="13.2.2" />
+  <Sdk Name="Aspire.AppHost.Sdk" Version="13.2.4" />
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <!-- Explicit here so IDEs (Rider) pick it up; other sample projects rely on samples/Directory.Build.props. -->
+    <TargetFramework>net10.0</TargetFramework>
     <IsAspireHost>true</IsAspireHost>
   </PropertyGroup>
 

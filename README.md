@@ -59,6 +59,28 @@ await publisher.PublishEventAsync(new OrderPlaced(id, total), ct);
 await db.SaveChangesAsync(ct);
 ```
 
+## Try the sample
+
+A runnable end-to-end demo is included — four services (Order, Payment, Fulfillment, Notification) wired together over RabbitMQ with PostgreSQL. Requires [.NET 10 SDK](https://dotnet.microsoft.com/download) and a container runtime (Docker Desktop, Podman, or Rancher Desktop).
+
+```bash
+git clone https://github.com/SierraNL/OpinionatedEventing
+cd OpinionatedEventing
+aspire run
+```
+
+> **No `aspire` CLI?** Use `dotnet run --project samples/Samples.AppHost` instead, or install via `winget install Microsoft.Aspire`.
+
+The Aspire dashboard URL is printed to the console at startup. Once all services show healthy, place an order:
+
+```bash
+curl -X POST http://localhost:<order-service-port>/orders \
+  -H "Content-Type: application/json" \
+  -d '{"customerName": "Alice", "total": 99.99}'
+```
+
+The port is shown in the dashboard under the `order-service` endpoint. See [samples/README.md](samples/README.md) for the full walkthrough.
+
 ## Documentation
 
 | Guide | Description |
