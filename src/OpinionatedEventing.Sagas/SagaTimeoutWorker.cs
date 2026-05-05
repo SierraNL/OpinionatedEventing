@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using OpinionatedEventing.Options;
 using OpinionatedEventing.Sagas.Diagnostics;
 using OpinionatedEventing.Sagas.Options;
 
@@ -18,6 +19,7 @@ public sealed class SagaTimeoutWorker : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly TimeProvider _timeProvider;
     private readonly IOptions<SagaOptions> _options;
+    private readonly IOptions<OpinionatedEventingOptions> _globalOptions;
     private readonly ILogger<SagaTimeoutWorker> _logger;
 
     /// <summary>Initialises a new <see cref="SagaTimeoutWorker"/>.</summary>
@@ -25,11 +27,13 @@ public sealed class SagaTimeoutWorker : BackgroundService
         IServiceProvider serviceProvider,
         TimeProvider timeProvider,
         IOptions<SagaOptions> options,
+        IOptions<OpinionatedEventingOptions> globalOptions,
         ILogger<SagaTimeoutWorker> logger)
     {
         _serviceProvider = serviceProvider;
         _timeProvider = timeProvider;
         _options = options;
+        _globalOptions = globalOptions;
         _logger = logger;
     }
 
@@ -50,7 +54,7 @@ public sealed class SagaTimeoutWorker : BackgroundService
         var store = scope.ServiceProvider.GetRequiredService<ISagaStateStore>();
         var publisher = scope.ServiceProvider.GetRequiredService<IPublisher>();
         var descriptors = _serviceProvider.GetServices<SagaDescriptor>();
-        var serializerOptions = _options.Value.SerializerOptions;
+        var serializerOptions = _options.Value.SerializerOptions ?? _globalOptions.Value.SerializerOptions;
 
         IReadOnlyList<SagaState> expired;
         try

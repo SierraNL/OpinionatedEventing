@@ -52,6 +52,18 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
     }
 
     /// <inheritdoc/>
+    public override Task StartAsync(CancellationToken cancellationToken)
+    {
+        var opts = _options.Value;
+        if (_registry.EventTypes.Count > 0 && string.IsNullOrEmpty(opts.ServiceName))
+            throw new InvalidOperationException(
+                "AzureServiceBusOptions.ServiceName must be set before the consumer can subscribe to events. " +
+                "Configure it via AddAzureServiceBus(options => options.ServiceName = \"my-service\").");
+
+        return base.StartAsync(cancellationToken);
+    }
+
+    /// <inheritdoc/>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var opts = _options.Value;
@@ -66,14 +78,6 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
 
         foreach (var eventType in eventTypes)
         {
-            if (string.IsNullOrEmpty(opts.ServiceName))
-            {
-                _logger.LogWarning(
-                    "ServiceName is not configured — skipping subscription for event '{EventType}'.",
-                    eventType.Name);
-                continue;
-            }
-
             var topicName = MessageNamingConvention.GetTopicName(eventType);
             var processor = _client.CreateProcessor(topicName, opts.ServiceName, processorOptions);
             processor.ProcessMessageAsync += OnMessageAsync;

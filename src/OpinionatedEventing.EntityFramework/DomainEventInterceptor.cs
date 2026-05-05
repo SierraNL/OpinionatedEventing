@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using OpinionatedEventing.Options;
 using OpinionatedEventing.Outbox;
@@ -15,23 +16,26 @@ namespace OpinionatedEventing.EntityFramework;
 /// <remarks>
 /// Register this interceptor with the application's <see cref="DbContext"/> by calling
 /// <c>options.AddInterceptors(sp.GetRequiredService&lt;DomainEventInterceptor&gt;())</c>
-/// inside the <c>AddDbContext</c> configuration delegate.
+/// inside the <c>AddDbContext</c> configuration delegate. The <c>sp</c> passed
+/// to the factory must be the <em>scoped</em> service provider so that
+/// <c>IMessagingContext</c> is resolved per request rather than captured once at
+/// startup, which would cause stale correlation IDs to be written to the outbox.
 /// </remarks>
 public sealed class DomainEventInterceptor : SaveChangesInterceptor
 {
-    private readonly IMessagingContext _messagingContext;
+    private readonly IServiceProvider _serviceProvider;
     private readonly IMessageTypeRegistry _registry;
     private readonly IOptions<OpinionatedEventingOptions> _options;
     private readonly TimeProvider _timeProvider;
 
     /// <summary>Initialises a new <see cref="DomainEventInterceptor"/>.</summary>
     public DomainEventInterceptor(
-        IMessagingContext messagingContext,
+        IServiceProvider serviceProvider,
         IMessageTypeRegistry registry,
         IOptions<OpinionatedEventingOptions> options,
         TimeProvider timeProvider)
     {
-        _messagingContext = messagingContext;
+        _serviceProvider = serviceProvider;
         _registry = registry;
         _options = options;
         _timeProvider = timeProvider;
@@ -68,6 +72,7 @@ public sealed class DomainEventInterceptor : SaveChangesInterceptor
 
         if (aggregates.Count == 0) return;
 
+        var messagingContext = _serviceProvider.GetRequiredService<IMessagingContext>();
         var serializerOptions = _options.Value.SerializerOptions;
         var now = _timeProvider.GetUtcNow();
         var outboxSet = context.Set<OutboxMessage>();
@@ -83,8 +88,8 @@ public sealed class DomainEventInterceptor : SaveChangesInterceptor
                     MessageType = _registry.GetIdentifier(eventType),
                     Payload = JsonSerializer.Serialize(domainEvent, eventType, serializerOptions),
                     MessageKind = MessageKind.Event,
-                    CorrelationId = _messagingContext.CorrelationId,
-                    CausationId = _messagingContext.CausationId,
+                    CorrelationId = messagingContext.CorrelationId,
+                    CausationId = messagingContext.CausationId,
                     CreatedAt = now,
                 });
             }

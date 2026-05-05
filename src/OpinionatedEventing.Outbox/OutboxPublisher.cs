@@ -89,12 +89,13 @@ internal sealed class OutboxPublisher : IPublisher
 
     private OutboxMessage CreateMessage<T>(T payload, MessageKind kind)
     {
+        var runtimeType = payload!.GetType();
         var serializerOptions = _options.Value.SerializerOptions;
         return new OutboxMessage
         {
             Id = Guid.NewGuid(),
-            MessageType = _registry.GetIdentifier(typeof(T)),
-            Payload = JsonSerializer.Serialize(payload, serializerOptions),
+            MessageType = _registry.GetIdentifier(runtimeType),
+            Payload = JsonSerializer.Serialize(payload, runtimeType, serializerOptions),
             MessageKind = kind,
             CorrelationId = _messagingContext.CorrelationId,
             CausationId = _messagingContext.CausationId,

@@ -46,9 +46,17 @@ internal static class MessageNamingConvention
         var sb = new StringBuilder(name.Length + 4);
         for (var i = 0; i < name.Length; i++)
         {
-            if (char.IsUpper(name[i]) && i > 0)
-                sb.Append('-');
-            sb.Append(char.ToLower(name[i]));
+            var c = name[i];
+            if (char.IsUpper(c) && i > 0)
+            {
+                var prev = name[i - 1];
+                var next = i + 1 < name.Length ? name[i + 1] : '\0';
+                // Insert hyphen at a word boundary: after lowercase, or before the last uppercase of a run
+                // e.g. HTTPRequest → http-request, OrderPlaced → order-placed
+                if (char.IsLower(prev) || (char.IsUpper(prev) && char.IsLower(next)))
+                    sb.Append('-');
+            }
+            sb.Append(char.ToLower(c));
         }
         return sb.ToString();
     }

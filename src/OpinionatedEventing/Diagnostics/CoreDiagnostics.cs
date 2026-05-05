@@ -28,9 +28,9 @@ internal static class CoreDiagnostics
         activity.SetTag("messaging.operation", "receive");
         activity.SetTag("messaging.message.type", messageType);
         activity.SetTag("messaging.message.kind", messageKind);
-        activity.AddBaggage("correlation.id", correlationId.ToString());
+        activity.AddBaggage("messaging.message.correlation_id", correlationId.ToString());
         if (causationId.HasValue)
-            activity.AddBaggage("causation.id", causationId.Value.ToString());
+            activity.AddBaggage("messaging.message.causation_id", causationId.Value.ToString());
 
         return activity;
     }

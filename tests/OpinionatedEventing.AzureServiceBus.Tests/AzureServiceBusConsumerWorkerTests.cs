@@ -34,6 +34,35 @@ public sealed class AzureServiceBusConsumerWorkerTests
     }
 
     [Fact]
+    public async Task StartAsync_throws_when_ServiceName_is_empty_and_events_are_registered()
+    {
+        var registry = new MessageHandlerRegistry();
+        registry.RegisterEventType(typeof(TestEvent));
+
+        var options = MSOptions.Create(new AzureServiceBusOptions
+        {
+            ConnectionString = "Endpoint=sb://test.servicebus.windows.net/;" +
+                               "SharedAccessKeyName=RootManageSharedAccessKey;" +
+                               "SharedAccessKey=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            ServiceName = string.Empty,
+        });
+
+        var worker = new AzureServiceBusConsumerWorker(
+            client: new NoOpServiceBusClient(),
+            handlerRunner: new RecordingHandlerRunner(),
+            scopeFactory: new NeverCalledScopeFactory(),
+            registry: registry,
+            options: options,
+            pauseController: new FakeConsumerPauseController(startPaused: false),
+            timeProvider: TimeProvider.System,
+            logger: NullLogger<AzureServiceBusConsumerWorker>.Instance);
+
+        using var cts = new CancellationTokenSource();
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => worker.StartAsync(cts.Token));
+    }
+
+    [Fact]
     public async Task ProcessReceivedMessageAsync_passes_inbound_MessageId_as_causationId()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -116,6 +145,8 @@ public sealed class AzureServiceBusConsumerWorkerTests
     }
 
     // ─── Fakes ────────────────────────────────────────────────────────────────────
+
+    private sealed record TestEvent : IEvent;
 
     private sealed class NoOpServiceBusClient : ServiceBusClient { }
 

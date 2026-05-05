@@ -13,7 +13,9 @@ public sealed class SagaOptions
 
     /// <summary>
     /// <see cref="JsonSerializerOptions"/> used to serialise and deserialise saga state payloads.
-    /// Defaults to <see langword="null"/>, which uses <see cref="JsonSerializerOptions.Default"/>.
+    /// When <see langword="null"/> (the default), falls back to
+    /// <c>OpinionatedEventingOptions.SerializerOptions</c>; if that is also <see langword="null"/>,
+    /// <see cref="JsonSerializerOptions.Default"/> is used.
     /// </summary>
     public JsonSerializerOptions? SerializerOptions { get; set; }
 }

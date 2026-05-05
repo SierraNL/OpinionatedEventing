@@ -55,6 +55,13 @@ public sealed class AzureServiceBusOptions
     /// Gets or sets the maximum number of concurrent calls to the message handler for regular
     /// (non-session) processors. Defaults to <c>1</c>.
     /// </summary>
+    /// <remarks>
+    /// A value of <c>1</c> serialises message processing within each processor, making handler
+    /// idempotency easier to reason about and preventing database connection spikes. Increase to
+    /// a higher value (e.g. <c>16</c>–<c>32</c>) when throughput matters more than ordering and
+    /// handlers are already safe to run concurrently. The ideal value depends on handler latency,
+    /// downstream connection pool sizes, and Service Bus prefetch settings.
+    /// </remarks>
     public int MaxConcurrentCalls { get; set; } = 1;
 
     /// <summary>

@@ -8,6 +8,10 @@ namespace OpinionatedEventing.Attributes;
 /// <remarks>
 /// When not applied the queue name is derived from the message type by convention
 /// (e.g. <c>ProcessPayment</c> → <c>process-payment</c>).
+/// <para>
+/// Note: <c>AttributeTargets.Class</c> does not cover value types, so
+/// <c>record struct</c> commands are not supported. Use <c>record class</c> or a plain <c>class</c>.
+/// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
 public sealed class MessageQueueAttribute : Attribute

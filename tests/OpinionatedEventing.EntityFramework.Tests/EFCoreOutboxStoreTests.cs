@@ -185,7 +185,9 @@ public sealed class EFCoreOutboxStoreTests : IDisposable
         await context.SaveChangesAsync(ct);
         await store.MarkProcessedAsync(message.Id, ct);
 
-        OutboxMessage? saved = await context.Set<OutboxMessage>().FindAsync([message.Id], ct);
+        // Use a fresh context: ExecuteUpdateAsync bypasses the change tracker
+        await using SqliteTestDbContext context2 = _factory.CreateContext();
+        OutboxMessage? saved = await context2.Set<OutboxMessage>().FindAsync([message.Id], ct);
         Assert.NotNull(saved!.ProcessedAt);
     }
 
@@ -201,7 +203,9 @@ public sealed class EFCoreOutboxStoreTests : IDisposable
         await context.SaveChangesAsync(ct);
         await store.MarkFailedAsync(message.Id, "broker unavailable", ct);
 
-        OutboxMessage? saved = await context.Set<OutboxMessage>().FindAsync([message.Id], ct);
+        // Use a fresh context: ExecuteUpdateAsync bypasses the change tracker
+        await using SqliteTestDbContext context2 = _factory.CreateContext();
+        OutboxMessage? saved = await context2.Set<OutboxMessage>().FindAsync([message.Id], ct);
         Assert.NotNull(saved!.FailedAt);
         Assert.Equal("broker unavailable", saved.Error);
     }
@@ -218,7 +222,9 @@ public sealed class EFCoreOutboxStoreTests : IDisposable
         await context.SaveChangesAsync(ct);
         await store.IncrementAttemptAsync(message.Id, "transient", null, ct);
 
-        OutboxMessage? saved = await context.Set<OutboxMessage>().FindAsync([message.Id], ct);
+        // Use a fresh context: ExecuteUpdateAsync bypasses the change tracker
+        await using SqliteTestDbContext context2 = _factory.CreateContext();
+        OutboxMessage? saved = await context2.Set<OutboxMessage>().FindAsync([message.Id], ct);
         Assert.Equal(1, saved!.AttemptCount);
         Assert.Equal("transient", saved.Error);
     }
@@ -252,7 +258,9 @@ public sealed class EFCoreOutboxStoreTests : IDisposable
         await context.SaveChangesAsync(ct);
         await store.IncrementAttemptAsync(message.Id, "transient", nextAttempt, ct);
 
-        OutboxMessage? saved = await context.Set<OutboxMessage>().FindAsync([message.Id], ct);
+        // Use a fresh context: ExecuteUpdateAsync bypasses the change tracker
+        await using SqliteTestDbContext context2 = _factory.CreateContext();
+        OutboxMessage? saved = await context2.Set<OutboxMessage>().FindAsync([message.Id], ct);
         Assert.NotNull(saved!.NextAttemptAt);
     }
 

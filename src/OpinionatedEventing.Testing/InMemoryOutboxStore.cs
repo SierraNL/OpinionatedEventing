@@ -12,6 +12,18 @@ namespace OpinionatedEventing.Testing;
 public sealed class InMemoryOutboxStore : IOutboxStore
 {
     private readonly ConcurrentDictionary<Guid, OutboxMessage> _messages = new();
+    private readonly TimeProvider _timeProvider;
+
+    /// <summary>Initialises a new <see cref="InMemoryOutboxStore"/>.</summary>
+    /// <param name="timeProvider">
+    /// Time source used for <c>ProcessedAt</c>, <c>FailedAt</c>, and pending-message filtering.
+    /// Defaults to <see cref="TimeProvider.System"/> when <see langword="null"/>.
+    /// Pass a <see cref="FakeTimeProvider"/> to control time in tests.
+    /// </param>
+    public InMemoryOutboxStore(TimeProvider? timeProvider = null)
+    {
+        _timeProvider = timeProvider ?? TimeProvider.System;
+    }
 
     /// <summary>Gets a snapshot of all messages currently in the store, regardless of status.</summary>
     public IReadOnlyList<OutboxMessage> Messages => _messages.Values.ToList();
@@ -38,7 +50,7 @@ public sealed class InMemoryOutboxStore : IOutboxStore
         int batchSize,
         CancellationToken cancellationToken = default)
     {
-        DateTimeOffset now = DateTimeOffset.UtcNow;
+        DateTimeOffset now = _timeProvider.GetUtcNow();
         var pending = _messages.Values
             .Where(m => m.ProcessedAt is null && m.FailedAt is null &&
                         (m.NextAttemptAt is null || m.NextAttemptAt <= now))
@@ -53,7 +65,7 @@ public sealed class InMemoryOutboxStore : IOutboxStore
     public Task MarkProcessedAsync(Guid id, CancellationToken cancellationToken = default)
     {
         if (_messages.TryGetValue(id, out var message))
-            message.ProcessedAt = DateTimeOffset.UtcNow;
+            message.ProcessedAt = _timeProvider.GetUtcNow();
         return Task.CompletedTask;
     }
 
@@ -62,7 +74,7 @@ public sealed class InMemoryOutboxStore : IOutboxStore
     {
         if (_messages.TryGetValue(id, out var message))
         {
-            message.FailedAt = DateTimeOffset.UtcNow;
+            message.FailedAt = _timeProvider.GetUtcNow();
             message.Error = error;
         }
         return Task.CompletedTask;

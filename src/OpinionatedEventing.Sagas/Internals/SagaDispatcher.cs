@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using OpinionatedEventing.Options;
 using OpinionatedEventing.Sagas.Options;
 
 namespace OpinionatedEventing.Sagas;
@@ -21,7 +22,8 @@ internal sealed class SagaDispatcher : ISagaDispatcher
         ISagaStateStore stateStore,
         IPublisher publisher,
         TimeProvider timeProvider,
-        IOptions<SagaOptions> options)
+        IOptions<SagaOptions> sagaOptions,
+        IOptions<OpinionatedEventingOptions> globalOptions)
     {
         _sp = sp;
         _sagaDescriptors = sagaDescriptors;
@@ -29,7 +31,7 @@ internal sealed class SagaDispatcher : ISagaDispatcher
         _stateStore = stateStore;
         _publisher = publisher;
         _timeProvider = timeProvider;
-        _serializerOptions = options.Value.SerializerOptions;
+        _serializerOptions = sagaOptions.Value.SerializerOptions ?? globalOptions.Value.SerializerOptions;
     }
 
     public async Task DispatchAsync<TEvent>(TEvent @event, CancellationToken cancellationToken = default)

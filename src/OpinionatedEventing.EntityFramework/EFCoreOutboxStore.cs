@@ -109,37 +109,37 @@ internal sealed class EFCoreOutboxStore<TDbContext> : IOutboxStore
     /// <inheritdoc/>
     public async Task MarkProcessedAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        OutboxMessage? message = await _dbContext.Set<OutboxMessage>().FindAsync([id], cancellationToken);
-        if (message is null) return;
-
-        message.ProcessedAt = _timeProvider.GetUtcNow();
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        DateTimeOffset now = _timeProvider.GetUtcNow();
+        await _dbContext.Set<OutboxMessage>()
+            .Where(m => m.Id == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(m => m.ProcessedAt, now), cancellationToken);
     }
 
     /// <inheritdoc/>
     public async Task MarkFailedAsync(Guid id, string error, CancellationToken cancellationToken = default)
     {
-        OutboxMessage? message = await _dbContext.Set<OutboxMessage>().FindAsync([id], cancellationToken);
-        if (message is null) return;
-
-        message.FailedAt = _timeProvider.GetUtcNow();
-        message.Error = error;
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        DateTimeOffset now = _timeProvider.GetUtcNow();
+        await _dbContext.Set<OutboxMessage>()
+            .Where(m => m.Id == id)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(m => m.FailedAt, now)
+                .SetProperty(m => m.Error, error),
+            cancellationToken);
     }
 
     /// <inheritdoc/>
     public async Task IncrementAttemptAsync(Guid id, string error, DateTimeOffset? nextAttemptAt, CancellationToken cancellationToken = default)
     {
-        OutboxMessage? message = await _dbContext.Set<OutboxMessage>().FindAsync([id], cancellationToken);
-        if (message is null) return;
-
-        message.AttemptCount++;
-        message.Error = error;
-        message.NextAttemptAt = nextAttemptAt;
-        // Clear the claim so the message is re-eligible after the backoff delay.
-        message.LockedBy = null;
-        message.LockedUntil = null;
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _dbContext.Set<OutboxMessage>()
+            .Where(m => m.Id == id)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(m => m.AttemptCount, m => m.AttemptCount + 1)
+                .SetProperty(m => m.Error, error)
+                .SetProperty(m => m.NextAttemptAt, nextAttemptAt)
+                // Clear the claim so the message is re-eligible after the backoff delay.
+                .SetProperty(m => m.LockedBy, (string?)null)
+                .SetProperty(m => m.LockedUntil, (DateTimeOffset?)null),
+            cancellationToken);
     }
 
     /// <inheritdoc/>
