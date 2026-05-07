@@ -1,4 +1,4 @@
-# OpinionatedEventing
+<img src="assets/header-transparant.png" alt="OpinionatedEventing" width="400" />
 
 [![CI](https://github.com/SierraNL/OpinionatedEventing/actions/workflows/ci.yml/badge.svg)](https://github.com/SierraNL/OpinionatedEventing/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/SierraNL/OpinionatedEventing/branch/main/graph/badge.svg)](https://codecov.io/gh/SierraNL/OpinionatedEventing)
