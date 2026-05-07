@@ -12,6 +12,10 @@ jobs:
     name: Build & Test (.NET ${{ matrix.dotnet }})
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      id-token: write
+
     strategy:
       matrix:
         include:
@@ -120,3 +124,14 @@ jobs:
         with:
           name: nuget-packages
           path: ./artifacts/nuget/*.nupkg
+
+      - name: NuGet trusted publish login
+        if: success() && matrix.tfm == 'net10.0' && github.event_name == 'push'
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: SierraNL
+
+      - name: Publish to NuGet.org
+        if: success() && matrix.tfm == 'net10.0' && github.event_name == 'push'
+        run: dotnet nuget push ./artifacts/nuget/*.nupkg --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
