@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
@@ -126,12 +127,12 @@ jobs:
           path: ./artifacts/nuget/*.nupkg
 
       - name: NuGet trusted publish login
-        if: success() && matrix.tfm == 'net10.0' && github.event_name == 'push'
+        if: success() && matrix.tfm == 'net10.0' && startsWith(github.ref, 'refs/tags/v')
         uses: NuGet/login@v1
         id: nuget-login
         with:
           user: SierraNL
 
       - name: Publish to NuGet.org
-        if: success() && matrix.tfm == 'net10.0' && github.event_name == 'push'
+        if: success() && matrix.tfm == 'net10.0' && startsWith(github.ref, 'refs/tags/v')
         run: dotnet nuget push ./artifacts/nuget/*.nupkg --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
