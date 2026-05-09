@@ -36,7 +36,7 @@ jobs:
           queries: security-and-quality
 
       - name: Build
-        run: dotnet build LibrariesOnly.slnf --configuration Release
+        run: dotnet build LibrariesOnly.slnf --configuration Release --framework net10.0
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
