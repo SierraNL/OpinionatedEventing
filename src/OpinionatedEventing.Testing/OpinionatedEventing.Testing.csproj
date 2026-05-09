@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <Description>Test helpers for OpinionatedEventing — InMemoryOutboxStore, FakePublisher, FakeMessagingContext, and TestMessagingBuilder for unit testing without infrastructure.</Description>
+    <PackageTags>$(PackageTags) testing unit-testing test-helpers fakes</PackageTags>
     <DevelopmentDependency>true</DevelopmentDependency>
   </PropertyGroup>
 

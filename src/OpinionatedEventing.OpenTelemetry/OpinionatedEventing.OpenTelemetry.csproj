@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <Description>OpenTelemetry SDK integration for OpinionatedEventing. Provides TracerProviderBuilder and MeterProviderBuilder extension methods to opt in to distributed tracing and metrics.</Description>
+    <PackageTags>$(PackageTags) opentelemetry observability tracing metrics</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

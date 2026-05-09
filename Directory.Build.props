@@ -34,6 +34,7 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>logo-128.png</PackageIcon>
+    <PackageTags>messaging eventing dotnet dotnet-library</PackageTags>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsTestProject)' != 'true' and '$(IsSampleProject)' != 'true'">

@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <Description>RabbitMQ transport for OpinionatedEventing. Events map to topic exchanges, commands map to direct queues. Supports Aspire service discovery and auto-declare topology.</Description>
+    <PackageTags>$(PackageTags) rabbitmq transport amqp</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

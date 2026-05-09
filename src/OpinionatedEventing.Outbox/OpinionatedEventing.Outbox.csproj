@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <Description>Outbox dispatcher background service for OpinionatedEventing. Polls the outbox store and forwards messages to the configured transport.</Description>
+    <PackageTags>$(PackageTags) outbox transactional-outbox reliability</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

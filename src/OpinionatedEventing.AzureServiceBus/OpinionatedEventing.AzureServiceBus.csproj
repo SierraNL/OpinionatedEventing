@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <Description>Azure Service Bus transport for OpinionatedEventing. Events map to topics, commands map to queues. Supports DefaultAzureCredential and auto-resource creation.</Description>
+    <PackageTags>$(PackageTags) azure azure-service-bus transport cloud</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
