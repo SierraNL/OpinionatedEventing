@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <Description>Aspire AppHost extension for OpinionatedEventing — adds an Azure Service Bus emulator resource. Reference this package from your AppHost project only.</Description>
+    <PackageTags>$(PackageTags) aspire azure azure-service-bus local-dev</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

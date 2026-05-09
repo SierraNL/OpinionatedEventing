@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <Description>Runtime hosting package for OpinionatedEventing — MessageHandlerRunner, MessagingContext, DI extensions, diagnostics, and options. Reference this package from composition-root/infrastructure assemblies.</Description>
+    <PackageTags>$(PackageTags) hosting dependency-injection</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

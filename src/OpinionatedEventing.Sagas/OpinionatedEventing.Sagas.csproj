@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <Description>Saga orchestration and choreography engine for OpinionatedEventing. Supports orchestrated sagas with state, timeouts, and compensation, plus lightweight choreography participants.</Description>
+    <PackageTags>$(PackageTags) saga orchestration choreography workflow</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
