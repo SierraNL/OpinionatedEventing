@@ -1,0 +1,65 @@
+name: Bug report
+description: Report a bug in one of the OpinionatedEventing packages
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      description: Which NuGet package is affected?
+      options:
+        - OpinionatedEventing.Core
+        - OpinionatedEventing.AzureServiceBus
+        - OpinionatedEventing.RabbitMQ
+        - Other / unsure
+    validations:
+      required: true
+
+  - type: input
+    id: package_version
+    attributes:
+      label: Package version
+      placeholder: "e.g. 1.2.3"
+    validations:
+      required: true
+
+  - type: input
+    id: dotnet_version
+    attributes:
+      label: .NET version / target framework
+      placeholder: "e.g. net8.0, net9.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Configure ...
+        2. Publish message ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: A code snippet or link to a minimal repository that reproduces the issue.
+    validations:
+      required: false
