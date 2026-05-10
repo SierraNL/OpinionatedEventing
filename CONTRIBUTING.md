@@ -8,7 +8,7 @@ Thank you for your interest in contributing. This guide covers everything you ne
 |------|-----------------|-------|
 | [.NET SDK](https://dotnet.microsoft.com/download) | 10.0.100 or later 10.x patch | `global.json` enforces this; `rollForward: latestMinor` allows newer patches |
 | [Docker](https://docs.docker.com/get-docker/) | Any recent stable version | Required only for integration tests (Testcontainers) and the Aspire sample |
-| [Aspire workload](https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/setup-tooling) | Matches your SDK | Required only to run the sample: `dotnet workload install aspire` |
+| [Aspire CLI](https://aspire.dev/get-started/prerequisites/) | Latest stable | Required only to run the sample — see installation note below |
 | Git | Any recent version | |
 
 The libraries target `net8.0`, `net9.0`, and `net10.0`. CI builds all three, but for local development the .NET 10 SDK is sufficient — it can build all target frameworks.
@@ -60,7 +60,12 @@ dotnet test tests/OpinionatedEventing.Tests/ -- --filter-not-trait "Category=Int
 The sample demonstrates the full stack: four microservices (Order, Payment, Fulfillment, Notification) wired together with RabbitMQ transport and PostgreSQL persistence.
 
 ```bash
-dotnet workload install aspire   # one-time setup
+# Install the Aspire CLI (one-time — it is no longer a .NET workload)
+# macOS/Linux:
+curl -sSL https://aspire.dev/install.sh | bash
+# Windows (PowerShell):
+irm https://aspire.dev/install.ps1 | iex
+
 dotnet run --project samples/Samples.AppHost
 ```
 
