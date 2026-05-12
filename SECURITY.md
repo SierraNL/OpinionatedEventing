@@ -20,7 +20,7 @@ Use one of the following channels:
 - **GitHub private security advisory (preferred):**
   [Report a vulnerability](https://github.com/SierraNL/OpinionatedEventing/security/advisories/new)
 
-- **Email:** `<CONTACT_EMAIL>`
+- **Email:** `security@opinionated-eventing.com`
 
 Include as much detail as possible: affected package(s), version(s), reproduction steps, and potential impact. You can expect an initial response within **5 business days**.
 
