@@ -37,7 +37,7 @@ jobs:
           config-file: ./.github/codeql/codeql-config.yml
 
       - name: Build
-        run: dotnet build LibrariesOnly.slnf --configuration Release --framework net10.0
+        run: dotnet build LibrariesOnly.slnf --configuration Release --framework net10.0 -p:CodeQLBuild=true
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4

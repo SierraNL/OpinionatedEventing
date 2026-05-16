@@ -27,4 +27,14 @@
     </KnownAppHostPack>
   </ItemGroup>
 
+
+  <!-- Exclude Reqnroll/SpecFlow auto-generated runner files from the CodeQL build.
+       These files produce ~550 false-positive alerts (useless-upcast,
+       missed-readonly-modifier, etc.) and contain no handwritten logic.
+       Pass -p:CodeQLBuild=true to the build command to activate this exclusion.
+       Regular step-definition .cs files are unaffected and remain analysed. -->
+  <ItemGroup Condition="'$(CodeQLBuild)' == 'true'">
+    <Compile Remove="**/*.feature.cs" />
+  </ItemGroup>
+
 </Project>
