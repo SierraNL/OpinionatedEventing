@@ -32,9 +32,18 @@
        These files produce ~550 false-positive alerts (useless-upcast,
        missed-readonly-modifier, etc.) and contain no handwritten logic.
        Pass -p:CodeQLBuild=true to the build command to activate this exclusion.
-       Regular step-definition .cs files are unaffected and remain analysed. -->
-  <ItemGroup Condition="'$(CodeQLBuild)' == 'true'">
-    <Compile Remove="**/*.feature.cs" />
-  </ItemGroup>
+       Regular step-definition .cs files are unaffected and remain analysed.
+
+       Must be a Target (not a static ItemGroup) because Reqnroll adds the generated
+       files to Compile inside the IncludeProcessedReqnrollItemsToBuildInputs target
+       at execution time. A static Compile Remove evaluated at project-load time fires
+       before that target runs and is therefore a no-op. -->
+  <Target Name="ExcludeGeneratedFeatureFilesFromCodeQL"
+          AfterTargets="IncludeProcessedReqnrollItemsToBuildInputs"
+          Condition="'$(CodeQLBuild)' == 'true'">
+    <ItemGroup>
+      <Compile Remove="**/*.feature.cs" />
+    </ItemGroup>
+  </Target>
 
 </Project>
