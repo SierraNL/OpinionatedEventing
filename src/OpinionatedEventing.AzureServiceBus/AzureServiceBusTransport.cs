@@ -78,10 +78,7 @@ internal sealed class AzureServiceBusTransport : ITransport, IAsyncDisposable
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
-        foreach (var lazy in _senders.Values)
-        {
-            if (lazy.IsValueCreated)
-                await lazy.Value.DisposeAsync().ConfigureAwait(false);
-        }
+        foreach (var lazy in _senders.Values.Where(l => l.IsValueCreated))
+            await lazy.Value.DisposeAsync().ConfigureAwait(false);
     }
 }

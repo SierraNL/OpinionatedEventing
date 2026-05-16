@@ -142,10 +142,8 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
 
     private async Task PauseAllConsumersAsync()
     {
-        foreach (var entry in _consumers)
+        foreach (var entry in _consumers.Where(e => !string.IsNullOrEmpty(e.ConsumerTag)))
         {
-            if (string.IsNullOrEmpty(entry.ConsumerTag))
-                continue;
             try
             {
                 await entry.Channel.BasicCancelAsync(entry.ConsumerTag).ConfigureAwait(false);

@@ -54,6 +54,10 @@ tests/
 - XML `<summary>` doc comments on all `public` and `protected` members in `src/` projects
 - Target frameworks: `net8.0;net9.0;net10.0` (set in `Directory.Build.props` — do not override per project)
 - C# naming and formatting rules are enforced via [`.editorconfig`](.editorconfig): file-scoped namespaces, Allman braces, `_camelCase` private fields, `s_camelCase` private static fields, explicit types preferred over `var`
+- Use `using var` (or `await using var`) for every `IDisposable` / `IAsyncDisposable` — including inside test methods; never call `.Dispose()` manually at end of scope
+- Prefer `.Where(predicate)` over `foreach` + `if (!condition) continue`; prefer `.Select(transform)` over `foreach` + `var x = transform(item)` when the body only uses `x`
+- Use `dict.TryGetValue(key, out var v)` instead of `dict.ContainsKey(key)` followed by `dict[key]`
+- `catch (Exception)` is acceptable **only** in: top-level background-service loops (to prevent host crash), best-effort cleanup calls (stop/pause/resume with `LogWarning`), health checks (must not throw), and reflection-based discovery with a "skip silently" comment. Everywhere else, catch a specific exception type.
 
 ## Running locally
 

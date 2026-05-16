@@ -52,9 +52,8 @@ public sealed class MessageTypeRegistry : IMessageTypeRegistry
             return type;
 
         // 2. Scan loaded assemblies by FullName (catches types not yet in the registry).
-        foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+        foreach (var found in AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType(identifier)))
         {
-            Type? found = assembly.GetType(identifier);
             if (found is not null)
                 return found;
         }

@@ -52,9 +52,8 @@ internal sealed class TopologyInitializer : IHostedService
         var eventTypes = _registry.EventTypes;
         var commandTypes = _registry.CommandTypes;
 
-        foreach (var eventType in eventTypes)
+        foreach (var topicName in eventTypes.Select(MessageNamingConvention.GetTopicName))
         {
-            var topicName = MessageNamingConvention.GetTopicName(eventType);
             await EnsureTopicExistsAsync(topicName, cancellationToken).ConfigureAwait(false);
 
             if (!string.IsNullOrEmpty(opts.ServiceName))

@@ -1,0 +1,8 @@
+name: "CodeQL config"
+
+paths-ignore:
+  # SpecFlow/Reqnroll-generated files — not real C# source
+  - "tests/**/*.feature"
+  - "tests/**/*.feature.cs"
+  # MSBuild / xUnit auto-generated build artifacts
+  - "**/obj/**"

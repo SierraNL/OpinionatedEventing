@@ -6,6 +6,7 @@ See [AGENTS.md](AGENTS.md) for the full project context, design rules, conventio
 
 - **Before committing:** always run `/review` on staged changes and address any findings.
 - **GitHub interactions:** use the `gh` CLI for all GitHub operations (issues, PRs, comments, etc.). The repository is `SierraNL/OpinionatedEventing` (case-sensitive — the `O` and `E` are uppercase).
+- **CodeQL:** generated files (SpecFlow `.feature`/`.feature.cs`, `obj/` build artifacts) are excluded via `.github/codeql/codeql-config.yml` — do not add those paths to the CodeQL config without good reason. When a CodeQL finding appears in a background-service worker or health check, verify it is intentional before suppressing.
 
 ## Implementing an issue (mandatory steps — do not skip)
 
