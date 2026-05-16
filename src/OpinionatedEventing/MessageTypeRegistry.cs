@@ -52,11 +52,11 @@ public sealed class MessageTypeRegistry : IMessageTypeRegistry
             return type;
 
         // 2. Scan loaded assemblies by FullName (catches types not yet in the registry).
-        foreach (var found in AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType(identifier)))
-        {
-            if (found is not null)
-                return found;
-        }
+        var found = AppDomain.CurrentDomain.GetAssemblies()
+            .Select(a => a.GetType(identifier))
+            .FirstOrDefault(t => t is not null);
+        if (found is not null)
+            return found;
 
         // 3. Type.GetType — backwards-compat for old AssemblyQualifiedName rows.
         Type? legacy = Type.GetType(identifier);
