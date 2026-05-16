@@ -268,7 +268,6 @@ public sealed class EFCoreOutboxStoreTests : IDisposable
     public async Task GetPendingAsync_excludes_messages_before_next_attempt_at()
     {
         await using SqliteTestDbContext context = _factory.CreateContext();
-        EFCoreOutboxStore<SqliteTestDbContext> store = CreateStore(context);
         CancellationToken ct = TestContext.Current.CancellationToken;
         OutboxMessage message = MakeMessage();
 

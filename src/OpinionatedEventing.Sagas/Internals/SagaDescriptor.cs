@@ -114,8 +114,6 @@ internal sealed class SagaDescriptor<TOrchestrator, TSagaState> : SagaDescriptor
         var context = new SagaContext(corrGuid, publisher, ct);
 
         using var activity = SagaDiagnostics.StartSagaStepActivity(typeof(TOrchestrator).Name, correlationKey, eventType.FullName ?? eventType.Name);
-        bool countedActive = false;
-
         try
         {
             if (isCompensation && state.Status == SagaStatus.Active)
@@ -141,10 +139,7 @@ internal sealed class SagaDescriptor<TOrchestrator, TSagaState> : SagaDescriptor
                 await store.SaveAsync(state, ct);
                 // Only count as active after the save succeeds; skip if already completed.
                 if (state.Status != SagaStatus.Completed)
-                {
                     SagaDiagnostics.Active.Add(1);
-                    countedActive = true;
-                }
             }
             else
             {
@@ -159,9 +154,7 @@ internal sealed class SagaDescriptor<TOrchestrator, TSagaState> : SagaDescriptor
             if (state.Status == SagaStatus.Compensating)
             {
                 state.Status = SagaStatus.Failed;
-                if (countedActive)
-                    SagaDiagnostics.Active.Add(-1);
-                else if (!isNew)
+                if (!isNew)
                     SagaDiagnostics.Active.Add(-1);
             }
 

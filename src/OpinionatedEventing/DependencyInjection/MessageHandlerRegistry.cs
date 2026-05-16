@@ -38,12 +38,8 @@ public sealed class MessageHandlerRegistry
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        foreach (var descriptor in services)
+        foreach (var serviceType in services.Select(d => d.ServiceType).Where(t => t.IsGenericType))
         {
-            var serviceType = descriptor.ServiceType;
-            if (!serviceType.IsGenericType)
-                continue;
-
             var definition = serviceType.GetGenericTypeDefinition();
             var typeArg = serviceType.GetGenericArguments()[0];
 

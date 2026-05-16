@@ -118,14 +118,13 @@ public sealed class FakeTimeProviderTests
         var clock = new FakeTimeProvider();
         int fired = 0;
 
-        var timer = clock.CreateTimer(_ => fired++, null, TimeSpan.FromSeconds(30), Timeout.InfiniteTimeSpan);
+        using var timer = clock.CreateTimer(_ => fired++, null, TimeSpan.FromSeconds(30), Timeout.InfiniteTimeSpan);
 
         // Reschedule to fire in 5 seconds from now.
         timer.Change(TimeSpan.FromSeconds(5), Timeout.InfiniteTimeSpan);
         clock.Advance(TimeSpan.FromSeconds(10));
 
         Assert.Equal(1, fired);
-        timer.Dispose();
     }
 
     [Fact]

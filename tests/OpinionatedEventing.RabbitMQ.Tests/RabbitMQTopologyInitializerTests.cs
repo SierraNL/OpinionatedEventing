@@ -65,8 +65,8 @@ public sealed class RabbitMQTopologyInitializerTests
 
         await initializer.StartAsync(ct);
 
-        Assert.True(channel.DeclaredExchanges.ContainsKey("topology-test-event"));
-        Assert.Equal(ExchangeType.Fanout, channel.DeclaredExchanges["topology-test-event"]);
+        Assert.True(channel.DeclaredExchanges.TryGetValue("topology-test-event", out var exchangeType));
+        Assert.Equal(ExchangeType.Fanout, exchangeType);
     }
 
     [Fact]
@@ -79,9 +79,8 @@ public sealed class RabbitMQTopologyInitializerTests
         await initializer.StartAsync(ct);
 
         const string queueName = "test-svc.topology-test-event";
-        Assert.True(channel.DeclaredQueues.ContainsKey(queueName));
-        var args = channel.DeclaredQueues[queueName];
-        Assert.Equal($"{queueName}.dlx", args["x-dead-letter-exchange"]);
+        Assert.True(channel.DeclaredQueues.TryGetValue(queueName, out var args));
+        Assert.Equal($"{queueName}.dlx", args!["x-dead-letter-exchange"]); // args is set when TryGetValue returns true
         Assert.Equal(queueName, args["x-dead-letter-routing-key"]);
     }
 
@@ -95,8 +94,8 @@ public sealed class RabbitMQTopologyInitializerTests
         await initializer.StartAsync(ct);
 
         const string queueName = "test-svc.topology-test-event";
-        Assert.True(channel.DeclaredExchanges.ContainsKey($"{queueName}.dlx"));
-        Assert.Equal(ExchangeType.Direct, channel.DeclaredExchanges[$"{queueName}.dlx"]);
+        Assert.True(channel.DeclaredExchanges.TryGetValue($"{queueName}.dlx", out var dlxExchangeType));
+        Assert.Equal(ExchangeType.Direct, dlxExchangeType);
         Assert.True(channel.DeclaredQueues.ContainsKey($"{queueName}.dlq"));
     }
 
@@ -125,8 +124,8 @@ public sealed class RabbitMQTopologyInitializerTests
 
         await initializer.StartAsync(ct);
 
-        Assert.True(channel.DeclaredExchanges.ContainsKey("topology-test-command"));
-        Assert.Equal(ExchangeType.Direct, channel.DeclaredExchanges["topology-test-command"]);
+        Assert.True(channel.DeclaredExchanges.TryGetValue("topology-test-command", out var commandExchangeType));
+        Assert.Equal(ExchangeType.Direct, commandExchangeType);
     }
 
     [Fact]
@@ -139,9 +138,8 @@ public sealed class RabbitMQTopologyInitializerTests
         await initializer.StartAsync(ct);
 
         const string queueName = "topology-test-command";
-        Assert.True(channel.DeclaredQueues.ContainsKey(queueName));
-        var args = channel.DeclaredQueues[queueName];
-        Assert.Equal($"{queueName}.dlx", args["x-dead-letter-exchange"]);
+        Assert.True(channel.DeclaredQueues.TryGetValue(queueName, out var args));
+        Assert.Equal($"{queueName}.dlx", args!["x-dead-letter-exchange"]); // args is set when TryGetValue returns true
         Assert.Equal(queueName, args["x-dead-letter-routing-key"]);
     }
 
@@ -155,8 +153,8 @@ public sealed class RabbitMQTopologyInitializerTests
         await initializer.StartAsync(ct);
 
         const string queueName = "topology-test-command";
-        Assert.True(channel.DeclaredExchanges.ContainsKey($"{queueName}.dlx"));
-        Assert.Equal(ExchangeType.Direct, channel.DeclaredExchanges[$"{queueName}.dlx"]);
+        Assert.True(channel.DeclaredExchanges.TryGetValue($"{queueName}.dlx", out var cmdDlxExchangeType));
+        Assert.Equal(ExchangeType.Direct, cmdDlxExchangeType);
         Assert.True(channel.DeclaredQueues.ContainsKey($"{queueName}.dlq"));
     }
 

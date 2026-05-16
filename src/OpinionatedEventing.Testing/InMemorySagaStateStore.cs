@@ -59,17 +59,15 @@ public sealed class InMemorySagaStateStore : ISagaStateStore
 
         lock (_claimLock)
         {
-            foreach (var state in _states.Values)
+            foreach (var state in _states.Values.Where(s =>
+                s.Status == SagaStatus.Active
+                && s.ExpiresAt.HasValue
+                && s.ExpiresAt.Value <= now
+                && (s.LockedUntil == null || s.LockedUntil < now)))
             {
-                if (state.Status == SagaStatus.Active
-                    && state.ExpiresAt.HasValue
-                    && state.ExpiresAt.Value <= now
-                    && (state.LockedUntil == null || state.LockedUntil < now))
-                {
-                    state.LockedBy = claimToken;
-                    state.LockedUntil = lockUntil;
-                    claimed.Add(state);
-                }
+                state.LockedBy = claimToken;
+                state.LockedUntil = lockUntil;
+                claimed.Add(state);
             }
         }
 
