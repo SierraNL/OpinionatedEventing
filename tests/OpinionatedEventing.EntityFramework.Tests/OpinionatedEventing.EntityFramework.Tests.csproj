@@ -5,7 +5,9 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <!-- Force bundle_e_sqlite3 3.0.3 across all TFMs: replaces the vulnerable SQLitePCLRaw.lib.e_sqlite3 with SourceGear.sqlite3 (GHSA-2m69-gcr7-jv3q). -->
   <ItemGroup>
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" VersionOverride="3.0.3" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.v3.mtp-v2" />
     <PackageReference Include="xunit.runner.visualstudio" />
