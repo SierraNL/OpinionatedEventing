@@ -39,7 +39,7 @@
 
   <!-- OpenTelemetry -->
   <ItemGroup>
-    <PackageVersion Include="OpenTelemetry" Version="1.15.3" />
+    <PackageVersion Include="OpenTelemetry" Version="1.16.0" />
   </ItemGroup>
 
   <!-- Aspire -->
