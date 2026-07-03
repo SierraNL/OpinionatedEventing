@@ -90,7 +90,7 @@ jobs:
 
       - name: Upload unit coverage to Codecov
         if: matrix.tfm == 'net10.0' && steps.cov_unit.outputs.files != ''
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.cov_unit.outputs.files }}
@@ -99,7 +99,7 @@ jobs:
 
       - name: Upload integration coverage to Codecov
         if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && matrix.tfm == 'net10.0' && steps.cov_integration.outputs.files != ''
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ steps.cov_integration.outputs.files }}
