@@ -57,7 +57,7 @@
 
   <!-- GitVersion (versioning from git tags) -->
   <ItemGroup>
-    <PackageVersion Include="GitVersion.MsBuild" Version="6.7.0" />
+    <PackageVersion Include="GitVersion.MsBuild" Version="6.8.1" />
   </ItemGroup>
 
   <!-- Reqnroll (BDD) -->
