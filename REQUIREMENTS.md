@@ -820,7 +820,7 @@ dotnet run
 
 | Requirement | Specification |
 |---|---|
-| Target framework | .NET 8 (minimum); .NET 9 and .NET 10 also targeted |
+| Target framework | .NET 8 (minimum); .NET 10 also targeted |
 | Async | All public APIs are `async Task`; `CancellationToken` on every async method |
 | Thread safety | No shared mutable static state; all state is DI-scoped |
 | Nullable | `#nullable enable` in all projects; no `null!` suppressions without comment |

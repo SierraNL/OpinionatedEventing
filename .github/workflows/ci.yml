@@ -24,9 +24,6 @@ jobs:
             tfm: "net8.0"
             # Bridge mode (TestingPlatformDotnetTestSupport): MTP args go after --
             mtp_sep: "--"
-          - dotnet: "9.0.x"
-            tfm: "net9.0"
-            mtp_sep: "--"
           - dotnet: "10.0.x"
             tfm: "net10.0"
             # Native mode (global.json test.runner): MTP args go directly after build args

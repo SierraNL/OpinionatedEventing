@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `OpinionatedEventing.CloudEvents`, `OpinionatedEventing.CloudEvents.AzureServiceBus`, and `OpinionatedEventing.CloudEvents.RabbitMQ` — opt-in CloudEvents 1.0 structured envelope for events, enabled per transport via `UseCloudEventsEnvelope()`. Commands are unaffected; services that don't opt in are unaffected.
 - `IServiceBusMessageEnvelope` / `IRabbitMQMessageEnvelope` injectable envelope abstractions on the Azure Service Bus and RabbitMQ transports, replacing the previously inline message build/parse logic
 
+### Removed
+- .NET 9 support — .NET 9 (STS) reached end of support on 2026-05-12. Target frameworks are now `net8.0` and `net10.0`.
+
 ## [0.9.0] - 2026-05-08
 
 Initial pre-release of the OpinionatedEventing library suite for .NET 8+.
