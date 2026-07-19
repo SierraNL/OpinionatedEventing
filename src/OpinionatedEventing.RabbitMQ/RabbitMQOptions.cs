@@ -32,6 +32,13 @@ public sealed class RabbitMQOptions
     public ushort PrefetchCount { get; set; } = 10;
 
     /// <summary>
+    /// Gets or sets the maximum number of delivery attempts before a message is dead-lettered.
+    /// Failed messages are retried (redelivered) up to this many times before being routed to the
+    /// queue's dead-letter exchange. Defaults to <c>5</c>.
+    /// </summary>
+    public int MaxDeliveryCount { get; set; } = 5;
+
+    /// <summary>
     /// Gets or sets the <c>ConnectionStrings</c> key used for Aspire service-discovery
     /// (e.g. the resource name passed to <c>AddRabbitMqMessaging(name)</c>).
     /// Defaults to <c>"rabbitmq"</c>. Only consulted when <see cref="ConnectionString"/> is not set.

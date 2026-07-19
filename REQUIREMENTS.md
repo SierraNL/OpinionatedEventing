@@ -641,7 +641,7 @@ services.AddRabbitMqTransport(options =>
 
 - **Auto-declare**: exchanges, queues, and bindings are declared at startup when `AutoDeclareTopology = true`. Safe to run repeatedly (idempotent declarations).
 - **Aspire service discovery**: when running under Aspire, the connection string is resolved from `IConfiguration["ConnectionStrings:rabbitmq"]` automatically.
-- **Consumer acknowledgement**: messages are ack'd only after the handler completes successfully; nack'd (with requeue=false) on unhandled exception — relies on broker dead-lettering.
+- **Consumer acknowledgement**: messages are ack'd only after the handler completes successfully. On handler failure, the message is retried up to `MaxDeliveryCount` attempts (tracked via an `x-retry-count` header, default: 5) by republishing it directly back onto the same queue; once exhausted it is published to the queue's dead-letter exchange (`{queue}.dlx` → `{queue}.dlq`) instead. Malformed messages (missing/invalid required headers) are nacked without requeue immediately — no retry, relying on the queue's built-in dead-lettering. This mirrors the Azure Service Bus transport's delivery-count-based retry-before-dead-letter behavior.
 - **Graceful shutdown**: consumer channels are closed cleanly on host stop.
 - **Prefetch**: configurable prefetch count per consumer (default: 10).
 

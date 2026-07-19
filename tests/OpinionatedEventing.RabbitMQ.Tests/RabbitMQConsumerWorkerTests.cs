@@ -15,12 +15,16 @@ namespace OpinionatedEventing.RabbitMQ.Tests;
 
 public sealed class RabbitMQConsumerWorkerTests
 {
-    private static RabbitMQConsumerWorker CreateWorker(IMessageHandlerRunner runner)
+    private static RabbitMQConsumerWorker CreateWorker(IMessageHandlerRunner runner, int maxDeliveryCount = 5)
     {
         var holder = new RabbitMqConnectionHolder();
         holder.SetConnection(new NeverCalledConnection());
 
-        var options = MSOptions.Create(new RabbitMQOptions { ConnectionString = "amqp://localhost" });
+        var options = MSOptions.Create(new RabbitMQOptions
+        {
+            ConnectionString = "amqp://localhost",
+            MaxDeliveryCount = maxDeliveryCount,
+        });
 
         return new RabbitMQConsumerWorker(
             connectionHolder: holder,
@@ -62,7 +66,7 @@ public sealed class RabbitMQConsumerWorkerTests
             properties: props,
             body: Encoding.UTF8.GetBytes("{}"));
 
-        await worker.ProcessDeliveryAsync(channel, ea, ct);
+        await worker.ProcessDeliveryAsync(channel, "queue", ea, ct);
 
         var call = Assert.Single(runner.Calls);
         Assert.Equal(messageId, call.CausationId);
@@ -98,7 +102,7 @@ public sealed class RabbitMQConsumerWorkerTests
             properties: props,
             body: Encoding.UTF8.GetBytes("{}"));
 
-        await worker.ProcessDeliveryAsync(channel, ea, ct);
+        await worker.ProcessDeliveryAsync(channel, "queue", ea, ct);
 
         var call = Assert.Single(runner.Calls);
         Assert.Null(call.CausationId);
@@ -121,10 +125,88 @@ public sealed class RabbitMQConsumerWorkerTests
             properties: new BasicProperties(),
             body: Encoding.UTF8.GetBytes("{}"));
 
-        await worker.ProcessDeliveryAsync(channel, ea, ct);
+        await worker.ProcessDeliveryAsync(channel, "queue", ea, ct);
 
         Assert.True(channel.Nacked);
         Assert.Empty(runner.Calls);
+    }
+
+    [Fact]
+    public async Task ProcessDeliveryAsync_republishes_to_same_queue_with_incremented_retry_count_on_handler_failure()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var correlationId = Guid.NewGuid();
+        var runner = new ThrowingHandlerRunner();
+        var worker = CreateWorker(runner, maxDeliveryCount: 5);
+        var channel = new AckRecordingChannel();
+
+        var props = new BasicProperties
+        {
+            MessageId = Guid.NewGuid().ToString(),
+            Headers = new Dictionary<string, object?>
+            {
+                ["MessageType"] = typeof(object).AssemblyQualifiedName,
+                ["MessageKind"] = "Event",
+                ["CorrelationId"] = correlationId.ToString(),
+            }
+        };
+        var ea = new BasicDeliverEventArgs(
+            consumerTag: "",
+            deliveryTag: 1,
+            redelivered: false,
+            exchange: "",
+            routingKey: "",
+            properties: props,
+            body: Encoding.UTF8.GetBytes("{}"));
+
+        await worker.ProcessDeliveryAsync(channel, "orders.queue", ea, ct);
+
+        Assert.True(channel.Acked);
+        Assert.False(channel.Nacked);
+        var publish = Assert.Single(channel.Publishes);
+        Assert.Equal(string.Empty, publish.Exchange);
+        Assert.Equal("orders.queue", publish.RoutingKey);
+        Assert.Equal(1, publish.Properties.Headers?["x-retry-count"]);
+    }
+
+    [Fact]
+    public async Task ProcessDeliveryAsync_dead_letters_once_max_delivery_count_is_reached()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var correlationId = Guid.NewGuid();
+        var runner = new ThrowingHandlerRunner();
+        var worker = CreateWorker(runner, maxDeliveryCount: 3);
+        var channel = new AckRecordingChannel();
+
+        var props = new BasicProperties
+        {
+            MessageId = Guid.NewGuid().ToString(),
+            Headers = new Dictionary<string, object?>
+            {
+                ["MessageType"] = typeof(object).AssemblyQualifiedName,
+                ["MessageKind"] = "Event",
+                ["CorrelationId"] = correlationId.ToString(),
+                ["x-retry-count"] = 2,
+            }
+        };
+        var ea = new BasicDeliverEventArgs(
+            consumerTag: "",
+            deliveryTag: 1,
+            redelivered: true,
+            exchange: "",
+            routingKey: "",
+            properties: props,
+            body: Encoding.UTF8.GetBytes("{}"));
+
+        await worker.ProcessDeliveryAsync(channel, "orders.queue", ea, ct);
+
+        Assert.True(channel.Acked);
+        Assert.False(channel.Nacked);
+        var publish = Assert.Single(channel.Publishes);
+        Assert.Equal("orders.queue.dlx", publish.Exchange);
+        Assert.Equal("orders.queue", publish.RoutingKey);
+        Assert.Equal(3, publish.Properties.Headers?["x-retry-count"]);
+        Assert.Equal("HandlerException", publish.Properties.Headers?["x-dead-letter-reason"]);
     }
 
     // ─── Fakes ────────────────────────────────────────────────────────────────────
@@ -151,10 +233,20 @@ public sealed class RabbitMQConsumerWorkerTests
         }
     }
 
+    private sealed record RecordedPublish(string Exchange, string RoutingKey, IReadOnlyBasicProperties Properties);
+
+    private sealed class ThrowingHandlerRunner : IMessageHandlerRunner
+    {
+        public Task RunAsync(string messageType, string messageKind, string payload,
+            Guid? messageId, Guid correlationId, Guid? causationId, CancellationToken ct)
+            => throw new InvalidOperationException("Simulated handler failure.");
+    }
+
     private sealed class AckRecordingChannel : IChannel
     {
         public bool Acked { get; private set; }
         public bool Nacked { get; private set; }
+        public List<RecordedPublish> Publishes { get; } = [];
 
         public ValueTask BasicAckAsync(ulong deliveryTag, bool multiple,
             CancellationToken cancellationToken = default)
@@ -167,6 +259,15 @@ public sealed class RabbitMQConsumerWorkerTests
             CancellationToken cancellationToken = default)
         {
             Nacked = true;
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask BasicPublishAsync<TProperties>(string exchange, string routingKey,
+            bool mandatory, TProperties basicProperties, ReadOnlyMemory<byte> body,
+            CancellationToken cancellationToken = default)
+            where TProperties : IReadOnlyBasicProperties, IAmqpHeader
+        {
+            Publishes.Add(new RecordedPublish(exchange, routingKey, basicProperties));
             return ValueTask.CompletedTask;
         }
 
@@ -207,11 +308,6 @@ public sealed class RabbitMQConsumerWorkerTests
             CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<BasicGetResult?> BasicGetAsync(string queue, bool autoAck,
             CancellationToken cancellationToken = default) => throw new NotImplementedException();
-        public ValueTask BasicPublishAsync<TProperties>(string exchange, string routingKey,
-            bool mandatory, TProperties basicProperties, ReadOnlyMemory<byte> body,
-            CancellationToken cancellationToken = default)
-            where TProperties : IReadOnlyBasicProperties, IAmqpHeader
-            => throw new NotImplementedException();
         public ValueTask BasicPublishAsync<TProperties>(CachedString exchange, CachedString routingKey,
             bool mandatory, TProperties basicProperties, ReadOnlyMemory<byte> body,
             CancellationToken cancellationToken = default)
