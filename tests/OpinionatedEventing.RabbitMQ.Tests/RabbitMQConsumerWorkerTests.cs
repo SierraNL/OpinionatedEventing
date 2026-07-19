@@ -209,6 +209,79 @@ public sealed class RabbitMQConsumerWorkerTests
         Assert.Equal("HandlerException", publish.Properties.Headers?["x-dead-letter-reason"]);
     }
 
+    [Fact]
+    public async Task ProcessDeliveryAsync_nacks_without_requeue_when_republish_throws()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var correlationId = Guid.NewGuid();
+        var runner = new ThrowingHandlerRunner();
+        var worker = CreateWorker(runner, maxDeliveryCount: 5);
+        var channel = new AckRecordingChannel { PublishException = new InvalidOperationException("channel closed") };
+
+        var props = new BasicProperties
+        {
+            MessageId = Guid.NewGuid().ToString(),
+            Headers = new Dictionary<string, object?>
+            {
+                ["MessageType"] = typeof(object).AssemblyQualifiedName,
+                ["MessageKind"] = "Event",
+                ["CorrelationId"] = correlationId.ToString(),
+            }
+        };
+        var ea = new BasicDeliverEventArgs(
+            consumerTag: "",
+            deliveryTag: 1,
+            redelivered: false,
+            exchange: "",
+            routingKey: "",
+            properties: props,
+            body: Encoding.UTF8.GetBytes("{}"));
+
+        await worker.ProcessDeliveryAsync(channel, "orders.queue", ea, ct);
+
+        Assert.True(channel.Nacked);
+        Assert.False(channel.Acked);
+        Assert.Empty(channel.Publishes);
+    }
+
+    [Fact]
+    public async Task ProcessDeliveryAsync_swallows_exception_when_both_republish_and_nack_fail()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var correlationId = Guid.NewGuid();
+        var runner = new ThrowingHandlerRunner();
+        var worker = CreateWorker(runner, maxDeliveryCount: 5);
+        var channel = new AckRecordingChannel
+        {
+            PublishException = new InvalidOperationException("channel closed"),
+            NackException = new InvalidOperationException("channel also closed"),
+        };
+
+        var props = new BasicProperties
+        {
+            MessageId = Guid.NewGuid().ToString(),
+            Headers = new Dictionary<string, object?>
+            {
+                ["MessageType"] = typeof(object).AssemblyQualifiedName,
+                ["MessageKind"] = "Event",
+                ["CorrelationId"] = correlationId.ToString(),
+            }
+        };
+        var ea = new BasicDeliverEventArgs(
+            consumerTag: "",
+            deliveryTag: 1,
+            redelivered: false,
+            exchange: "",
+            routingKey: "",
+            properties: props,
+            body: Encoding.UTF8.GetBytes("{}"));
+
+        await worker.ProcessDeliveryAsync(channel, "orders.queue", ea, ct);
+
+        Assert.False(channel.Acked);
+        Assert.Empty(channel.Publishes);
+    }
+
     // ─── Fakes ────────────────────────────────────────────────────────────────────
 
     private sealed class NeverCalledScopeFactory : IServiceScopeFactory
@@ -247,6 +320,8 @@ public sealed class RabbitMQConsumerWorkerTests
         public bool Acked { get; private set; }
         public bool Nacked { get; private set; }
         public List<RecordedPublish> Publishes { get; } = [];
+        public Exception? PublishException { get; set; }
+        public Exception? NackException { get; set; }
 
         public ValueTask BasicAckAsync(ulong deliveryTag, bool multiple,
             CancellationToken cancellationToken = default)
@@ -259,6 +334,8 @@ public sealed class RabbitMQConsumerWorkerTests
             CancellationToken cancellationToken = default)
         {
             Nacked = true;
+            if (NackException is not null)
+                throw NackException;
             return ValueTask.CompletedTask;
         }
 
@@ -267,6 +344,8 @@ public sealed class RabbitMQConsumerWorkerTests
             CancellationToken cancellationToken = default)
             where TProperties : IReadOnlyBasicProperties, IAmqpHeader
         {
+            if (PublishException is not null)
+                throw PublishException;
             Publishes.Add(new RecordedPublish(exchange, routingKey, basicProperties));
             return ValueTask.CompletedTask;
         }

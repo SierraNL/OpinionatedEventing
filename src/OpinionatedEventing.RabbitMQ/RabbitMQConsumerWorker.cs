@@ -318,16 +318,17 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
         }
     }
 
+    // Headers is guaranteed non-null in both helpers below: they are only called from the
+    // handler-failure catch block, reached only after the required-headers check above (which
+    // returns early whenever Headers is null) has already succeeded.
+
     private static BasicProperties BuildRetryProperties(
         IReadOnlyBasicProperties source,
         int deliveryCount,
         string? deadLetterReason = null,
         string? deadLetterDescription = null)
     {
-        var headers = source.Headers is not null
-            ? new Dictionary<string, object?>(source.Headers)
-            : new Dictionary<string, object?>();
-        headers[RetryCountHeader] = deliveryCount;
+        var headers = new Dictionary<string, object?>(source.Headers!) { [RetryCountHeader] = deliveryCount };
 
         if (deadLetterReason is not null)
             headers[DeadLetterReasonHeader] = deadLetterReason;
@@ -338,18 +339,7 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
     }
 
     private static int GetDeliveryCount(IReadOnlyBasicProperties properties)
-    {
-        if (properties.Headers is null || !properties.Headers.TryGetValue(RetryCountHeader, out var value))
-            return 0;
-
-        return value switch
-        {
-            int i => i,
-            long l => (int)l,
-            byte[] bytes when int.TryParse(Encoding.UTF8.GetString(bytes), out var parsed) => parsed,
-            _ => 0,
-        };
-    }
+        => properties.Headers!.TryGetValue(RetryCountHeader, out var value) && value is int count ? count : 0;
 
     private async Task CloseConsumerChannelsAsync()
     {
