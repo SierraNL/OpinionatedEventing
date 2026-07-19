@@ -2,7 +2,14 @@
 
 The outbox pattern guarantees **at-least-once delivery**: every message written to the outbox will eventually reach the broker, but under certain failure conditions (process crash between dispatch and acknowledgement) a message may be delivered more than once. Consumers must therefore be prepared to receive duplicates.
 
-OpinionatedEventing does **not** provide an inbox pattern implementation for V1.0. This is an explicit design decision: adding a shared inbox store would introduce a mandatory persistence dependency into every consuming service, even when the handler is naturally idempotent or the business risk of a duplicate is low. The decision is re-evaluated after gathering real-world usage data.
+## Decision: no built-in inbox store
+
+OpinionatedEventing does **not** provide an `IInboxStore` abstraction (see [REQUIREMENTS.md § Non-Goals](../REQUIREMENTS.md#1-goals--non-goals)). This is a stated v1.0 scope decision, not a gap:
+
+- **A shared inbox store would introduce a mandatory persistence dependency** into every consuming service, even when the handler is naturally idempotent or the business risk of a duplicate is low.
+- **Deduplication only works if it commits in the same transaction as the handler's business logic** — otherwise there's a window where the "already processed" check and the side effect can disagree. `IOutboxStore` can own its own transaction because it's the only writer at that point; a dedup check has to share the *consumer's own* `DbContext` / unit-of-work, which makes a generic, reusable `IInboxStore` a materially harder abstraction to get right than the outbox was. Handing consumers the primitive (`IMessagingContext.MessageId`, below) and letting them dedupe inside their own transaction sidesteps that problem entirely.
+
+The patterns below — including using `IMessagingContext.MessageId` as a dedup key — cover the same ground an inbox store would. The decision is re-evaluated after gathering real-world usage data — see [Future versions](#future-versions).
 
 ## Why duplicates happen
 
