@@ -5,6 +5,9 @@
     <Project Path="src/OpinionatedEventing.Aspire.RabbitMQ/OpinionatedEventing.Aspire.RabbitMQ.csproj" />
     <Project Path="src/OpinionatedEventing.AzureServiceBus/OpinionatedEventing.AzureServiceBus.csproj" />
     <Project Path="src/OpinionatedEventing/OpinionatedEventing.csproj" />
+    <Project Path="src/OpinionatedEventing.CloudEvents/OpinionatedEventing.CloudEvents.csproj" />
+    <Project Path="src/OpinionatedEventing.CloudEvents.AzureServiceBus/OpinionatedEventing.CloudEvents.AzureServiceBus.csproj" />
+    <Project Path="src/OpinionatedEventing.CloudEvents.RabbitMQ/OpinionatedEventing.CloudEvents.RabbitMQ.csproj" />
     <Project Path="src/OpinionatedEventing.EntityFramework/OpinionatedEventing.EntityFramework.csproj" />
     <Project Path="src/OpinionatedEventing.OpenTelemetry/OpinionatedEventing.OpenTelemetry.csproj" />
     <Project Path="src/OpinionatedEventing.Outbox/OpinionatedEventing.Outbox.csproj" />
@@ -26,6 +29,9 @@
   <Folder Name="/tests/">
     <Project Path="tests/OpinionatedEventing.AzureServiceBus.Specs/OpinionatedEventing.AzureServiceBus.Specs.csproj" />
     <Project Path="tests/OpinionatedEventing.AzureServiceBus.Tests/OpinionatedEventing.AzureServiceBus.Tests.csproj" />
+    <Project Path="tests/OpinionatedEventing.CloudEvents.Tests/OpinionatedEventing.CloudEvents.Tests.csproj" />
+    <Project Path="tests/OpinionatedEventing.CloudEvents.AzureServiceBus.Tests/OpinionatedEventing.CloudEvents.AzureServiceBus.Tests.csproj" />
+    <Project Path="tests/OpinionatedEventing.CloudEvents.RabbitMQ.Tests/OpinionatedEventing.CloudEvents.RabbitMQ.Tests.csproj" />
     <Project Path="tests/OpinionatedEventing.Specs/OpinionatedEventing.Specs.csproj" />
     <Project Path="tests/OpinionatedEventing.Tests/OpinionatedEventing.Tests.csproj" />
     <Project Path="tests/OpinionatedEventing.EntityFramework.Specs/OpinionatedEventing.EntityFramework.Specs.csproj" />

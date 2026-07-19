@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>CloudEvents 1.0 structured envelope for the Azure Service Bus transport. Opt in per transport via UseCloudEventsEnvelope() to interoperate with systems like Azure Event Grid, Dapr, or Knative. Commands remain in the broker-native format; only events are wrapped.</Description>
+    <PackageTags>$(PackageTags) cloudevents interoperability azure azure-service-bus</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpinionatedEventing.CloudEvents\OpinionatedEventing.CloudEvents.csproj" />
+    <ProjectReference Include="..\OpinionatedEventing.AzureServiceBus\OpinionatedEventing.AzureServiceBus.csproj" />
+  </ItemGroup>
+
+</Project>

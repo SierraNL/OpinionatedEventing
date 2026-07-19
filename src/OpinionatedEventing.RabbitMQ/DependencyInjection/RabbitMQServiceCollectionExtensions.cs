@@ -36,6 +36,10 @@ public static class RabbitMQServiceCollectionExtensions
         services.TryAddSingleton<IConsumerPauseController, NullConsumerPauseController>();
         services.TryAddSingleton<ITransport, RabbitMQTransport>();
 
+        services.TryAddSingleton<DefaultRabbitMQMessageEnvelope>();
+        services.TryAddSingleton<IRabbitMQMessageEnvelope>(
+            sp => sp.GetRequiredService<DefaultRabbitMQMessageEnvelope>());
+
         // Connection initializer must be registered before topology and consumer so that
         // StartAsync runs first and the holder is populated before the others await it.
         services.TryAddEnumerable(

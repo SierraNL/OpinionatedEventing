@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>CloudEvents 1.0 structured-envelope mapping for OpinionatedEventing. Maps OutboxMessage to and from the CloudEvents JSON envelope. No broker dependency — pair with a transport-specific CloudEvents package such as OpinionatedEventing.CloudEvents.AzureServiceBus or OpinionatedEventing.CloudEvents.RabbitMQ.</Description>
+    <PackageTags>$(PackageTags) cloudevents interoperability</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpinionatedEventing.Abstractions\OpinionatedEventing.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -31,6 +31,7 @@ public sealed class RabbitMQConsumerWorkerTests
             handlerRunner: runner,
             scopeFactory: new NeverCalledScopeFactory(),
             registry: new MessageHandlerRegistry(),
+            envelope: new DefaultRabbitMQMessageEnvelope(),
             options: options,
             pauseController: new FakeConsumerPauseController(startPaused: false),
             timeProvider: TimeProvider.System,

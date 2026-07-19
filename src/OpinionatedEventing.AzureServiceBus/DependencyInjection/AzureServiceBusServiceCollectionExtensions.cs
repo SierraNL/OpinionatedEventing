@@ -51,6 +51,10 @@ public static class AzureServiceBusServiceCollectionExtensions
         services.TryAddSingleton<IConsumerPauseController, NullConsumerPauseController>();
         services.TryAddSingleton<ITransport, AzureServiceBusTransport>();
 
+        services.TryAddSingleton<DefaultServiceBusMessageEnvelope>();
+        services.TryAddSingleton<IServiceBusMessageEnvelope>(
+            sp => sp.GetRequiredService<DefaultServiceBusMessageEnvelope>());
+
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IHostedService, TopologyInitializer>());
         services.TryAddEnumerable(

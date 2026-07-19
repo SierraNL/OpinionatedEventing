@@ -1,7 +1,6 @@
 #nullable enable
 
 using System.Collections.Concurrent;
-using System.Text;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpinionatedEventing.Options;
@@ -32,6 +31,7 @@ internal sealed class RabbitMQTransport : ITransport, IAsyncDisposable
 {
     private readonly RabbitMqConnectionHolder _connectionHolder;
     private readonly IMessageTypeRegistry _registry;
+    private readonly IRabbitMQMessageEnvelope _envelope;
     private readonly ILogger<RabbitMQTransport> _logger;
 
     private IConnection? _connection;
@@ -45,11 +45,13 @@ internal sealed class RabbitMQTransport : ITransport, IAsyncDisposable
     public RabbitMQTransport(
         RabbitMqConnectionHolder connectionHolder,
         IMessageTypeRegistry registry,
+        IRabbitMQMessageEnvelope envelope,
         IOptions<OutboxOptions> outboxOptions,
         ILogger<RabbitMQTransport> logger)
     {
         _connectionHolder = connectionHolder;
         _registry = registry;
+        _envelope = envelope;
         _logger = logger;
         int poolSize = Math.Max(1, outboxOptions.Value.ConcurrentWorkers);
         _poolSemaphore = new SemaphoreSlim(poolSize, poolSize);
@@ -74,22 +76,7 @@ internal sealed class RabbitMQTransport : ITransport, IAsyncDisposable
             routingKey = MessageNamingConvention.GetQueueName(type);
         }
 
-        ReadOnlyMemory<byte> body = Encoding.UTF8.GetBytes(message.Payload);
-        BasicProperties properties = new()
-        {
-            MessageId = message.Id.ToString(),
-            ContentType = "application/json",
-            CorrelationId = message.CorrelationId.ToString(),
-            DeliveryMode = DeliveryModes.Persistent,
-            Headers = new Dictionary<string, object?>
-            {
-                ["MessageType"] = message.MessageType,
-                ["MessageKind"] = message.MessageKind.ToString(),
-                ["CorrelationId"] = message.CorrelationId.ToString(),
-            },
-        };
-        if (message.CausationId.HasValue)
-            properties.Headers["CausationId"] = message.CausationId.Value.ToString();
+        (BasicProperties properties, ReadOnlyMemory<byte> body) = _envelope.CreateMessage(message);
 
         await _poolSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
