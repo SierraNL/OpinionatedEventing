@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `PackageTags` metadata on all NuGet packages for better discoverability on nuget.org
 - CODEOWNERS file and pull request template to streamline contributions
+- `OpinionatedEventing.CloudEvents`, `OpinionatedEventing.CloudEvents.AzureServiceBus`, and `OpinionatedEventing.CloudEvents.RabbitMQ` — opt-in CloudEvents 1.0 structured envelope for events, enabled per transport via `UseCloudEventsEnvelope()`. Commands are unaffected; services that don't opt in are unaffected.
+- `IServiceBusMessageEnvelope` / `IRabbitMQMessageEnvelope` injectable envelope abstractions on the Azure Service Bus and RabbitMQ transports, replacing the previously inline message build/parse logic
 
 ## [0.9.0] - 2026-05-08
 

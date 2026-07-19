@@ -9,6 +9,7 @@ using OpinionatedEventing;
 using OpinionatedEventing.AzureServiceBus.Attributes;
 using OpinionatedEventing.AzureServiceBus.Routing;
 using OpinionatedEventing.DependencyInjection;
+using OpinionatedEventing.Outbox;
 
 namespace OpinionatedEventing.AzureServiceBus;
 
@@ -22,6 +23,7 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
     private readonly IMessageHandlerRunner _handlerRunner;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly MessageHandlerRegistry _registry;
+    private readonly IServiceBusMessageEnvelope _envelope;
     private readonly IOptions<AzureServiceBusOptions> _options;
     private readonly IConsumerPauseController _pauseController;
     private readonly TimeProvider _timeProvider;
@@ -36,6 +38,7 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
         IMessageHandlerRunner handlerRunner,
         IServiceScopeFactory scopeFactory,
         MessageHandlerRegistry registry,
+        IServiceBusMessageEnvelope envelope,
         IOptions<AzureServiceBusOptions> options,
         IConsumerPauseController pauseController,
         TimeProvider timeProvider,
@@ -45,6 +48,7 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
         _handlerRunner = handlerRunner;
         _scopeFactory = scopeFactory;
         _registry = registry;
+        _envelope = envelope;
         _options = options;
         _pauseController = pauseController;
         _timeProvider = timeProvider;
@@ -246,34 +250,23 @@ internal sealed class AzureServiceBusConsumerWorker : BackgroundService
     {
         try
         {
-            var messageType = message.ApplicationProperties.TryGetValue("MessageType", out var mt)
-                ? mt as string : null;
-            var messageKind = message.ApplicationProperties.TryGetValue("MessageKind", out var mk)
-                ? mk as string : null;
-            var correlationIdStr = message.ApplicationProperties.TryGetValue("CorrelationId", out var cid)
-                ? cid as string : null;
-            if (messageType is null || messageKind is null || correlationIdStr is null)
+            ParsedEnvelope parsed;
+            try
+            {
+                parsed = _envelope.Parse(message);
+            }
+            catch (MessageEnvelopeFormatException ex)
             {
                 _logger.LogWarning(
-                    "Received message {MessageId} is missing required application properties; dead-lettering.",
-                    message.MessageId);
-                await deadLetter("InvalidMessageFormat", "Missing required application properties.", ct)
-                    .ConfigureAwait(false);
+                    "Received message {MessageId} could not be parsed ({Reason}): {Description} Dead-lettering.",
+                    message.MessageId, ex.Reason, ex.Description);
+                await deadLetter(ex.Reason, ex.Description, ct).ConfigureAwait(false);
                 return;
             }
 
-            if (!Guid.TryParse(correlationIdStr, out var correlationId))
-            {
-                await deadLetter("InvalidMessageFormat", "CorrelationId is not a valid Guid.", ct)
-                    .ConfigureAwait(false);
-                return;
-            }
-
-            Guid? messageId = Guid.TryParse(message.MessageId, out var mid) ? mid : null;
-            Guid? causationId = messageId;
-            var payload = message.Body.ToString();
-
-            await _handlerRunner.RunAsync(messageType, messageKind, payload, messageId, correlationId, causationId, ct)
+            await _handlerRunner.RunAsync(
+                    parsed.MessageType, parsed.MessageKind, parsed.Payload,
+                    parsed.MessageId, parsed.CorrelationId, parsed.CausationId, ct)
                 .ConfigureAwait(false);
 
             await complete(ct).ConfigureAwait(false);

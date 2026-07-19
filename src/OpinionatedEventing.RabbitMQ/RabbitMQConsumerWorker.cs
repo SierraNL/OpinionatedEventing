@@ -1,12 +1,12 @@
 #nullable enable
 
-using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpinionatedEventing;
 using OpinionatedEventing.DependencyInjection;
+using OpinionatedEventing.Outbox;
 using OpinionatedEventing.RabbitMQ.Routing;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -30,6 +30,7 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
     private readonly IMessageHandlerRunner _handlerRunner;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly MessageHandlerRegistry _registry;
+    private readonly IRabbitMQMessageEnvelope _envelope;
     private readonly IOptions<RabbitMQOptions> _options;
     private readonly IConsumerPauseController _pauseController;
     private readonly TimeProvider _timeProvider;
@@ -50,6 +51,7 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
         IMessageHandlerRunner handlerRunner,
         IServiceScopeFactory scopeFactory,
         MessageHandlerRegistry registry,
+        IRabbitMQMessageEnvelope envelope,
         IOptions<RabbitMQOptions> options,
         IConsumerPauseController pauseController,
         TimeProvider timeProvider,
@@ -59,6 +61,7 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
         _handlerRunner = handlerRunner;
         _scopeFactory = scopeFactory;
         _registry = registry;
+        _envelope = envelope;
         _options = options;
         _pauseController = pauseController;
         _timeProvider = timeProvider;
@@ -221,35 +224,25 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
     {
         try
         {
-            var messageType = GetHeader(ea.BasicProperties, "MessageType");
-            var messageKind = GetHeader(ea.BasicProperties, "MessageKind");
-            var correlationIdStr = GetHeader(ea.BasicProperties, "CorrelationId");
-
-            if (messageType is null || messageKind is null || correlationIdStr is null)
+            ParsedEnvelope parsed;
+            try
+            {
+                parsed = _envelope.Parse(ea.BasicProperties, ea.Body);
+            }
+            catch (MessageEnvelopeFormatException ex)
             {
                 _logger.LogWarning(
-                    "Received message is missing required headers; nacking without requeue.");
+                    "Received message could not be parsed ({Reason}): {Description} Nacking without requeue.",
+                    ex.Reason, ex.Description);
                 await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false, CancellationToken.None)
                     .ConfigureAwait(false);
                 return;
             }
-
-            if (!Guid.TryParse(correlationIdStr, out var correlationId))
-            {
-                _logger.LogWarning(
-                    "Received message has invalid CorrelationId '{CorrelationId}'; nacking without requeue.",
-                    correlationIdStr);
-                await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false, CancellationToken.None)
-                    .ConfigureAwait(false);
-                return;
-            }
-
-            Guid? messageId = Guid.TryParse(ea.BasicProperties.MessageId, out var mid) ? mid : null;
-            Guid? causationId = messageId;
-            var payload = Encoding.UTF8.GetString(ea.Body.Span);
 
             await _handlerRunner
-                .RunAsync(messageType, messageKind, payload, messageId, correlationId, causationId, ct)
+                .RunAsync(
+                    parsed.MessageType, parsed.MessageKind, parsed.Payload,
+                    parsed.MessageId, parsed.CorrelationId, parsed.CausationId, ct)
                 .ConfigureAwait(false);
 
             await channel.BasicAckAsync(ea.DeliveryTag, multiple: false, CancellationToken.None).ConfigureAwait(false);
@@ -318,9 +311,9 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
         }
     }
 
-    // Headers is guaranteed non-null in both helpers below: they are only called from the
-    // handler-failure catch block, reached only after the required-headers check above (which
-    // returns early whenever Headers is null) has already succeeded.
+    // Headers is guaranteed non-null in both helpers below: every IRabbitMQMessageEnvelope.CreateMessage
+    // implementation must produce a non-null Headers dictionary (see RabbitMQMessageEnvelopeResult),
+    // so any inbound message reaching this handler-failure catch block already has one.
 
     private static BasicProperties BuildRetryProperties(
         IReadOnlyBasicProperties source,
@@ -356,12 +349,5 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
             await entry.Channel.DisposeAsync().ConfigureAwait(false);
         }
         _consumers.Clear();
-    }
-
-    private static string? GetHeader(IReadOnlyBasicProperties properties, string key)
-    {
-        if (properties.Headers is null || !properties.Headers.TryGetValue(key, out var value))
-            return null;
-        return value is byte[] bytes ? Encoding.UTF8.GetString(bytes) : value?.ToString();
     }
 }

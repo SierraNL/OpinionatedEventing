@@ -33,6 +33,7 @@ public sealed class ConsumerWorkerPauseTests
             handlerRunner: new NeverCalledHandlerRunner(),
             scopeFactory: new NeverCalledScopeFactory(),
             registry: new MessageHandlerRegistry(),
+            envelope: new DefaultRabbitMQMessageEnvelope(),
             options: options,
             pauseController: pauseController,
             timeProvider: TimeProvider.System,

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>CloudEvents 1.0 structured envelope for the RabbitMQ transport. Opt in per transport via UseCloudEventsEnvelope() to interoperate with systems like Azure Event Grid, Dapr, or Knative. Commands remain in the broker-native format; only events are wrapped.</Description>
+    <PackageTags>$(PackageTags) cloudevents interoperability rabbitmq</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpinionatedEventing.CloudEvents\OpinionatedEventing.CloudEvents.csproj" />
+    <ProjectReference Include="..\OpinionatedEventing.RabbitMQ\OpinionatedEventing.RabbitMQ.csproj" />
+  </ItemGroup>
+
+</Project>

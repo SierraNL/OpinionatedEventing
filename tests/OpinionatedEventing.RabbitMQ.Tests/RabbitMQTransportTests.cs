@@ -28,6 +28,7 @@ public sealed class RabbitMQTransportTests
         return new RabbitMQTransport(
             connectionHolder: holder,
             registry: registry,
+            envelope: new DefaultRabbitMQMessageEnvelope(),
             outboxOptions: MSOptions.Create(new OutboxOptions { ConcurrentWorkers = concurrentWorkers }),
             logger: NullLogger<RabbitMQTransport>.Instance);
     }
@@ -113,7 +114,7 @@ public sealed class RabbitMQTransportTests
         holder.SetConnection(connection);
 
         await using RabbitMQTransport transport = new(
-            holder, registry,
+            holder, registry, new DefaultRabbitMQMessageEnvelope(),
             MSOptions.Create(new OutboxOptions { ConcurrentWorkers = 1 }),
             NullLogger<RabbitMQTransport>.Instance);
 
@@ -137,7 +138,7 @@ public sealed class RabbitMQTransportTests
         holder.SetConnection(connection);
 
         await using RabbitMQTransport transport = new(
-            holder, registry,
+            holder, registry, new DefaultRabbitMQMessageEnvelope(),
             MSOptions.Create(new OutboxOptions { ConcurrentWorkers = 1 }),
             NullLogger<RabbitMQTransport>.Instance);
 

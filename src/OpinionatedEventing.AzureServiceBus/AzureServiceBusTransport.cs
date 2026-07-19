@@ -18,6 +18,7 @@ internal sealed class AzureServiceBusTransport : ITransport, IAsyncDisposable
 {
     private readonly ServiceBusClient _client;
     private readonly IMessageTypeRegistry _registry;
+    private readonly IServiceBusMessageEnvelope _envelope;
     private readonly IOptions<AzureServiceBusOptions> _options;
     private readonly ILogger<AzureServiceBusTransport> _logger;
     private readonly ConcurrentDictionary<string, Lazy<ServiceBusSender>> _senders = new();
@@ -26,11 +27,13 @@ internal sealed class AzureServiceBusTransport : ITransport, IAsyncDisposable
     public AzureServiceBusTransport(
         ServiceBusClient client,
         IMessageTypeRegistry registry,
+        IServiceBusMessageEnvelope envelope,
         IOptions<AzureServiceBusOptions> options,
         ILogger<AzureServiceBusTransport> logger)
     {
         _client = client;
         _registry = registry;
+        _envelope = envelope;
         _options = options;
         _logger = logger;
     }
@@ -48,17 +51,7 @@ internal sealed class AzureServiceBusTransport : ITransport, IAsyncDisposable
             static (name, client) => new Lazy<ServiceBusSender>(() => client.CreateSender(name)),
             _client).Value;
 
-        var sbMessage = new ServiceBusMessage(BinaryData.FromString(message.Payload))
-        {
-            MessageId = message.Id.ToString(),
-            ContentType = "application/json",
-            CorrelationId = message.CorrelationId.ToString(),
-        };
-        sbMessage.ApplicationProperties["MessageType"] = message.MessageType;
-        sbMessage.ApplicationProperties["MessageKind"] = message.MessageKind.ToString();
-        sbMessage.ApplicationProperties["CorrelationId"] = message.CorrelationId.ToString();
-        if (message.CausationId.HasValue)
-            sbMessage.ApplicationProperties["CausationId"] = message.CausationId.Value.ToString();
+        var sbMessage = _envelope.CreateMessage(message);
 
         var opts = _options.Value;
         if (opts.EnableSessions
