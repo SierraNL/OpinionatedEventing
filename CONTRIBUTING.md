@@ -35,9 +35,9 @@ Tests are split into two categories: **unit / BDD** (fast, no Docker) and **inte
 dotnet test LibrariesOnly.slnf -- --filter-not-trait "Category=Integration"
 ```
 
-These run on all three target frameworks and complete in seconds. No external services are needed.
+These run on both target frameworks and complete in seconds. No external services are needed.
 
-> **MTP syntax note:** The project uses [Microsoft.Testing.Platform](https://learn.microsoft.com/en-us/testing-platform/overview) (MTP). On .NET 10, test-runner arguments are passed directly. On .NET 8 and 9, bridge mode is active and arguments must follow a `--` separator — as shown above. Always use `--filter-not-trait` / `--filter-trait` rather than `--filter`.
+> **MTP syntax note:** The project uses [Microsoft.Testing.Platform](https://learn.microsoft.com/en-us/testing-platform/overview) (MTP). On .NET 10, test-runner arguments are passed directly. On .NET 8, bridge mode is active and arguments must follow a `--` separator — as shown above. Always use `--filter-not-trait` / `--filter-trait` rather than `--filter`.
 
 ### Integration tests
 
@@ -47,7 +47,7 @@ dotnet test LibrariesOnly.slnf -- --filter-trait "Category=Integration"
 
 Integration tests require Docker to be running. Testcontainers will pull and start containers (RabbitMQ, SQL Server) automatically. They are tagged with `[Trait("Category", "Integration")]` and deliberately excluded from the fast run above.
 
-In CI, integration tests run on `net10.0` only to prevent Docker container name conflicts when all three framework legs run concurrently on the same runner. Locally you can run them against any target framework.
+In CI, integration tests run on `net10.0` only to prevent Docker container name conflicts when both framework legs run concurrently on the same runner. Locally you can run them against any target framework.
 
 ### Running a single test project
 

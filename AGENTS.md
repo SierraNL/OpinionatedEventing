@@ -1,6 +1,6 @@
 # AGENTS.md — OpinionatedEventing
 
-A suite of opinionated .NET 8/9/10 libraries for event-driven and command-driven messaging, targeting Azure Service Bus and RabbitMQ. The design philosophy is explicit, safe defaults over flexibility.
+A suite of opinionated .NET 8/10 libraries for event-driven and command-driven messaging, targeting Azure Service Bus and RabbitMQ. The design philosophy is explicit, safe defaults over flexibility.
 
 Full requirements are in [REQUIREMENTS.md](REQUIREMENTS.md). GitHub issues map one-to-one to library packages.
 

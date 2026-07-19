@@ -4,7 +4,7 @@ This guide walks you through installing OpinionatedEventing, picking a transport
 
 ## Prerequisites
 
-- .NET 8, 9, or 10
+- .NET 8 or 10
 - An Azure Service Bus namespace **or** a RabbitMQ broker (or run either locally via [Aspire](local-development.md))
 - Entity Framework Core (only required if the service **publishes** messages or uses sagas — receive-only services do not need it)
 
