@@ -60,6 +60,8 @@ await publisher.PublishEventAsync(new OrderPlaced(id, total), ct);
 await db.SaveChangesAsync(ct);
 ```
 
+> At-least-once delivery means handlers can see the same message twice — see [Idempotency](docs/idempotency.md) for how to handle duplicates.
+
 ## Try the sample
 
 A runnable end-to-end demo is included — four services (Order, Payment, Fulfillment, Notification) wired together over RabbitMQ with PostgreSQL. Requires [.NET 10 SDK](https://dotnet.microsoft.com/download) and a container runtime (Docker Desktop, Podman, or Rancher Desktop).

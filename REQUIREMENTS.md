@@ -47,6 +47,7 @@
 - No support for request/reply (RPC) patterns — commands are fire-and-forget to a single handler.
 - No dynamic message routing — topics/queues are determined by message type at registration time.
 - No support for .NET versions below 8.
+- **No inbox / deduplication store.** At-least-once delivery means consumers may see duplicate messages; making handlers idempotent (or deduplicating against their own store) is the consumer's responsibility. This is a deliberate v1.0 decision, not an oversight — see [docs/idempotency.md](docs/idempotency.md).
 
 ---
 
