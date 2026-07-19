@@ -11,7 +11,7 @@ Thank you for your interest in contributing. This guide covers everything you ne
 | [Aspire CLI](https://aspire.dev/get-started/prerequisites/) | Latest stable | Required only to run the sample — see installation note below |
 | Git | Any recent version | |
 
-The libraries target `net8.0`, `net9.0`, and `net10.0`. CI builds all three, but for local development the .NET 10 SDK is sufficient — it can build all target frameworks.
+The libraries target `net8.0` and `net10.0`. CI builds both, but for local development the .NET 10 SDK is sufficient — it can build all target frameworks.
 
 ## Clone and build
 

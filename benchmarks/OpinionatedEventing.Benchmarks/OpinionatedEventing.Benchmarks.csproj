@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <!-- Benchmarks target a single TFM — BenchmarkDotNet does not support multi-targeting. -->
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <!-- IsSampleProject suppresses the GitVersion + NuGet metadata items in Directory.Build.props. -->
     <IsSampleProject>true</IsSampleProject>
     <IsPackable>false</IsPackable>

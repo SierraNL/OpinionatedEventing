@@ -27,7 +27,7 @@ body:
     id: dotnet_version
     attributes:
       label: .NET version / target framework
-      placeholder: "e.g. net8.0, net9.0"
+      placeholder: "e.g. net8.0, net10.0"
     validations:
       required: true
 
