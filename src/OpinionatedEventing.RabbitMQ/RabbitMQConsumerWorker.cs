@@ -16,10 +16,16 @@ namespace OpinionatedEventing.RabbitMQ;
 /// <summary>
 /// Background service that consumes messages from RabbitMQ fanout exchanges (events) and direct
 /// queues (commands), then dispatches them to registered handlers via
-/// <see cref="IMessageHandlerRunner"/>.
+/// <see cref="IMessageHandlerRunner"/>. On handler failure, messages are retried up to
+/// <see cref="RabbitMQOptions.MaxDeliveryCount"/> times (tracked via a delivery-count header) before
+/// being routed to the queue's dead-letter exchange.
 /// </summary>
 internal sealed class RabbitMQConsumerWorker : BackgroundService
 {
+    private const string RetryCountHeader = "x-retry-count";
+    private const string DeadLetterReasonHeader = "x-dead-letter-reason";
+    private const string DeadLetterDescriptionHeader = "x-dead-letter-description";
+
     private readonly RabbitMqConnectionHolder _connectionHolder;
     private readonly IMessageHandlerRunner _handlerRunner;
     private readonly IServiceScopeFactory _scopeFactory;
@@ -163,7 +169,7 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
             try
             {
                 var consumer = new AsyncEventingBasicConsumer(entry.Channel);
-                consumer.ReceivedAsync += (_, ea) => ProcessDeliveryAsync(entry.Channel, ea, ct);
+                consumer.ReceivedAsync += (_, ea) => ProcessDeliveryAsync(entry.Channel, entry.QueueName, ea, ct);
                 var tag = await entry.Channel.BasicConsumeAsync(
                     queue: entry.QueueName,
                     autoAck: false,
@@ -196,7 +202,7 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
         var entry = new ConsumerEntry { Channel = channel, QueueName = queueName };
         _consumers.Add(entry);
 
-        consumer.ReceivedAsync += (_, ea) => ProcessDeliveryAsync(channel, ea, ct);
+        consumer.ReceivedAsync += (_, ea) => ProcessDeliveryAsync(channel, queueName, ea, ct);
 
         var tag = await channel.BasicConsumeAsync(
             queue: queueName,
@@ -209,6 +215,7 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
 
     internal async Task ProcessDeliveryAsync(
         IChannel channel,
+        string queueName,
         BasicDeliverEventArgs ea,
         CancellationToken ct)
     {
@@ -253,22 +260,86 @@ internal sealed class RabbitMQConsumerWorker : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to handle message with delivery tag {DeliveryTag}.", ea.DeliveryTag);
+            var deliveryCount = GetDeliveryCount(ea.BasicProperties) + 1;
+            var maxDeliveryCount = _options.Value.MaxDeliveryCount;
+
+            _logger.LogError(ex,
+                "Failed to handle message with delivery tag {DeliveryTag} (delivery {DeliveryCount}/{MaxDeliveryCount}).",
+                ea.DeliveryTag, deliveryCount, maxDeliveryCount);
 
             // CancellationToken.None: host shutdown must not leave the message unacknowledged.
             try
             {
-                await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false, CancellationToken.None)
+                if (deliveryCount >= maxDeliveryCount)
+                {
+                    var deadLetterProperties = BuildRetryProperties(
+                        ea.BasicProperties, deliveryCount, "HandlerException", ex.Message);
+                    await channel.BasicPublishAsync(
+                        exchange: $"{queueName}.dlx",
+                        routingKey: queueName,
+                        mandatory: false,
+                        basicProperties: deadLetterProperties,
+                        body: ea.Body,
+                        cancellationToken: CancellationToken.None).ConfigureAwait(false);
+                }
+                else
+                {
+                    var retryProperties = BuildRetryProperties(ea.BasicProperties, deliveryCount);
+                    await channel.BasicPublishAsync(
+                        exchange: string.Empty,
+                        routingKey: queueName,
+                        mandatory: false,
+                        basicProperties: retryProperties,
+                        body: ea.Body,
+                        cancellationToken: CancellationToken.None).ConfigureAwait(false);
+                }
+
+                await channel.BasicAckAsync(ea.DeliveryTag, multiple: false, CancellationToken.None)
                     .ConfigureAwait(false);
             }
-            catch (Exception nackEx)
+            catch (Exception publishEx)
             {
-                _logger.LogWarning(nackEx,
-                    "Failed to nack message with delivery tag {DeliveryTag}; message may be redelivered.",
+                _logger.LogWarning(publishEx,
+                    "Failed to requeue/dead-letter message with delivery tag {DeliveryTag}; nacking without requeue.",
                     ea.DeliveryTag);
+
+                try
+                {
+                    await channel.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false, CancellationToken.None)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception nackEx)
+                {
+                    _logger.LogWarning(nackEx,
+                        "Failed to nack message with delivery tag {DeliveryTag}; message may be redelivered.",
+                        ea.DeliveryTag);
+                }
             }
         }
     }
+
+    // Headers is guaranteed non-null in both helpers below: they are only called from the
+    // handler-failure catch block, reached only after the required-headers check above (which
+    // returns early whenever Headers is null) has already succeeded.
+
+    private static BasicProperties BuildRetryProperties(
+        IReadOnlyBasicProperties source,
+        int deliveryCount,
+        string? deadLetterReason = null,
+        string? deadLetterDescription = null)
+    {
+        var headers = new Dictionary<string, object?>(source.Headers!) { [RetryCountHeader] = deliveryCount };
+
+        if (deadLetterReason is not null)
+            headers[DeadLetterReasonHeader] = deadLetterReason;
+        if (deadLetterDescription is not null)
+            headers[DeadLetterDescriptionHeader] = deadLetterDescription;
+
+        return new BasicProperties(source) { Headers = headers };
+    }
+
+    private static int GetDeliveryCount(IReadOnlyBasicProperties properties)
+        => properties.Headers!.TryGetValue(RetryCountHeader, out var value) && value is int count ? count : 0;
 
     private async Task CloseConsumerChannelsAsync()
     {
