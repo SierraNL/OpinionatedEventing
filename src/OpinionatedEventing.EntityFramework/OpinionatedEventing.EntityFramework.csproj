@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-    <PackageReference Include="Microsoft.Extensions.Logging" VersionOverride="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Logging" VersionOverride="10.0.12" />
     <ProjectReference Include="..\OpinionatedEventing\OpinionatedEventing.csproj" />
     <ProjectReference Include="..\OpinionatedEventing.Outbox\OpinionatedEventing.Outbox.csproj" />
     <ProjectReference Include="..\OpinionatedEventing.Sagas\OpinionatedEventing.Sagas.csproj" />
