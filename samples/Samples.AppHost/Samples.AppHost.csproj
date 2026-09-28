@@ -16,7 +16,6 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
   <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
   <PackageReference Include="Microsoft.Extensions.Hosting" VersionOverride="10.0.12" />
-  <PackageReference Include="Microsoft.Extensions.Logging" />
   </ItemGroup>
 
   <ItemGroup>
