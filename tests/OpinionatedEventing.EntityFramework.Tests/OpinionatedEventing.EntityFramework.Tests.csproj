@@ -6,8 +6,10 @@
   </PropertyGroup>
 
   <!-- Force bundle_e_sqlite3 3.0.3 across all TFMs: replaces the vulnerable SQLitePCLRaw.lib.e_sqlite3 with SourceGear.sqlite3 (GHSA-2m69-gcr7-jv3q). -->
+  <!-- Force System.Security.Cryptography.Pkcs 9.0.21, pulled in transitively via Microsoft.Data.SqlClient (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx). -->
   <ItemGroup>
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" VersionOverride="3.0.3" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" VersionOverride="9.0.21" PrivateAssets="All" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.v3.mtp-v2" />
     <PackageReference Include="xunit.runner.visualstudio" />
