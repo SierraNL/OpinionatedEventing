@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <ProjectReference Include="..\Samples.Contracts\Samples.Contracts.csproj" />
     <ProjectReference Include="..\Samples.OrderService.Domain\Samples.OrderService.Domain.csproj" />
