@@ -55,9 +55,9 @@
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
   </ItemGroup>
 
-  <!-- GitVersion (versioning from git tags) -->
+  <!-- MinVer (versioning from git tags) -->
   <ItemGroup>
-    <PackageVersion Include="GitVersion.MsBuild" Version="6.8.2" />
+    <PackageVersion Include="MinVer" Version="8.0.0" />
   </ItemGroup>
 
   <!-- Reqnroll (BDD) -->
