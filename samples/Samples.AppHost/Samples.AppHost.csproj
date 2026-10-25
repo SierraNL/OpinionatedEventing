@@ -16,8 +16,8 @@
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
     <PackageReference Include="MessagePack" PrivateAssets="All" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-  <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
-  <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
 
   <ItemGroup>
