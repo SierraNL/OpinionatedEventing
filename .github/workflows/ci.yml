@@ -40,6 +40,13 @@ jobs:
         with:
           dotnet-version: ${{ matrix.dotnet }}
 
+      - name: Check central package versioning
+        run: |
+          if grep -rnE --include='*.csproj' 'VersionOverride=|<PackageReference[^>]* Version=' .; then
+            echo "::error::Do not set Version/VersionOverride in csproj files; use Directory.Packages.props (conditional entries for per-TFM versions)."
+            exit 1
+          fi
+
       - name: Restore
         run: dotnet restore LibrariesOnly.slnf
 
