@@ -38,6 +38,10 @@ public sealed class OutboxDispatcherWorker : BackgroundService
     /// <inheritdoc/>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // BackgroundService 8.x runs ExecuteAsync synchronously until its first incomplete await, so a
+        // loop that never awaits an incomplete task (e.g. PollInterval of zero) would block StartAsync.
+        await Task.Yield();
+
         var workerCount = Math.Max(1, _options.Value.Outbox.ConcurrentWorkers);
         var workers = Enumerable.Range(0, workerCount)
             .Select(_ => RunWorkerLoopAsync(stoppingToken))
