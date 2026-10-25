@@ -39,7 +39,7 @@ tests/
 
 7. **No OTel package dependencies in libraries.** Use `System.Diagnostics.ActivitySource` and `System.Diagnostics.Metrics`. Consumers bring their own OTel SDK.
 
-8. **Central package versioning.** Never add a `Version` attribute to `<PackageReference>` in a `.csproj`. All versions live in `Directory.Packages.props`.
+8. **Central package versioning.** Never add a `Version` attribute to `<PackageReference>` in a `.csproj`. All versions live in `Directory.Packages.props`. Never use `VersionOverride` either: `Microsoft.Extensions.*` and EF Core have a conditional `net8.0` (8.0.x floor) and `net10.0` entry per package there; projects that need 10.x on every TFM (Aspire) set `<UseLatestExtensions>true</UseLatestExtensions>`. CI enforces this.
 
 9. **No mocking frameworks in tests.** Use `InMemoryOutboxStore`, `FakePublisher`, `FakeMessagingContext` from `OpinionatedEventing.Testing`, or hand-written fakes.
 

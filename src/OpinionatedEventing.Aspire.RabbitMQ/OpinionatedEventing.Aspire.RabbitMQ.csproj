@@ -3,16 +3,18 @@
   <PropertyGroup>
     <Description>Aspire AppHost extension for OpinionatedEventing — adds a RabbitMQ container resource with the management plugin enabled. Reference this package from your AppHost project only.</Description>
     <PackageTags>$(PackageTags) aspire rabbitmq local-dev</PackageTags>
+    <!-- Aspire.Hosting 13 requires Microsoft.Extensions 10.x on every TFM, so skip the net8.0 floor. -->
+    <UseLatestExtensions>true</UseLatestExtensions>
   </PropertyGroup>
 
   <!-- Force MessagePack 2.5.303, pulled in transitively via Aspire.Hosting (GHSA-qhrr-8q5h-9q3h). -->
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.RabbitMQ" />
-    <PackageReference Include="MessagePack" VersionOverride="2.5.303" PrivateAssets="All" />
+    <PackageReference Include="MessagePack" PrivateAssets="All" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
   <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
-  <PackageReference Include="Microsoft.Extensions.Hosting" VersionOverride="10.0.12" />
+  <PackageReference Include="Microsoft.Extensions.Hosting" />
   <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 

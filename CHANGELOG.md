@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- net8.0 builds of the libraries now depend on the `8.0.x` line of `Microsoft.Extensions.*` and EF Core instead of `10.x`; net10.0 builds are unchanged. Versions are set per target framework in `Directory.Packages.props`.
+
 ## [1.0.0] - 2026-07-19
 
 ### Added

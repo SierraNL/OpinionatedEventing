@@ -115,7 +115,7 @@ Before opening a PR, confirm:
 - [ ] Unit and BDD tests pass: `dotnet test LibrariesOnly.slnf -- --filter-not-trait "Category=Integration"`
 - [ ] Integration tests pass locally (if you touched transport or EF Core code): `dotnet test LibrariesOnly.slnf -- --filter-trait "Category=Integration"`
 - [ ] Public and protected members in `src/` have XML `<summary>` doc comments
-- [ ] No `Version` attributes added to `<PackageReference>` elements — all versions live in `Directory.Packages.props`
+- [ ] No `Version` or `VersionOverride` attributes added to `<PackageReference>` elements — all versions live in `Directory.Packages.props`
 - [ ] `CHANGELOG.md` has an entry under `[Unreleased]` describing the change
 
 Open the PR targeting `main`:
