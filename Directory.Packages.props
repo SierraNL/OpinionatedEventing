@@ -4,30 +4,51 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
-  <!-- Microsoft.Extensions and EF Core are versioned per target framework: net8.0 builds use the
-       8.0.x floor so consumers on net8 are not forced onto 10.x; net10.0 (and samples) use 10.x.
-       Projects whose dependencies require 10.x on every TFM (Aspire) set
-       <UseLatestExtensions>true</UseLatestExtensions>. Do not use VersionOverride in csproj files — add/adjust a conditional entry here instead. -->
-  <!-- Microsoft.Extensions -->
-  <ItemGroup>
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" Condition="'$(TargetFramework)' == 'net8.0' and '$(UseLatestExtensions)' != 'true'" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.13" Condition="'$(TargetFramework)' != 'net8.0' or '$(UseLatestExtensions)' == 'true'" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" Condition="'$(TargetFramework)' == 'net8.0' and '$(UseLatestExtensions)' != 'true'" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" Condition="'$(TargetFramework)' != 'net8.0' or '$(UseLatestExtensions)' == 'true'" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" Condition="'$(TargetFramework)' == 'net8.0' and '$(UseLatestExtensions)' != 'true'" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.13" Condition="'$(TargetFramework)' != 'net8.0' or '$(UseLatestExtensions)' == 'true'" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="8.0.1" Condition="'$(TargetFramework)' == 'net8.0' and '$(UseLatestExtensions)' != 'true'" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.13" Condition="'$(TargetFramework)' != 'net8.0' or '$(UseLatestExtensions)' == 'true'" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.1" Condition="'$(TargetFramework)' == 'net8.0' and '$(UseLatestExtensions)' != 'true'" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.13" Condition="'$(TargetFramework)' != 'net8.0' or '$(UseLatestExtensions)' == 'true'" />
-    <PackageVersion Include="Microsoft.Extensions.Logging" Version="8.0.1" Condition="'$(TargetFramework)' == 'net8.0' and '$(UseLatestExtensions)' != 'true'" />
-    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.13" Condition="'$(TargetFramework)' != 'net8.0' or '$(UseLatestExtensions)' == 'true'" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" Condition="'$(TargetFramework)' == 'net8.0' and '$(UseLatestExtensions)' != 'true'" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" Condition="'$(TargetFramework)' != 'net8.0' or '$(UseLatestExtensions)' == 'true'" />
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="8.0.2" Condition="'$(TargetFramework)' == 'net8.0' and '$(UseLatestExtensions)' != 'true'" />
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.13" Condition="'$(TargetFramework)' != 'net8.0' or '$(UseLatestExtensions)' == 'true'" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="8.0.32" Condition="'$(TargetFramework)' == 'net8.0' and '$(UseLatestExtensions)' != 'true'" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.13" Condition="'$(TargetFramework)' != 'net8.0' or '$(UseLatestExtensions)' == 'true'" />
+  <!-- net8.0 floor: Microsoft.Extensions and EF Core use the 8.0.x line, so net8 consumers are not
+       forced onto 10.x. Projects that need 10.x on every TFM (Aspire) set
+       <UseLatestExtensions>true</UseLatestExtensions>. Do not use VersionOverride in csproj files;
+       add or adjust an entry in these groups instead. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0' and '$(UseLatestExtensions)' != 'true'">
+    <!-- Microsoft.Extensions -->
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="8.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="8.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="8.0.32" />
+    <!-- EF Core. SqlServer is used for migration integration tests.
+         NOTE: Microsoft.EntityFrameworkCore.Sqlite is NOT suitable for migration tests because
+         SQLite has no native DateTimeOffset type — columns are stored as TEXT, which means
+         CREATE TABLE DDL generated for SQL Server / PostgreSQL would pass silently with
+         incorrect semantics. Use SQL Server or PostgreSQL for migration integration tests. -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="8.0.32" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.32" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.32" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.32" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.32" />
+  </ItemGroup>
+
+  <!-- net10.0 and later (and projects with UseLatestExtensions) -->
+  <ItemGroup Condition="'$(TargetFramework)' != 'net8.0' or '$(UseLatestExtensions)' == 'true'">
+    <!-- Microsoft.Extensions -->
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.13" />
+    <!-- EF Core -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
   </ItemGroup>
 
   <!-- Transport brokers -->
@@ -35,22 +56,6 @@
     <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.21.0" />
     <PackageVersion Include="Azure.Identity" Version="1.21.0" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.2.2" />
-  </ItemGroup>
-
-  <!-- EF Core -->
-  <ItemGroup>
-    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="8.0.32" Condition="'$(TargetFramework)' == 'net8.0' and '$(UseLatestExtensions)' != 'true'" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.9" Condition="'$(TargetFramework)' != 'net8.0' or '$(UseLatestExtensions)' == 'true'" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.32" Condition="'$(TargetFramework)' == 'net8.0' and '$(UseLatestExtensions)' != 'true'" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.9" Condition="'$(TargetFramework)' != 'net8.0' or '$(UseLatestExtensions)' == 'true'" />
-    <!-- SqlServer provider is used for migration integration tests; the EF Core version
-         is selected per TFM by the conditional entries in this group.
-         NOTE: Microsoft.EntityFrameworkCore.Sqlite is NOT suitable for migration tests because
-         SQLite has no native DateTimeOffset type — columns are stored as TEXT, which means
-         CREATE TABLE DDL generated for SQL Server / PostgreSQL would pass silently with
-         incorrect semantics. Use SQL Server or PostgreSQL for migration integration tests. -->
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.32" Condition="'$(TargetFramework)' == 'net8.0' and '$(UseLatestExtensions)' != 'true'" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.9" Condition="'$(TargetFramework)' != 'net8.0' or '$(UseLatestExtensions)' == 'true'" />
   </ItemGroup>
 
   <!-- OpenTelemetry -->
@@ -102,10 +107,6 @@
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.12.0" />
     <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="2.5.1" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.32" Condition="'$(TargetFramework)' == 'net8.0' and '$(UseLatestExtensions)' != 'true'" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.9" Condition="'$(TargetFramework)' != 'net8.0' or '$(UseLatestExtensions)' == 'true'" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.32" Condition="'$(TargetFramework)' == 'net8.0' and '$(UseLatestExtensions)' != 'true'" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" Condition="'$(TargetFramework)' != 'net8.0' or '$(UseLatestExtensions)' == 'true'" />
     <!-- Pin bundle_e_sqlite3 to 3.0.3 — this version replaces the vulnerable SQLitePCLRaw.lib.e_sqlite3 with SourceGear.sqlite3 >= 3.50.4.5 (GHSA-2m69-gcr7-jv3q). -->
     <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
     <PackageVersion Include="Testcontainers" Version="4.16.0" />
