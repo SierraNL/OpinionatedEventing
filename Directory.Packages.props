@@ -25,10 +25,10 @@
          CREATE TABLE DDL generated for SQL Server / PostgreSQL would pass silently with
          incorrect semantics. Use SQL Server or PostgreSQL for migration integration tests. -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="8.0.32" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.32" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.32" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.32" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.32" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.33" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.33" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.33" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.33" />
   </ItemGroup>
 
   <!-- net10.0 and later (and projects with UseLatestExtensions) -->
