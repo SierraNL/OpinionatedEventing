@@ -18,7 +18,7 @@
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="8.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="8.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="8.0.32" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="8.0.33" />
     <!-- EF Core. SqlServer is used for migration integration tests.
          NOTE: Microsoft.EntityFrameworkCore.Sqlite is NOT suitable for migration tests because
          SQLite has no native DateTimeOffset type — columns are stored as TEXT, which means
