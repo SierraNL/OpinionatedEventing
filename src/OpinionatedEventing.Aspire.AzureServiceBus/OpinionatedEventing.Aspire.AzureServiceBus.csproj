@@ -7,10 +7,8 @@
     <UseLatestExtensions>true</UseLatestExtensions>
   </PropertyGroup>
 
-  <!-- Force MessagePack 2.5.303, pulled in transitively via Aspire.Hosting (GHSA-qhrr-8q5h-9q3h). -->
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.Azure.ServiceBus" />
-    <PackageReference Include="MessagePack" PrivateAssets="All" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
