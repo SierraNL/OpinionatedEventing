@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <ProjectReference Include="..\Samples.OrderService.Application\Samples.OrderService.Application.csproj" />
     <ProjectReference Include="..\..\src\OpinionatedEventing.EntityFramework\OpinionatedEventing.EntityFramework.csproj" />
