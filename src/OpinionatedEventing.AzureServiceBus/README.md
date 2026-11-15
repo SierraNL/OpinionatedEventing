@@ -41,6 +41,10 @@ builder.Services.AddOpinionatedEventing()
 
 In production, assign the **Azure Service Bus Data Owner** (or Data Sender + Data Receiver) role to your managed identity. Locally, `az login` is sufficient when using `DefaultAzureCredential`.
 
+## Documentation
+
+Guides, API cheat sheet and recipes: [opinionated-eventing.com](https://opinionated-eventing.com/). AI coding agents: start at [llms.txt](https://opinionated-eventing.com/llms.txt) and the [agent guide](https://opinionated-eventing.com/docs/ai/agent-guide).
+
 ## Repository
 
 [github.com/SierraNL/OpinionatedEventing](https://github.com/SierraNL/OpinionatedEventing)

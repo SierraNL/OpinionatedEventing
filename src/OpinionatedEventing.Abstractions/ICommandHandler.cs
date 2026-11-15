@@ -4,6 +4,15 @@ namespace OpinionatedEventing;
 /// Handles commands of type <typeparamref name="TCommand"/>.
 /// Exactly one registration per command type is allowed — duplicates throw at startup.
 /// </summary>
+/// <remarks>Delivery is at-least-once, so the handler must be idempotent.</remarks>
+/// <example>
+/// <code>
+/// public class PlaceOrderHandler : ICommandHandler&lt;PlaceOrder&gt;
+/// {
+///     public Task HandleAsync(PlaceOrder command, CancellationToken cancellationToken) =&gt; Task.CompletedTask;
+/// }
+/// </code>
+/// </example>
 /// <typeparam name="TCommand">The command type to handle.</typeparam>
 public interface ICommandHandler<in TCommand> where TCommand : ICommand
 {

@@ -66,6 +66,10 @@ public class Order : AggregateRoot
 
 `DomainEventInterceptor` harvests `RaiseDomainEvent` calls during `SaveChangesAsync` and writes them to the outbox in the same transaction.
 
+## Documentation
+
+Guides, API cheat sheet and recipes: [opinionated-eventing.com](https://opinionated-eventing.com/). AI coding agents: start at [llms.txt](https://opinionated-eventing.com/llms.txt) and the [agent guide](https://opinionated-eventing.com/docs/ai/agent-guide).
+
 ## Repository
 
 [github.com/SierraNL/OpinionatedEventing](https://github.com/SierraNL/OpinionatedEventing)
