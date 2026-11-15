@@ -63,7 +63,7 @@ await publisher.PublishEventAsync(new OrderPlaced(id, total), ct);
 await db.SaveChangesAsync(ct);
 ```
 
-> At-least-once delivery means handlers can see the same message twice — see [Idempotency](docs/idempotency.md) for how to handle duplicates.
+> At-least-once delivery means handlers can see the same message twice — see [Idempotency](https://opinionated-eventing.com/docs/idempotency) for how to handle duplicates.
 
 ## Try the sample
 
@@ -89,17 +89,28 @@ The port is shown in the dashboard under the `order-service` endpoint. See [samp
 
 ## Documentation
 
+The guides live on the website: <https://opinionated-eventing.com/>.
+
 | Guide | Description |
 |---|---|
-| [Getting Started](docs/getting-started.md) | Install, configure, and publish your first event |
-| [Commands vs Events](docs/commands-vs-events.md) | When to use each and why the separation matters |
-| [Outbox Pattern](docs/outbox-pattern.md) | How the outbox works internally, retry, and dead-letters |
-| [Saga Orchestration](docs/sagas-orchestration.md) | Stateful workflows with timeouts and compensation |
-| [Saga Choreography](docs/sagas-choreography.md) | Lightweight event-driven coordination with `ISagaParticipant` |
-| [DDD Aggregates](docs/ddd-aggregates.md) | Aggregate roots, domain events, and the interceptor |
-| [Local Development](docs/local-development.md) | Running locally with Aspire, RabbitMQ, and ASB emulator |
-| [Observability](docs/observability.md) | Logging, distributed tracing, and metrics |
-| [Idempotency](docs/idempotency.md) | At-least-once delivery, duplicate handling, and inbox-pattern guidance |
+| [Getting Started](https://opinionated-eventing.com/docs/getting-started) | Install, configure, and publish your first event |
+| [Commands vs Events](https://opinionated-eventing.com/docs/commands-vs-events) | When to use each and why the separation matters |
+| [Outbox Pattern](https://opinionated-eventing.com/docs/outbox-pattern) | How the outbox works internally, retry, and dead-letters |
+| [Saga Orchestration](https://opinionated-eventing.com/docs/sagas-orchestration) | Stateful workflows with timeouts and compensation |
+| [Saga Choreography](https://opinionated-eventing.com/docs/sagas-choreography) | Lightweight event-driven coordination with `ISagaParticipant` |
+| [DDD Aggregates](https://opinionated-eventing.com/docs/ddd-aggregates) | Aggregate roots, domain events, and the interceptor |
+| [Local Development](https://opinionated-eventing.com/docs/local-development) | Running locally with Aspire, RabbitMQ, and ASB emulator |
+| [Observability](https://opinionated-eventing.com/docs/observability) | Logging, distributed tracing, and metrics |
+| [Idempotency](https://opinionated-eventing.com/docs/idempotency) | At-least-once delivery, duplicate handling, and inbox-pattern guidance |
+
+## Using with AI coding agents
+
+OpinionatedEventing is newer than most LLM training data, so agents tend to guess at its API or reach for MassTransit/NServiceBus idioms. Point your agent at the website instead:
+
+- [`llms.txt`](https://opinionated-eventing.com/llms.txt) — docs index for LLMs
+- [Agent guide](https://opinionated-eventing.com/docs/ai/agent-guide) — design rules and do/don't
+- [API cheat sheet](https://opinionated-eventing.com/docs/ai/api-cheat-sheet), [packages](https://opinionated-eventing.com/docs/ai/packages), [recipes](https://opinionated-eventing.com/docs/ai/recipes), [migration mapping](https://opinionated-eventing.com/docs/ai/migration-mapping)
+- [Copy-paste templates](https://opinionated-eventing.com/docs/ai/templates) for GitHub Copilot and Claude
 
 ## Requirements
 

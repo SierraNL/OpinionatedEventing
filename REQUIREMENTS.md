@@ -47,7 +47,7 @@
 - No support for request/reply (RPC) patterns — commands are fire-and-forget to a single handler.
 - No dynamic message routing — topics/queues are determined by message type at registration time.
 - No support for .NET versions below 8.
-- **No inbox / deduplication store.** At-least-once delivery means consumers may see duplicate messages; making handlers idempotent (or deduplicating against their own store) is the consumer's responsibility. This is a deliberate v1.0 decision, not an oversight — see [docs/idempotency.md](docs/idempotency.md).
+- **No inbox / deduplication store.** At-least-once delivery means consumers may see duplicate messages; making handlers idempotent (or deduplicating against their own store) is the consumer's responsibility. This is a deliberate v1.0 decision, not an oversight — see [Idempotency guide](https://opinionated-eventing.com/docs/idempotency).
 
 ---
 
@@ -772,20 +772,9 @@ builder.Services.AddOpenTelemetry()
 - All `public` and `protected` members in all packages carry `<summary>` XML doc comments.
 - These are included in the NuGet packages so IntelliSense works out of the box.
 
-### 13.2 Conceptual Guides (`docs/`)
+### 13.2 Conceptual Guides (website)
 
-The `docs/` folder at the repository root contains the following guides (Markdown):
-
-| File | Topic |
-|---|---|
-| `getting-started.md` | Install packages, pick a transport, register handlers, publish a first event end-to-end |
-| `commands-vs-events.md` | When to use a command vs an event; why the separation matters |
-| `outbox-pattern.md` | How the outbox works internally, why direct publish is not available, failure handling |
-| `sagas-orchestration.md` | Building an orchestrated saga with steps, timeout, and compensation |
-| `sagas-choreography.md` | Using saga participants for event-driven choreography |
-| `ddd-aggregates.md` | Defining aggregate roots, raising domain events, keeping aggregates free of infrastructure |
-| `local-development.md` | Running locally with Aspire, RabbitMQ container, and Azure Service Bus emulator |
-| `observability.md` | Wiring up logging, OTel traces, and metrics |
+The conceptual guides (getting started, commands vs events, outbox, sagas, DDD aggregates, local development, observability, idempotency) and the agent-facing guides (`docs/ai/`, `llms.txt`) live on the website, which is their single source of truth: <https://opinionated-eventing.com/> (repository: `SierraNL/opinionated-eventing-website`). They are not duplicated in this repository.
 
 ### 13.3 Sample Application (`samples/`)
 
