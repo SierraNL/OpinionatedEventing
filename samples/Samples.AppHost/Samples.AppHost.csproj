@@ -8,6 +8,8 @@
     <!-- Explicit here so IDEs (Rider) pick it up; other sample projects rely on samples/Directory.Build.props. -->
     <TargetFramework>net10.0</TargetFramework>
     <IsAspireHost>true</IsAspireHost>
+    <!-- The sample does not use features that need the Aspire CLI bundle. -->
+    <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
