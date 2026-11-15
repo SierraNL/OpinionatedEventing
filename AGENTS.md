@@ -4,6 +4,8 @@ A suite of opinionated .NET 10/11 libraries for event-driven and command-driven 
 
 Full requirements are in [REQUIREMENTS.md](REQUIREMENTS.md). GitHub issues map one-to-one to library packages.
 
+Consumer-facing documentation and agent guidance (guides, API cheat sheet, `llms.txt`, Copilot/Claude templates) live on the website, the single source of truth: <https://opinionated-eventing.com/> (repo `SierraNL/opinionated-eventing-website`). This repository does not contain a `docs/` folder — update the website instead of duplicating content here. If you are an agent *using* the library (not contributing to it), start at <https://opinionated-eventing.com/llms.txt>.
+
 ## Repository layout
 
 ```

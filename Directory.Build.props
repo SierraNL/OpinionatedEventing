@@ -22,6 +22,7 @@
     <Authors>Leon Grave</Authors>
     <Company>SierraNL</Company>
     <Product>OpinionatedEventing</Product>
+    <PackageProjectUrl>https://opinionated-eventing.com/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/SierraNL/OpinionatedEventing</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
