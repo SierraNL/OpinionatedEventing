@@ -23,7 +23,16 @@ public static class OutboxBuilderExtensions
     /// <c>OpinionatedEventing.EntityFramework</c> or <c>OpinionatedEventing.Testing</c>) and a
     /// registered <see cref="ITransport"/> (provided by <c>OpinionatedEventing.AzureServiceBus</c>
     /// or <c>OpinionatedEventing.RabbitMQ</c>).
+    /// Call <see cref="IPublisher"/> methods before <c>SaveChangesAsync</c> so the outbox row commits in the
+    /// same transaction as your state change; do not publish after the save or from a different scope.
     /// </remarks>
+    /// <example>
+    /// <code>
+    /// services.AddOpinionatedEventing()
+    ///     .AddHandlersFromAssemblies(typeof(Program).Assembly)
+    ///     .AddOutbox();
+    /// </code>
+    /// </example>
     /// <param name="builder">The eventing builder to extend.</param>
     /// <returns>The same builder for chaining.</returns>
     public static OpinionatedEventingBuilder AddOutbox(this OpinionatedEventingBuilder builder)

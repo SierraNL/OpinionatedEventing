@@ -37,6 +37,10 @@ builder.Services.AddOpenTelemetry()
 - `opinionatedeventing.saga.active` — current count of active saga instances
 - `opinionatedeventing.saga.timed_out` — count of timed-out sagas
 
+## Documentation
+
+Guides, API cheat sheet and recipes: [opinionated-eventing.com](https://opinionated-eventing.com/). AI coding agents: start at [llms.txt](https://opinionated-eventing.com/llms.txt) and the [agent guide](https://opinionated-eventing.com/docs/ai/agent-guide).
+
 ## Repository
 
 [github.com/SierraNL/OpinionatedEventing](https://github.com/SierraNL/OpinionatedEventing)

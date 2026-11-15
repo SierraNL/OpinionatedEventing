@@ -19,6 +19,10 @@ Once registered, every outbound **event** is serialised as a CloudEvents structu
 
 See [OpinionatedEventing.CloudEvents](https://www.nuget.org/packages/OpinionatedEventing.CloudEvents) for the attribute mapping and `CloudEventsOptions` reference.
 
+## Documentation
+
+Guides, API cheat sheet and recipes: [opinionated-eventing.com](https://opinionated-eventing.com/). AI coding agents: start at [llms.txt](https://opinionated-eventing.com/llms.txt) and the [agent guide](https://opinionated-eventing.com/docs/ai/agent-guide).
+
 ## Repository
 
 [github.com/SierraNL/OpinionatedEventing](https://github.com/SierraNL/OpinionatedEventing)

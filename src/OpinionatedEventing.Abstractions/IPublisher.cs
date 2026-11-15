@@ -4,6 +4,18 @@ namespace OpinionatedEventing;
 /// The only outbound message path in OpinionatedEventing.
 /// All calls write to the outbox — no message is sent directly to a broker.
 /// </summary>
+/// <remarks>
+/// Call within the same unit of work as your state change and before <c>SaveChangesAsync</c>, so the outbox
+/// row commits atomically with it. Do not bypass this with a broker client; do not publish domain events from
+/// aggregates through this interface (raise them on the aggregate root instead). Requires <c>AddOutbox()</c>.
+/// </remarks>
+/// <example>
+/// <code>
+/// db.Orders.Add(order);
+/// await publisher.PublishEventAsync(new OrderPlaced(order.Id), ct);
+/// await db.SaveChangesAsync(ct); // outbox row commits with the order
+/// </code>
+/// </example>
 public interface IPublisher
 {
     /// <summary>

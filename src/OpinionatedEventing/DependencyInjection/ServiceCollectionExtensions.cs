@@ -15,6 +15,22 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// Registers the OpinionatedEventing core services and configures options.
     /// </summary>
+    /// <remarks>
+    /// This is the entry point; it registers no publisher and no transport on its own. Chain
+    /// <c>AddHandlersFromAssemblies</c> and <c>AddOutbox</c>, then register a store
+    /// (<c>AddOpinionatedEventingEntityFramework</c>) and a transport (RabbitMQ or Azure Service Bus).
+    /// Without <c>AddOutbox</c> there is no <see cref="IPublisher"/>; there is deliberately no way to publish
+    /// directly to the broker.
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// services.AddOpinionatedEventing()
+    ///     .AddHandlersFromAssemblies(typeof(Program).Assembly)
+    ///     .AddOutbox();
+    /// services.AddOpinionatedEventingEntityFramework&lt;AppDbContext&gt;();
+    /// services.AddRabbitMQTransport(o => o.ServiceName = "my-service");
+    /// </code>
+    /// </example>
     /// <param name="services">The service collection to register into.</param>
     /// <param name="configure">Optional delegate to configure <see cref="OpinionatedEventingOptions"/>.</param>
     /// <returns>An <see cref="OpinionatedEventingBuilder"/> for further configuration.</returns>

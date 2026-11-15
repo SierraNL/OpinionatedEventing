@@ -34,6 +34,18 @@ public sealed class OpinionatedEventingBuilder
     /// Multiple event handlers for the same event type are allowed.
     /// Duplicate command handlers for the same command type throw <see cref="InvalidOperationException"/>.
     /// </summary>
+    /// <remarks>
+    /// Commands are point-to-point: exactly one handler per command type. Events fan out: any number of handlers.
+    /// Handlers must be idempotent — delivery is at-least-once. Message types that are published or consumed
+    /// but not covered by a scanned assembly cannot be resolved by their stable identifier.
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// services.AddOpinionatedEventing()
+    ///     .AddHandlersFromAssemblies(typeof(Program).Assembly)
+    ///     .AddOutbox();
+    /// </code>
+    /// </example>
     /// <param name="assemblies">The assemblies to scan.</param>
     /// <returns>The same builder instance for chaining.</returns>
     public OpinionatedEventingBuilder AddHandlersFromAssemblies(params Assembly[] assemblies)
