@@ -6,9 +6,9 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
-    # Microsoft.Extensions.* and EF Core carry an 8.0.x (net8.0) and a 10.0.x (net10.0) entry in
+    # Microsoft.Extensions.* and EF Core carry a 10.0.x (net10.0) and an 11.0.x (net11.0) entry in
     # Directory.Packages.props. Ignoring major bumps keeps each line within its major version;
-    # moving to a new major (e.g. when adding net11.0) is a deliberate manual change.
+    # moving to a new major (e.g. when adding net12.0) is a deliberate manual change.
     ignore:
       - dependency-name: "Microsoft.Extensions.*"
         update-types: ["version-update:semver-major"]

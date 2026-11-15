@@ -3,7 +3,7 @@
 [![CI](https://github.com/SierraNL/OpinionatedEventing/actions/workflows/ci.yml/badge.svg)](https://github.com/SierraNL/OpinionatedEventing/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/SierraNL/OpinionatedEventing/branch/main/graph/badge.svg)](https://codecov.io/gh/SierraNL/OpinionatedEventing)
 [![License: MIT](https://img.shields.io/github/license/SierraNL/OpinionatedEventing)](LICENSE)
-[![.NET](https://img.shields.io/badge/.NET-8%20%7C%2010-512BD4)](https://dotnet.microsoft.com)
+[![.NET](https://img.shields.io/badge/.NET-10%20%7C%2011-512BD4)](https://dotnet.microsoft.com)
 
 A suite of opinionated .NET libraries for event-driven and command-driven messaging, targeting Azure Service Bus and RabbitMQ. Designed for developers who want correctness and safe defaults over maximum flexibility.
 
@@ -67,7 +67,7 @@ await db.SaveChangesAsync(ct);
 
 ## Try the sample
 
-A runnable end-to-end demo is included — four services (Order, Payment, Fulfillment, Notification) wired together over RabbitMQ with PostgreSQL. Requires [.NET 10 SDK](https://dotnet.microsoft.com/download) and a container runtime (Docker Desktop, Podman, or Rancher Desktop).
+A runnable end-to-end demo is included — four services (Order, Payment, Fulfillment, Notification) wired together over RabbitMQ with PostgreSQL. Requires [.NET 11 SDK](https://dotnet.microsoft.com/download) and a container runtime (Docker Desktop, Podman, or Rancher Desktop).
 
 ```bash
 git clone https://github.com/SierraNL/OpinionatedEventing
@@ -103,7 +103,7 @@ The port is shown in the dashboard under the `order-service` endpoint. See [samp
 
 ## Requirements
 
-.NET 8 or 10. See [REQUIREMENTS.md](REQUIREMENTS.md) for the full specification.
+.NET 10 or 11. See [REQUIREMENTS.md](REQUIREMENTS.md) for the full specification.
 
 ## Why I built it
 

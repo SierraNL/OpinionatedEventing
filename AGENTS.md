@@ -1,6 +1,6 @@
 # AGENTS.md — OpinionatedEventing
 
-A suite of opinionated .NET 8/10 libraries for event-driven and command-driven messaging, targeting Azure Service Bus and RabbitMQ. The design philosophy is explicit, safe defaults over flexibility.
+A suite of opinionated .NET 10/11 libraries for event-driven and command-driven messaging, targeting Azure Service Bus and RabbitMQ. The design philosophy is explicit, safe defaults over flexibility.
 
 Full requirements are in [REQUIREMENTS.md](REQUIREMENTS.md). GitHub issues map one-to-one to library packages.
 
@@ -39,7 +39,7 @@ tests/
 
 7. **No OTel package dependencies in libraries.** Use `System.Diagnostics.ActivitySource` and `System.Diagnostics.Metrics`. Consumers bring their own OTel SDK.
 
-8. **Central package versioning.** Never add a `Version` attribute to `<PackageReference>` in a `.csproj`. All versions live in `Directory.Packages.props`. Never use `VersionOverride` either: `Microsoft.Extensions.*` and EF Core have a conditional `net8.0` (8.0.x floor) and `net10.0` entry per package there; projects that need 10.x on every TFM (Aspire) set `<UseLatestExtensions>true</UseLatestExtensions>`. CI enforces this.
+8. **Central package versioning.** Never add a `Version` attribute to `<PackageReference>` in a `.csproj`. All versions live in `Directory.Packages.props`. Never use `VersionOverride` either: `Microsoft.Extensions.*` and EF Core have a conditional `net10.0` (10.0.x) and `net11.0` (11.0.x) entry per package there. CI enforces this.
 
 9. **No mocking frameworks in tests.** Use `InMemoryOutboxStore`, `FakePublisher`, `FakeMessagingContext` from `OpinionatedEventing.Testing`, or hand-written fakes.
 
@@ -52,7 +52,7 @@ tests/
 - `async Task` + `CancellationToken` on every async public method
 - No shared mutable static state — all state must be DI-scoped
 - XML `<summary>` doc comments on all `public` and `protected` members in `src/` projects
-- Target frameworks: `net8.0;net10.0` (set in `Directory.Build.props` — do not override per project)
+- Target frameworks: `net10.0;net11.0` (set in `Directory.Build.props` — do not override per project)
 - C# naming and formatting rules are enforced via [`.editorconfig`](.editorconfig): file-scoped namespaces, Allman braces, `_camelCase` private fields, `s_camelCase` private static fields, explicit types preferred over `var`
 - Use `using var` (or `await using var`) for every `IDisposable` / `IAsyncDisposable` — including inside test methods; never call `.Dispose()` manually at end of scope
 - Prefer `.Where(predicate)` over `foreach` + `if (!condition) continue`; prefer `.Select(transform)` over `foreach` + `var x = transform(item)` when the body only uses `x`

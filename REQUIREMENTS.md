@@ -30,7 +30,7 @@
 
 ### Goals
 
-- Provide a **small, cohesive** set of .NET 8+ libraries for event-driven and command-driven messaging.
+- Provide a **small, cohesive** set of .NET 10+ libraries for event-driven and command-driven messaging.
 - Enforce **correct patterns by default**: outbox-first publishing, strict command/event separation, transactional consistency with the business domain.
 - Make it easy to build systems following **Domain-Driven Design** (aggregates, domain events).
 - Support **two transports**: Azure Service Bus (cloud) and RabbitMQ (local/on-prem), switchable via DI registration with no handler code changes.
@@ -820,7 +820,7 @@ dotnet run
 
 | Requirement | Specification |
 |---|---|
-| Target framework | .NET 8 (minimum); .NET 10 also targeted |
+| Target framework | .NET 10 (minimum, LTS); .NET 11 also targeted |
 | Async | All public APIs are `async Task`; `CancellationToken` on every async method |
 | Thread safety | No shared mutable static state; all state is DI-scoped |
 | Nullable | `#nullable enable` in all projects; no `null!` suppressions without comment |

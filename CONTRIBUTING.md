@@ -11,7 +11,7 @@ Thank you for your interest in contributing. This guide covers everything you ne
 | [Aspire CLI](https://aspire.dev/get-started/prerequisites/) | Latest stable | Required only to run the sample — see installation note below |
 | Git | Any recent version | |
 
-The libraries target `net8.0` and `net10.0`. CI builds both, but for local development the .NET 10 SDK is sufficient — it can build all target frameworks.
+The libraries target `net10.0` and `net11.0`. CI builds both; for local development the .NET 11 SDK (pinned in `global.json`) can build all target frameworks, and the .NET 10 runtime is needed to run the `net10.0` tests.
 
 ## Clone and build
 
@@ -37,7 +37,7 @@ dotnet test LibrariesOnly.slnf -- --filter-not-trait "Category=Integration"
 
 These run on both target frameworks and complete in seconds. No external services are needed.
 
-> **MTP syntax note:** The project uses [Microsoft.Testing.Platform](https://learn.microsoft.com/en-us/testing-platform/overview) (MTP). On .NET 10, test-runner arguments are passed directly. On .NET 8, bridge mode is active and arguments must follow a `--` separator — as shown above. Always use `--filter-not-trait` / `--filter-trait` rather than `--filter`.
+> **MTP syntax note:** The project uses [Microsoft.Testing.Platform](https://learn.microsoft.com/en-us/testing-platform/overview) (MTP) in native mode (via `global.json`): test-runner arguments are passed directly after the build arguments. Always use `--filter-not-trait` / `--filter-trait` rather than `--filter`.
 
 ### Integration tests
 
