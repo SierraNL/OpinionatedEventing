@@ -1,7 +1,7 @@
 <Project>
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -10,14 +10,10 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
-  <!-- MTP / xunit.v3: test projects run as self-executing assemblies.
-       TestingPlatformDotnetTestSupport enables the VSTest bridge so that
-       "dotnet test" can drive MTP runners on the .NET 8 SDK. The .NET 10 SDK
-       dropped bridge mode; it uses native MTP via global.json instead, so
-       the property must not be set when building with SDK 10+. -->
+  <!-- MTP / xunit.v3: test projects run as self-executing assemblies and are driven by
+       native MTP via the global.json test runner setting (SDK 10+). -->
   <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
     <OutputType>Exe</OutputType>
-    <TestingPlatformDotnetTestSupport Condition="$([MSBuild]::VersionLessThan('$(NETCoreSdkVersion)', '10.0.0'))">true</TestingPlatformDotnetTestSupport>
     <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
   </PropertyGroup>
 

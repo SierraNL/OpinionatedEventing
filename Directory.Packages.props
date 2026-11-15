@@ -4,51 +4,53 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
-  <!-- net8.0 floor: Microsoft.Extensions and EF Core use the 8.0.x line, so net8 consumers are not
-       forced onto 10.x. Projects that need 10.x on every TFM (Aspire) set
-       <UseLatestExtensions>true</UseLatestExtensions>. Do not use VersionOverride in csproj files;
-       add or adjust an entry in these groups instead. -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0' and '$(UseLatestExtensions)' != 'true'">
+  <!-- net10.0 (LTS): Microsoft.Extensions and EF Core use the 10.0.x line. Do not use VersionOverride in
+       csproj files; add or adjust an entry in these groups instead. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <!-- Microsoft.Extensions -->
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.1" />
-    <PackageVersion Include="Microsoft.Extensions.Logging" Version="8.0.1" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="8.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="8.0.33" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.14" />
     <!-- EF Core. SqlServer is used for migration integration tests.
          NOTE: Microsoft.EntityFrameworkCore.Sqlite is NOT suitable for migration tests because
          SQLite has no native DateTimeOffset type — columns are stored as TEXT, which means
          CREATE TABLE DDL generated for SQL Server / PostgreSQL would pass silently with
          incorrect semantics. Use SQL Server or PostgreSQL for migration integration tests. -->
-    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="8.0.32" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.33" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.33" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.33" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.33" />
-  </ItemGroup>
-
-  <!-- net10.0 and later (and projects with UseLatestExtensions) -->
-  <ItemGroup Condition="'$(TargetFramework)' != 'net8.0' or '$(UseLatestExtensions)' == 'true'">
-    <!-- Microsoft.Extensions -->
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.13" />
-    <!-- EF Core -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.9" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.9" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.9" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.9" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
+  </ItemGroup>
+
+  <!-- net11.0: Microsoft.Extensions and EF Core use the 11.0.x line. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net11.0'">
+    <!-- Microsoft.Extensions -->
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="11.0.0" />
+    <!-- EF Core. SqlServer is used for migration integration tests.
+         NOTE: Microsoft.EntityFrameworkCore.Sqlite is NOT suitable for migration tests because
+         SQLite has no native DateTimeOffset type — columns are stored as TEXT, which means
+         CREATE TABLE DDL generated for SQL Server / PostgreSQL would pass silently with
+         incorrect semantics. Use SQL Server or PostgreSQL for migration integration tests. -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="11.0.0" />
   </ItemGroup>
 
   <!-- Transport brokers -->
@@ -65,13 +67,13 @@
 
   <!-- Aspire -->
   <ItemGroup>
-    <PackageVersion Include="Aspire.Hosting" Version="13.4.6" />
-    <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="13.6.4" />
-    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.6.4" />
-    <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="13.6.4" />
+    <PackageVersion Include="Aspire.Hosting" Version="13.6.5" />
+    <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="13.6.5" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.6.5" />
+    <PackageVersion Include="Aspire.Hosting.Azure.ServiceBus" Version="13.6.5" />
   </ItemGroup>
 
-  <!-- Samples (net10.0 only) -->
+  <!-- Samples (net10.0 only — Npgsql EF Core provider has no 11.0 GA yet) -->
   <ItemGroup>
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
   </ItemGroup>
@@ -95,7 +97,8 @@
   <!-- Security pins for transitive dependencies -->
   <ItemGroup>
     <!-- Pulled in transitively via Microsoft.Data.SqlClient (GHSA-2fmv-rv2c-59x7, GHSA-846f-f764-76mx). -->
-    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.14" Condition="'$(TargetFramework)' != 'net11.0'" />
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="11.0.0" Condition="'$(TargetFramework)' == 'net11.0'" />
   </ItemGroup>
 
   <!-- Test packages -->

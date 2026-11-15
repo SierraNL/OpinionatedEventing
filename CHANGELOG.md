@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- net8.0 builds of the libraries now depend on the `8.0.x` line of `Microsoft.Extensions.*` and EF Core instead of `10.x`; net10.0 builds are unchanged. Versions are set per target framework in `Directory.Packages.props`.
+### Added
+- .NET 11 support — libraries now also target `net11.0`, using the `11.0.x` line of `Microsoft.Extensions.*` and EF Core. Samples and the Aspire AppHost now target `net11.0`.
+
+### Removed
+- **Breaking:** .NET 8 support — .NET 8 (LTS) reached end of support on 2026-11-10. Target frameworks are now `net10.0` and `net11.0`. This is a major version bump.
 
 ## [1.0.0] - 2026-07-19
 

@@ -3,8 +3,6 @@
   <PropertyGroup>
     <Description>Aspire AppHost extension for OpinionatedEventing — adds an Azure Service Bus emulator resource. Reference this package from your AppHost project only.</Description>
     <PackageTags>$(PackageTags) aspire azure azure-service-bus local-dev</PackageTags>
-    <!-- Aspire.Hosting 13 requires Microsoft.Extensions 10.x on every TFM, so skip the net8.0 floor. -->
-    <UseLatestExtensions>true</UseLatestExtensions>
   </PropertyGroup>
 
   <ItemGroup>
