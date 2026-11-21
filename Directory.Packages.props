@@ -75,7 +75,7 @@
 
   <!-- Samples (net10.0 only — Npgsql EF Core provider has no 11.0 GA yet) -->
   <ItemGroup>
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.4" />
   </ItemGroup>
 
   <!-- MinVer (versioning from git tags) -->
