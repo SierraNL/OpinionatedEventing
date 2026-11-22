@@ -666,7 +666,7 @@ Two separate AppHost-only packages add Aspire resource definitions for each supp
 // dotnet add package OpinionatedEventing.Aspire.RabbitMQ
 var rabbitmq = builder.AddRabbitMqMessaging("rabbitmq");
 
-var orderService = builder.AddProject<Projects.OrderService>()
+var orderService = builder.AddDotnetProject("order-service", "../OrderService/OrderService.csproj")
     .WithReference(rabbitmq);
 ```
 
@@ -681,7 +681,7 @@ var orderService = builder.AddProject<Projects.OrderService>()
 // dotnet add package OpinionatedEventing.Aspire.AzureServiceBus
 var asb = builder.AddAzureServiceBusEmulator("servicebus");
 
-var orderService = builder.AddProject<Projects.OrderService>()
+var orderService = builder.AddDotnetProject("order-service", "../OrderService/OrderService.csproj")
     .WithReference(asb);
 ```
 

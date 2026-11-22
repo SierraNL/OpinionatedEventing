@@ -16,10 +16,12 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var bus = builder.AddAzureServiceBusEmulator("messaging");
 
-builder.AddProject<Projects.OrderService>("order-service")
+builder.AddDotnetProject("order-service", "../OrderService/OrderService.csproj")
        .WithReference(bus)
        .WaitFor(bus);
 ```
+
+`AddDotnetProject` comes from the `Aspire.Hosting.Dotnet` package (Aspire 17+).
 
 The referenced service reads the emulator connection string automatically via `OpinionatedEventing.AzureServiceBus`.
 

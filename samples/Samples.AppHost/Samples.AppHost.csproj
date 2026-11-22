@@ -1,31 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Aspire AppHost SDK wires up project discovery, resource injection, and the dashboard. -->
-  <Sdk Name="Aspire.AppHost.Sdk" Version="13.6.5" />
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <!-- Explicit here so IDEs (Rider) pick it up; other sample projects rely on samples/Directory.Build.props. -->
     <TargetFramework>net10.0</TargetFramework>
-    <IsAspireHost>true</IsAspireHost>
-    <!-- The sample does not use features that need the Aspire CLI bundle. -->
-    <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.Dotnet" />
     <PackageReference Include="Aspire.Hosting.RabbitMQ" />
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- Each service project is discovered at build time as Projects.Samples_* type. -->
-    <ProjectReference Include="..\Samples.OrderService.Api\Samples.OrderService.Api.csproj" />
-    <ProjectReference Include="..\Samples.PaymentService\Samples.PaymentService.csproj" />
-    <ProjectReference Include="..\Samples.FulfillmentService\Samples.FulfillmentService.csproj" />
-    <ProjectReference Include="..\Samples.NotificationService\Samples.NotificationService.csproj" />
   </ItemGroup>
 
 </Project>

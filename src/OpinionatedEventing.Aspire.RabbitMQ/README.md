@@ -16,10 +16,12 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var rabbit = builder.AddRabbitMqMessaging("messaging");
 
-builder.AddProject<Projects.OrderService>("order-service")
+builder.AddDotnetProject("order-service", "../OrderService/OrderService.csproj")
        .WithReference(rabbit)
        .WaitFor(rabbit);
 ```
+
+`AddDotnetProject` comes from the `Aspire.Hosting.Dotnet` package (Aspire 17+).
 
 The referenced service reads the connection string automatically via `OpinionatedEventing.RabbitMQ`.
 
