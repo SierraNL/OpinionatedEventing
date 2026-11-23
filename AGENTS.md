@@ -43,6 +43,8 @@ tests/
 
 8. **Central package versioning.** Never add a `Version` attribute to `<PackageReference>` in a `.csproj`. All versions live in `Directory.Packages.props`. Never use `VersionOverride` either: `Microsoft.Extensions.*` and EF Core have a conditional `net10.0` (10.0.x) and `net11.0` (11.0.x) entry per package there. CI enforces this.
 
+   **Library dependency versions are floors.** The versions in `Directory.Packages.props` for `Microsoft.Extensions.*`, EF Core and other packages the shipped libraries depend on are the *minimum* version consumers are forced to; raising one forces every consumer up. Do not bump them for routine patch/minor releases. Bump only when the library needs a fix or API from the newer version (e.g. a security fix), as a deliberate manual change that moves the whole set of related packages together (all `Microsoft.EntityFrameworkCore*`, all `Microsoft.Extensions.*`) to avoid `NU1605` downgrade errors. Dependabot is configured to ignore patch/minor updates for these; test-only and sample-only packages may float.
+
 9. **No mocking frameworks in tests.** Use `InMemoryOutboxStore`, `FakePublisher`, `FakeMessagingContext` from `OpinionatedEventing.Testing`, or hand-written fakes.
 
 10. **Integration tests must be tagged.** `[Trait("Category", "Integration")]` on any test that needs Docker / Testcontainers. This lets CI skip them on fast runs.

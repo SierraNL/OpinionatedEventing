@@ -9,11 +9,15 @@ updates:
     # Microsoft.Extensions.* and EF Core carry a 10.0.x (net10.0) and an 11.0.x (net11.0) entry in
     # Directory.Packages.props. Ignoring major bumps keeps each line within its major version;
     # moving to a new major (e.g. when adding net12.0) is a deliberate manual change.
+    #
+    # The versions of Microsoft.Extensions.* and EF Core are also the minimum versions consumers of the
+    # shipped libraries get forced to (see AGENTS.md, "Library dependency versions are floors"), so
+    # patch/minor bumps are ignored too and done manually only when a fix or API is actually needed.
     ignore:
       - dependency-name: "Microsoft.Extensions.*"
-        update-types: ["version-update:semver-major"]
+        update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
       - dependency-name: "Microsoft.EntityFrameworkCore*"
-        update-types: ["version-update:semver-major"]
+        update-types: ["version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch"]
       # OpenTelemetry stays on the minimal supported version; bump it manually when a release is needed.
       - dependency-name: "OpenTelemetry"
     groups:
